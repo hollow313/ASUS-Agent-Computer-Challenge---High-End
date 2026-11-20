@@ -128,12 +128,17 @@ whim, it is a sizing decision you can verify.
    morning. The password is never returned by the API.
 7. **The limits are written.** Part 2 below, and [`docs/PRODUCTION.md`](docs/PRODUCTION.md).
 
-## Two videos, two different things
+## Two videos, two uses
 
 | Video | Length | What it shows |
 | --- | --- | --- |
-| [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4) | 64 s | the agentic loop, procedural memory, the measurements |
-| [`docs/video/agent-computer-delegation.mp4`](docs/video/agent-computer-delegation.mp4) | 41 s | three sub-agents, isolated budgets, aggregation |
+| [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4) | 2 min 25 | the whole project: the 3 GB ceiling, the five scenarios, procedural memory, delegation, routing, scheduling, the measurements and the card sizing |
+| [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4) | 64 s | the agentic loop in action, from objective to deliverable |
+
+The first is the guided tour: nine slides, a continuous voice-over, the real screenshots of the
+repository. The second is the short demo, for whoever wants to see the agent run before reading.
+Narration script: [`video/narration-presentation.txt`](video/narration-presentation.txt); the edit
+is reproducible with `video/slides3.py` then `video/build3.py`.
 
 The voice-over of the first video is produced by a tool of the project (`tts_speak`), not by
 external software. The audio file and the narration script are in the repository.

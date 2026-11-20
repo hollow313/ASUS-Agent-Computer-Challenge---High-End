@@ -134,12 +134,17 @@ un caprice, c'est un dimensionnement vérifiable.
    les scénarios tous les matins. Le mot de passe n'est jamais renvoyé par l'API.
 7. **Les limites sont écrites.** Partie 2 plus bas, et [`docs/PRODUCTION.md`](docs/PRODUCTION.md).
 
-## Deux vidéos, deux choses différentes
+## Deux vidéos, deux usages
 
 | Vidéo | Durée | Ce qu'elle montre |
 | --- | --- | --- |
-| [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4) | 64 s | la boucle agentique, la mémoire procédurale, les mesures |
-| [`docs/video/agent-computer-delegation.mp4`](docs/video/agent-computer-delegation.mp4) | 41 s | trois sous-agents, budget cloisonné, agrégation |
+| [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4) | 2 min 25 | le projet complet : la limite des 3 Go, les cinq scénarios, la mémoire procédurale, la délégation, le routage, le planning, les mesures et le dimensionnement de la carte |
+| [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4) | 64 s | la boucle agentique en action, du scénario au livrable |
+
+La première est la visite guidée : neuf cartons, une voix off continue, les captures réelles du
+dépôt. La seconde est la démonstration courte, pour qui veut voir tourner l'agent avant de lire.
+Le script de la voix off est dans [`video/narration-presentation.txt`](video/narration-presentation.txt),
+le montage est reproductible avec `video/slides3.py` puis `video/build3.py`.
 
 La voix off de la première vidéo est produite par un outil du projet (`tts_speak`), pas par un
 logiciel externe. Le fichier audio et le script de narration sont dans le dépôt.

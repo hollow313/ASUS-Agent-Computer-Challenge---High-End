@@ -1,0 +1,29 @@
+Vigie, vidéo de présentation. Voix off générée par l'agent lui-même (outil tts_speak, fr-FR).
+Montage : video/slides3.py (cartons) puis video/build3.py (assemblage et synchronisation).
+
+1. Accroche
+Vigie. Un agent qui reçoit un objectif, choisit ses outils, agit sur de vrais fichiers, relit ce qu'il a produit, et apprend de ses erreurs.
+
+2. Le point de départ
+Aujourd'hui, il tourne sur une carte de trois gigas de mémoire vidéo. Le plus gros modèle qui rentre fait sept milliards de paramètres. Il est rapide, il est gratuit, et il se trompe une fois sur deux. Le modèle qui comprend les tâches ambiguës, lui, ne rentre pas.
+
+3. Cinq scénarios
+Cinq scénarios, cinq livrables réels. Un briefing daté, une synthèse chiffrée avec son graphique, un tri de boîte mail, une auto-réparation, une orchestration de sous-agents. Les fichiers existent sur le disque, le journal d'étapes est horodaté, et rien ici n'est une capture d'écran.
+
+4. Mémoire procédurale
+Quand une étape casse, il écrit la leçon dans une procédure, avec un contrat de vérification. Deuxième passe : quatre étapes au lieu de six, zéro erreur. Et si le fichier change de nom, le contrat casse, la procédure est retirée au lieu d'être appliquée. Une leçon morte ne pollue pas le run suivant.
+
+5. Orchestration
+Il sait aussi déléguer. Trois zones, trois sous-agents, chacun avec son budget, son journal et son dossier. Le parent relit les trois livrables avant d'agréger. La confiance se vérifie, elle ne se déclare pas.
+
+6. Routage
+Et il choisit son modèle. La page de routage déclare les cibles : deux instances locales, deux clouds, ou un mélange. Les règles s'évaluent dans l'ordre, la première qui matche gagne, et chaque exécution journalise sa décision avec sa raison.
+
+7. Exploitation
+Côté production : un dossier de CSV, une boîte mail en IMAP, et un planning. Chaque matin à huit heures, la veille se prépare toute seule. Le mot de passe reste dans le volume, en six cents, et n'est jamais renvoyé par l'interface.
+
+8. Les chiffres
+Les chiffres maintenant, mesurés sur la machine, dix tâches notées par correspondance exacte. Le sept B réussit soixante pour cent, en quatre dixièmes de seconde. Le huit B réussit quatre-vingt-dix pour cent, mais coûte trente fois plus de temps. Le cloud réussit tout, pour deux centimes les mille tâches, et sort vos données au passage.
+
+9. La carte
+C'est le goulot, et c'est le sujet de cette candidature. Trente-deux gigas font tenir un trente-deux milliards de paramètres en quatre bits, avec un contexte long et des sous-agents en parallèle. Le dépôt est public, trente-deux tests passent, une commande suffit pour lancer la démo, et les limites sont écrites noir sur blanc.
