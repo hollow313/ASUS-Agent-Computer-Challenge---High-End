@@ -5,7 +5,7 @@
 [![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dépendances](https://img.shields.io/badge/d%C3%A9pendances-0-2ea043)
-![tests](https://img.shields.io/badge/tests-30%20passent-2ea043)
+![tests](https://img.shields.io/badge/tests-32%20passent-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **Français** · [English](README.en.md)
@@ -25,7 +25,7 @@ Trois commandes, aucune clé, aucun réseau, aucune dépendance :
 ```bash
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
 python3 -m agentdemo run --scenario self-repair     # la démo en terminal
-python3 -m unittest discover -s tests               # 30 tests, 230 ms
+python3 -m unittest discover -s tests               # 32 tests, 230 ms
 ```
 
 Puis, dans l'interface : **Auto-réparation**, qui montre l'apprentissage en trois passes.
@@ -189,6 +189,10 @@ même mécanisme que mon agent de production utilise pour paralléliser des tâc
 ---
 
 ## Orchestration de sous-agents
+
+Une erreur d'outil n'est pas une impasse : si un chemin est faux, le message renvoie le chemin
+réel du fichier cherché, et la liste des CSV présents dans le run. Un modèle de 7B qui se trompe de
+dossier se corrige au tour suivant au lieu de brûler son budget.
 
 Un sous-agent n'est pas un appel de fonction : il a son propre budget, son propre journal, son
 propre bac à sable dans `delegations/<nom>/`, et le parent ne partage rien avec lui. Le parent lui
@@ -464,7 +468,7 @@ agentdemo/
 ├── web/routing.html      # page de configuration du routage
 ├── web/settings.html     # page d'exploitation : entrées, IMAP, planning
 └── scenarios/            # cyber-brief, inbox-triage, dataset-report, delegation, self-repair
-tests/test_demo.py        # 30 tests : scénarios, procédures, délégation, bac à sable
+tests/test_demo.py        # 32 tests : scénarios, procédures, délégation, bac à sable
 bench/                    # banc de mesure : tâches, prix, endpoint simulé
 video/                    # cartons, capture d'interface et script de narration
 docs/                     # captures, architecture, comparatif, scénarios, parcours 3 min
@@ -500,7 +504,7 @@ docs/                     # captures, architecture, comparatif, scénarios, parc
 ## Vérifier par soi-même
 
 ```bash
-python3 -m unittest discover -s tests -v   # 30 tests, aucun framework
+python3 -m unittest discover -s tests -v   # 32 tests, aucun framework
 python3 -m agentdemo validate              # cohérence des cassettes avec les outils
 python3 -m agentdemo skills                # registre des procédures et leur confiance
 python3 -m agentdemo maintain --once       # entretien : réparer, arbitrer, retirer

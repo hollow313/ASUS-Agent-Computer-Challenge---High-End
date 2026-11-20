@@ -138,6 +138,14 @@ class Agent:
 
             tool_name = str(action.get("tool", "")).strip()
             args = action.get("args") or {}
+            if isinstance(args, str):
+                # les petits modèles renvoient parfois les arguments en chaîne JSON
+                try:
+                    args = json.loads(args)
+                except json.JSONDecodeError:
+                    args = {}
+            if not isinstance(args, dict):
+                args = {}
             if tool_name not in tools:
                 observation, error = f"outil inconnu : {tool_name}", True
             else:

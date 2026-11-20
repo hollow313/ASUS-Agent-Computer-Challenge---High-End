@@ -399,6 +399,39 @@ class ScenarioTests(unittest.TestCase):
         self.assertIn("delegations/nord/resume.md", result.steps[0].observation)
         self.assertTrue((workspace / "delegations" / "nord" / "resume.md").exists())
 
+    def test_string_arguments_are_parsed(self) -> None:
+        """Un petit modèle renvoie parfois args en chaîne JSON : on l'accepte au lieu d'échouer."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "run" / "workspace"
+        workspace.mkdir(parents=True)
+        (workspace / "note.txt").write_text("bonjour", encoding="utf-8")
+        tape = [
+            {"thought": "je lis", "tool": "fs_read", "args": '{"path": "note.txt"}'},
+            {"thought": "fini", "final": "lu"},
+        ]
+        agent = Agent(planner=ReplayPlanner(tape), workspace=workspace, runs_dir=root / "run", max_steps=4)
+        result = agent.run("lis note.txt")
+        self.assertEqual(result.status, "done")
+        self.assertFalse(result.steps[0].error)
+        self.assertIn("bonjour", result.steps[0].observation)
+
+    def test_missing_file_suggests_the_real_path(self) -> None:
+        """Une erreur de chemin renvoie le chemin réel du fichier, pas juste « introuvable »."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "run" / "workspace"
+        (workspace / "regions").mkdir(parents=True)
+        (workspace / "regions" / "nord.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+        from agentdemo.tools import Sandbox, ToolError, build_registry
+
+        registry = build_registry(Sandbox(workspace), [])
+        with self.assertRaises(ToolError) as ctx:
+            registry["csv_profile"].fn("nord.csv")
+        self.assertIn("regions/nord.csv", str(ctx.exception))
+
     def test_repeated_failure_stops_the_run(self) -> None:
         """Trois fois le même appel en échec : le run s'arrête au lieu de brûler le budget."""
         tmp = tempfile.TemporaryDirectory()

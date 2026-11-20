@@ -70,6 +70,23 @@ def build_registry(
 ) -> dict[str, Tool]:
     """Return the tool registry bound to one sandbox (and, optionally, a skill store)."""
 
+    def hint_for(missing: str) -> str:
+        """Cherche un fichier de même nom ailleurs dans le bac à sable, pour corriger un chemin faux."""
+        name = Path(str(missing)).name
+        matches = [
+            str(candidate.relative_to(sandbox.root))
+            for candidate in sandbox.root.rglob(name)
+            if candidate.is_file() and "delegations" not in candidate.parts
+        ][:3]
+        if matches:
+            return f" — fichier présent ici : {', '.join(matches)}"
+        files = [
+            str(candidate.relative_to(sandbox.root))
+            for candidate in sorted(sandbox.root.rglob("*.csv"))
+            if "delegations" not in candidate.parts
+        ][:5]
+        return f" — aucun « {name} » ; CSV disponibles : {', '.join(files)}" if files else ""
+
     def note(path: Path) -> None:
         name = sandbox.rel(path)
         if name not in artifacts:
@@ -340,7 +357,7 @@ def build_registry(
     def fs_list(path: str = ".") -> str:
         target = sandbox.resolve(path)
         if not target.exists():
-            raise ToolError(f"introuvable : {path}")
+            raise ToolError(f"introuvable : {path}{hint_for(path)}")
         if target.is_file():
             return f"{path} est un fichier ({target.stat().st_size} octets)"
         rows = []
@@ -353,7 +370,7 @@ def build_registry(
     def fs_read(path: str, max_chars: int = 4000) -> str:
         target = sandbox.resolve(path)
         if not target.is_file():
-            raise ToolError(f"fichier introuvable : {path}")
+            raise ToolError(f"fichier introuvable : {path}{hint_for(path)}")
         text = target.read_text(encoding="utf-8", errors="replace")
         head = text[: int(max_chars)]
         if len(text) > len(head):
@@ -378,7 +395,7 @@ def build_registry(
     def csv_profile(path: str) -> str:
         target = sandbox.resolve(path)
         if not target.is_file():
-            raise ToolError(f"csv introuvable : {path}")
+            raise ToolError(f"csv introuvable : {path}{hint_for(path)}")
         with target.open(newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))
         if not rows:
@@ -397,7 +414,7 @@ def build_registry(
     def chart_bar(path: str, label_column: str, value_column: str, output: str, title: str = "Graphique") -> str:
         target = sandbox.resolve(path)
         if not target.is_file():
-            raise ToolError(f"csv introuvable : {path}")
+            raise ToolError(f"csv introuvable : {path}{hint_for(path)}")
         with target.open(newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))
         series = [(r[label_column], float(r[value_column])) for r in rows if _is_number(r.get(value_column))]

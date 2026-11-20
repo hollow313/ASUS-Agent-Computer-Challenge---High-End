@@ -162,6 +162,8 @@ class OpenAICompatPlanner:
             "",
             "Règles :",
             "- une seule action par tour, JSON strict, pas de balises de code ;",
+            "- commence par fs_list('.') : ne devine jamais un chemin, ils sont affichés ;",
+            "- la clé args est toujours un objet JSON, jamais une chaîne ;",
             "- si le catalogue contient skill_recall, commence par le consulter : une procédure",
             "  déjà apprise évite de refaire une erreur coûteuse ;",
             "- quand une étape échoue ou qu'une découverte te coûte du temps, écris la leçon",
