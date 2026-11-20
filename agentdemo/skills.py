@@ -156,6 +156,8 @@ class SkillStore:
     # ---------- contrat de vérification ----------
     def verify(self, skill: Skill, sandbox: "Path | None" = None) -> tuple[bool, str]:
         """Rejoue le contrat déclaré par la procédure. Retourne (valide, message)."""
+        if sandbox is not None:
+            self._last_sandbox = Path(sandbox)
         claim = skill.check
         if not claim:
             return True, "aucun contrat déclaré"
@@ -282,6 +284,8 @@ class SkillStore:
         """
         groups: dict[str, list[Skill]] = {}
         for skill in self.list():
+            if skill.status != "active":
+                continue
             key = skill.meta.get("topic", "").strip().lower() or skill.name
             groups.setdefault(key, []).append(skill)
         if topic:

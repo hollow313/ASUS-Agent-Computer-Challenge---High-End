@@ -247,6 +247,53 @@ class ScenarioTests(unittest.TestCase):
         self.assertTrue((workspace / "comparatif.md").exists())
         self.assertEqual(len([a for a in result.artifacts if a.startswith("delegations/")]), 3)
 
+    def test_maintenance_repairs_a_renamed_target(self) -> None:
+        """Réparation automatique : la cible a été renommée, le mainteneur retrouve le fichier."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "ws"
+        workspace.mkdir()
+        (workspace / "flux-avis-2027.xml").write_text("<rss/>", encoding="utf-8")
+        skills = SkillStore(root / "skills")
+        skills.write(
+            "flux",
+            "# Procédure\n\nLire feeds/flux-avis-112026.xml avant de conclure.",
+            check="path_exists feeds/flux-avis-112026.xml",
+        )
+        self.assertEqual(len(skills.recall("flux", workspace)), 0, "contrat cassé au départ")
+
+        from agentdemo.maintenance import Maintainer
+
+        report = Maintainer(skills, workspace, root / "maintenance.jsonl").run_once()
+        self.assertEqual(len(report.repaired), 1, "la procédure doit être réparée")
+        repaired = skills.get("flux")
+        self.assertEqual(repaired.status, "active")
+        self.assertIn("flux-avis-2027.xml", repaired.check)
+        self.assertIn("flux-avis-2027.xml", repaired.body, "le corps doit pointer sur la nouvelle cible")
+        self.assertTrue((root / "maintenance.jsonl").exists(), "la passe doit être journalisée")
+
+    def test_maintenance_arbitrates_by_evidence(self) -> None:
+        """Deux procédures du même sujet : celle dont le contrat passe gagne, même moins confiante."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "ws"
+        workspace.mkdir()
+        (workspace / "existe.txt").write_text("ok", encoding="utf-8")
+        skills = SkillStore(root / "skills")
+
+        skills.write("verifiee", "# Procédure\n\nMéthode qui se vérifie.", check="path_exists existe.txt", topic="export")
+        skills.write("fausse", "# Procédure\n\nMéthode qui ne se vérifie pas.", check="path_exists absent.txt", topic="export")
+        for _ in range(3):
+            skills.feedback("fausse", True)
+
+        from agentdemo.maintenance import Maintainer
+
+        report = Maintainer(skills, workspace, root / "maintenance.jsonl").run_once()
+        self.assertTrue(report.superseded or report.retired, "un conflit doit être tranché")
+        self.assertEqual(skills.get("verifiee").status, "active", "la preuve prime sur la confiance")
+
     def test_budget_is_enforced(self) -> None:
         scenario = get_scenario("cyber-brief")
         tmp = tempfile.TemporaryDirectory()

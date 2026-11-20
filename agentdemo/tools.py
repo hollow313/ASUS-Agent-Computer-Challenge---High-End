@@ -123,6 +123,29 @@ def build_registry(
             for item in decisions
         )
 
+    def maintenance_run() -> str:
+        """Lance une passe d'entretien : réparation, arbitrage par preuve, retrait."""
+        if skills is None:
+            raise ToolError("mémoire procédurale désactivée dans ce run")
+        from .maintenance import Maintainer  # import local
+
+        maintainer = Maintainer(skills, sandbox.root)
+        report = maintainer.run_once()
+        if not report.changed:
+            return f"entretien terminé, rien à corriger sur {report.scanned} procédures"
+        parts = []
+        if report.repaired:
+            parts.append(
+                "réparées : " + ", ".join(f"{i['procedure']} ({i['de']} -> {i['vers']})" for i in report.repaired)
+            )
+        if report.superseded:
+            parts.append(
+                "arbitrées : " + ", ".join(f"{i['winner']} > {i['loser']}" for i in report.superseded)
+            )
+        if report.retired:
+            parts.append("retirées : " + ", ".join(report.retired))
+        return " | ".join(parts)
+
     def skill_feedback(name: str, ok: bool = True) -> str:
         if skills is None:
             raise ToolError("mémoire procédurale désactivée dans ce run")
@@ -373,6 +396,12 @@ def build_registry(
             "skill_feedback(name, ok?)",
             "enregistre le succès ou l'échec d'une procédure, met à jour sa confiance",
             skill_feedback,
+        ),
+        "maintenance_run": Tool(
+            "maintenance_run",
+            "maintenance_run()",
+            "lance une passe d'entretien des procédures (réparer, arbitrer, retirer)",
+            maintenance_run,
         ),
         "skill_prune": Tool(
             "skill_prune",

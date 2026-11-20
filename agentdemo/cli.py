@@ -239,6 +239,40 @@ def cmd_new(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_maintain(args: argparse.Namespace) -> int:
+    """Entretien automatique : réparer, arbitrer, retirer. Conçu pour tourner en tâche de fond."""
+    from .maintenance import Maintainer
+
+    root = Path(args.out or DEFAULT_DATA_DIR)
+    store = SkillStore(root / "skills")
+    runs = sorted((root / "runs").glob("*/workspace"), key=lambda p: p.stat().st_mtime, reverse=True)
+    sandbox = runs[0] if runs else root / "runs" / "maintenance-sandbox"
+    maintainer = Maintainer(store, sandbox, root / "maintenance.jsonl")
+
+    def show(report) -> None:
+        stamp = report.started_at
+        if not report.changed:
+            print(f"[{stamp}] rien à faire ({report.scanned} procédures)")
+            return
+        print(f"[{stamp}] {report.scanned} procédures")
+        for item in report.repaired:
+            print(f"  réparée    : {item['procedure']} ({item['de']} -> {item['vers']})")
+        for item in report.superseded:
+            print(f"  arbitrées  : {item['topic']} : {item['winner']} garde la main, {item['loser']} passe superseded ({item['reason']})")
+        for name in report.retired:
+            print(f"  retirée    : {name}")
+
+    if args.once or not args.interval:
+        show(maintainer.run_once())
+        return 0
+    print(f"entretien toutes les {args.interval}s, Ctrl+C pour arrêter")
+    try:
+        maintainer.loop(args.interval, on_report=show)
+    except KeyboardInterrupt:
+        print("arrêt")
+    return 0
+
+
 def cmd_skills(args: argparse.Namespace) -> int:
     """Registre des procédures apprises : confiance, statut, mise à la retraite."""
     store = SkillStore(Path(args.out or DEFAULT_DATA_DIR) / "skills")
@@ -308,6 +342,11 @@ def build_parser() -> argparse.ArgumentParser:
     new.add_argument("--tag", action="append")
     new.add_argument("--force", action="store_true")
     new.set_defaults(func=cmd_new)
+
+    maintain = sub.add_parser("maintain", help="entretien automatique des procédures")
+    maintain.add_argument("--once", action="store_true", help="une seule passe")
+    maintain.add_argument("--interval", type=int, default=0, help="boucle toutes les N secondes")
+    maintain.set_defaults(func=cmd_maintain)
 
     skills = sub.add_parser("skills", help="registre des procédures apprises")
     skills.add_argument("--prune", action="store_true", help="met à la retraite ce qui est périmé")

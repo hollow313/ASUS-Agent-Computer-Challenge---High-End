@@ -165,6 +165,10 @@ def make_handler(store: RunStore):
             path = urlparse(self.path).path
             if path in ("/", "/index.html"):
                 return self._send_file(WEB_DIR / "index.html")
+            if path == "/api/maintenance":
+                log = store.data_dir / "maintenance.jsonl"
+                lines = log.read_text(encoding="utf-8").splitlines()[-20:] if log.exists() else []
+                return self._send_json({"passes": [json.loads(line) for line in lines if line.strip()]})
             if path == "/api/skills":
                 store_skills = SkillStore(store.data_dir / "skills")
                 return self._send_json({"skills": store_skills.ledger()})
@@ -191,6 +195,20 @@ def make_handler(store: RunStore):
 
         def do_POST(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
+            if path == "/api/maintenance/run":
+                from .maintenance import Maintainer
+
+                runs = sorted(
+                    (store.data_dir / "runs").glob("*/workspace"),
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True,
+                )
+                report = Maintainer(
+                    SkillStore(store.data_dir / "skills"),
+                    runs[0] if runs else store.data_dir / "runs" / "maintenance-sandbox",
+                    store.data_dir / "maintenance.jsonl",
+                ).run_once()
+                return self._send_json(report.as_dict())
             if path != "/api/run":
                 return self._send_json({"error": "route inconnue"}, status=404)
             length = int(self.headers.get("Content-Length") or 0)

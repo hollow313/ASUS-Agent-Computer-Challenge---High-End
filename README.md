@@ -5,7 +5,7 @@
 [![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dépendances](https://img.shields.io/badge/d%C3%A9pendances-0-2ea043)
-![tests](https://img.shields.io/badge/tests-15%20passent-2ea043)
+![tests](https://img.shields.io/badge/tests-17%20passent-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 ![image](https://img.shields.io/badge/image%20docker-41%20Mo-2496ed)
 
@@ -26,7 +26,7 @@ Trois commandes, aucune clé, aucun réseau, aucune dépendance :
 ```bash
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
 python3 -m agentdemo run --scenario self-repair     # la démo en terminal
-python3 -m unittest discover -s tests               # 15 tests, 40 ms
+python3 -m unittest discover -s tests               # 17 tests, 55 ms
 ```
 
 Puis, dans l'interface : **Auto-réparation**, qui montre l'apprentissage en deux passes.
@@ -45,9 +45,12 @@ le modèle juste coûte trente-neuf fois plus de temps. C'est la mesure du goulo
 candidature. Méthode, limites et ce que ces chiffres ne disent pas :
 [`docs/comparatif-local-cloud.md`](docs/comparatif-local-cloud.md).
 
-**Vidéo de présentation, 64 secondes** : [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4).
-Sa voix off a été produite par l'agent lui-même, à partir du script de
-[`video/narration.txt`](video/narration.txt).
+**Deux vidéos, voix off produite par l'agent lui-même** :
+
+- [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4), 64 s : la boucle
+  agentique, la mémoire procédurale, les mesures.
+- [`docs/video/agent-computer-delegation.mp4`](docs/video/agent-computer-delegation.mp4), 41 s :
+  l'orchestration de sous-agents, budget cloisonné et agrégation.
 
 ![Interface](docs/screenshot-run.png)
 
@@ -137,9 +140,31 @@ Deux cas restaient ouverts, ils sont traités :
   garde celle qui a la meilleure confiance, puis le plus d'usages, puis la plus récente. La perdante
   passe `superseded` et pointe vers la gagnante, sans être supprimée.
 
-Ce qui reste hors périmètre, et je l'assume : le déclenchement **automatique** d'une révision sans
-que l'agent le décide, et l'évaluation du **contenu** de deux procédures contradictoires (seul le
-sujet est arbitré, pas la formulation).
+### L'entretien tourne tout seul
+
+Le déclenchement automatique existe, sous forme de tâche de fond :
+
+```bash
+python3 -m agentdemo maintain --once            # une passe, pour voir
+python3 -m agentdemo maintain --interval 300    # toutes les cinq minutes, jusqu'à Ctrl+C
+```
+
+À chaque passe, le mainteneur fait trois choses sans qu'on lui demande :
+
+1. **réparer** : une procédure dont la cible a été renommée est retrouvée par ressemblance de nom,
+   son contrat est réécrit, et elle n'est réactivée que si le nouveau contrat passe. Vérifié : un
+   fichier renommé de 2027 en 2028 est détecté et la procédure repart seule ;
+2. **arbitrer par la preuve** : entre deux procédures du même sujet, celle dont le contrat se
+   vérifie gagne, même si l'autre a une meilleure confiance. Le score ne remplace pas un fait ;
+3. **retirer** ce qui reste faux ou dormant, en le déplaçant dans `skills/retired/`.
+
+Chaque passe écrit une ligne dans `maintenance.jsonl`, et l'interface expose le même déclenchement
+sur `POST /api/maintenance/run`. Côté agent, l'outil `maintenance_run` permet de le faire pendant
+un run.
+
+Ce qui reste hors périmètre, et je l'assume : l'évaluation du **contenu** de deux procédures
+contradictoires (le sujet et le contrat sont arbitrés, pas la formulation), et la réécriture d'une
+procédure dont la cible a **disparu sans successeur crédible**, qui finit simplement en retraite.
 
 ![Comparatif des deux passes](docs/screenshot-selfrepair.png)
 
@@ -303,11 +328,12 @@ la même interface :
 
 ### Les outils
 
-Quatorze outils, tous dans le bac à sable du run. Fichiers : `fs_list`, `fs_read`, `fs_write`,
+Dix-huit outils, tous dans le bac à sable du run. Fichiers : `fs_list`, `fs_read`, `fs_write`,
 `fs_move`. Analyse : `csv_profile`, `chart_bar`, `rss_rank`. Réseau : `http_get`, désactivé par
-défaut. Voix : `tts_speak`, via un endpoint `/audio/speech`, désactivé par défaut. Mémoire :
-`skill_list`, `skill_recall`, `skill_write` (avec contrat de vérification), `skill_feedback`,
-`skill_prune`. Un chemin absolu ou une remontée `../` est refusé, pas corrigé.
+défaut. Voix : `tts_speak`, via un endpoint `/audio/speech`, désactivé par défaut. Orchestration :
+`spawn_agent`. Mémoire : `skill_list`, `skill_recall`, `skill_write` (contrat de vérification),
+`skill_revise`, `skill_resolve`, `skill_feedback`, `skill_prune`, `maintenance_run`. Un chemin
+absolu ou une remontée `../` est refusé, pas corrigé.
 
 ### Modèle de sécurité
 
@@ -328,14 +354,14 @@ sont synthétiques et vivent dans `agentdemo/scenarios/*/fixtures`.
 agentdemo/
 ├── agent.py              # la boucle : planification, outil, observation, bilan
 ├── planners.py           # ReplayPlanner (hors ligne) + OpenAICompatPlanner (modèle réel)
-├── tools.py              # 14 outils, bac à sable, graphiques SVG, voix, procédures
+├── tools.py              # 18 outils : fichiers, analyse, voix, procédures, délégation
 ├── skills.py             # mémoire procédurale persistante
 ├── scenarios_loader.py   # chargement des scénarios, cassettes et fixtures
 ├── cli.py                # CLI : scenarios, run, serve, validate, new
 ├── server.py             # API HTTP et interface web (http.server, stdlib)
 ├── web/index.html        # interface d'une page, aucune dépendance
 └── scenarios/            # cyber-brief, inbox-triage, dataset-report, self-repair
-tests/test_demo.py        # 15 tests : scénarios, procédures, délégation, bac à sable
+tests/test_demo.py        # 17 tests : scénarios, procédures, délégation, bac à sable
 bench/                    # banc de mesure : tâches, prix, endpoint simulé
 video/                    # cartons, capture d'interface et script de narration
 docs/                     # captures, architecture, comparatif, scénarios, parcours 3 min
@@ -350,7 +376,9 @@ docs/                     # captures, architecture, comparatif, scénarios, parc
 | `/api/run` | POST | `{"scenario": "...", "mode": "replay\|live", "llm": {...}}` |
 | `/api/runs/<id>` | GET | état, étapes, bilan, livrables |
 | `/api/artifacts/<id>/<chemin>` | GET | téléchargement d'un livrable |
-| `/api/skills` | GET | procédures apprises |
+| `/api/skills` | GET | procédures apprises, confiance et statut |
+| `/api/maintenance` | GET | dernières passes d'entretien |
+| `/api/maintenance/run` | POST | déclenche une passe d'entretien |
 | `/api/llm/models` | GET | sonde un endpoint compatible OpenAI |
 | `/healthz` | GET | sonde de santé |
 
@@ -359,7 +387,7 @@ docs/                     # captures, architecture, comparatif, scénarios, parc
 ## Vérifier par soi-même
 
 ```bash
-python3 -m unittest discover -s tests -v   # 15 tests, aucun framework
+python3 -m unittest discover -s tests -v   # 17 tests, aucun framework
 python3 -m agentdemo validate              # cohérence des cassettes avec les outils
 python3 bench/bench.py --targets bench/targets.json
 ```
@@ -386,7 +414,7 @@ Un jury technique le verra de toute façon, autant l'écrire :
 - **Le mode replay ne raisonne pas.** Il rejoue des décisions enregistrées. C'est un choix : une
   démo qui exige une clé ou un modèle de 20 Go n'est pas une démo, c'est une condition d'accès. Le
   mode réel existe pour prouver que la boucle fonctionne avec un vrai modèle.
-- **Le catalogue d'outils est réduit** à quatorze outils, tous en fichiers et en analyse. Pas de
+- **Le catalogue d'outils est réduit** à dix-huit outils, tous en fichiers et en analyse. Pas de
   shell, pas d'envoi de courrier, pas d'automatisation de navigateur ici.
 - **La mémoire procédurale est une version réduite** : un dossier de procédures markdown relu au
   run suivant, sans déduplication ni révision automatique. À l'échelle de production, le vrai
