@@ -8,6 +8,9 @@ Une démo volontairement petite, mais honnête : un agent qui reçoit un objecti
 outils, enchaîne les étapes, **vérifie ce qu'il a produit** et rend un livrable sur le disque.
 Aucune clé API, aucun réseau, aucune dépendance : deux commandes et ça tourne.
 
+**Vidéo de présentation (80 s)** : [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4)
+— boucle agentique, mémoire procédurale, mesures locales.
+
 ![Interface de la démo](docs/screenshot-run.png)
 
 ---
@@ -349,6 +352,10 @@ consommés. Le banc produit un rapport markdown, les données brutes en JSON et 
 
 Détail dans [`bench/README.md`](bench/README.md). Un endpoint simulé (`bench/fake_endpoint.py`)
 permet de tester le banc sans GPU ni clé : c'est ce que fait le job CI `bench`.
+
+**Résultats réels sur ma machine** (GPU 3 Go de VRAM, LM Studio, Q4, 10 tâches vérifiables) :
+[`docs/mesures-locales.md`](docs/mesures-locales.md) — le 7B répond en 0,48 s mais réussit 60 %,
+le 8B VL réussit 90 % mais coûte 39× plus de temps par réponse.
 
 ## 12. Ajouter un scénario
 

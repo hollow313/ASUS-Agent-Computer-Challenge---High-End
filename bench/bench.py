@@ -23,6 +23,7 @@ import json
 import os
 import statistics
 import sys
+import unicodedata
 import time
 import urllib.error
 import urllib.request
@@ -202,16 +203,17 @@ def grade(task: dict[str, Any], reply: str) -> bool:
 
 
 def _normalise(text: str) -> str:
-    return (
-        str(text)
-        .lower()
-        .replace("’", "'")
-        .replace("€", "eur")
-        .replace("\u202f", "")
-        .replace("\xa0", "")
-        .replace(" ", "")
-        .strip()
+    """Casse, accents, espaces et séparateurs ignorés.
+
+    Un modèle qui écrit « 860.900 » ou « 860 900 » a la bonne réponse : la notation
+    ne doit pas le pénaliser. Les slashs et tirets des dates sont conservés.
+    """
+    strippe = "".join(
+        ch for ch in unicodedata.normalize("NFKD", str(text).lower()) if not unicodedata.combining(ch)
     )
+    for char in (" ", "\u202f", "\xa0", ".", ",", "'", "’", "\u00a0"):
+        strippe = strippe.replace(char, "")
+    return strippe.replace("€", "eur").replace("euros", "eur").strip()
 
 
 def run_target(target: Target, tasks: list[dict[str, Any]], repeat: int, timeout: int, quiet: bool) -> TargetResult:

@@ -8,6 +8,8 @@ A deliberately small but honest demo: an agent receives an objective, picks tool
 **verifies what it produced** and leaves a deliverable on disk. No API key, no network, no
 dependency — two commands and it runs.
 
+**Presentation video (80 s)**: [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4).
+
 ![Demo interface](docs/screenshot-run.png)
 
 ---
@@ -303,6 +305,9 @@ Three figures per target: **success rate** on 10 real agent tasks graded by exac
 **p50/p95 latency**, **cost per 1 000 runs** computed from the tokens actually consumed. The
 bench writes a markdown report, raw JSON and an SVG chart. See [`bench/README.md`](bench/README.md).
 A simulated endpoint lets CI test the plumbing without a GPU or a key.
+
+**Real measurements on my machine** (3 GB VRAM GPU, LM Studio, Q4, 10 verifiable tasks):
+[`docs/mesures-locales.md`](docs/mesures-locales.md).
 
 ## 12. Adding a scenario
 
