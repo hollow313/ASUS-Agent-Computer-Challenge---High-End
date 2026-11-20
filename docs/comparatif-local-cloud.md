@@ -1,3 +1,7 @@
+> Deux passes le 20/11/2026 donnent le même classement avec des latences qui varient : 7B 60 %
+> (p50 0,40 à 0,48 s), 8B 90 % (p50 11,6 à 18,9 s), cloud 100 % (p50 0,93 à 1,06 s, 0,02 à 0,05 €).
+> Le rapport de la seconde passe est dans [`mesures/mesures-20261120.md`](mesures/mesures-20261120.md).
+
 # Comparatif local contre cloud
 
 Mesures réelles du 20/11/2026, mêmes 10 tâches vérifiables, même prompt système, température 0,

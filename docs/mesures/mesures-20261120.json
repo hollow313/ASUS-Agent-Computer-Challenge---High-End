@@ -1,0 +1,319 @@
+{
+  "generated_at": "20261120T153955Z",
+  "tasks": 10,
+  "repeat": 1,
+  "results": [
+    {
+      "target": "local-qwen2.5-coder-7b",
+      "model": "qwen2.5-coder-7b-instruct",
+      "label": "local",
+      "base_url": "http://192.168.1.153:1234/v1",
+      "ok_rate": 60.0,
+      "p50_s": 0.398,
+      "p95_s": 0.645,
+      "tokens_out_per_s": 14.1,
+      "cost_per_1k_tasks": 0.0,
+      "errors": 0,
+      "samples": [
+        {
+          "task_id": "mail-urgence",
+          "ok": true,
+          "latency_s": 0.2781462762504816,
+          "prompt_tokens": 104,
+          "completion_tokens": 2,
+          "reply": "urgent",
+          "error": ""
+        },
+        {
+          "task_id": "facture-montant",
+          "ok": true,
+          "latency_s": 0.4759740587323904,
+          "prompt_tokens": 110,
+          "completion_tokens": 7,
+          "reply": "342.00",
+          "error": ""
+        },
+        {
+          "task_id": "facture-echeance",
+          "ok": true,
+          "latency_s": 0.6362049030140042,
+          "prompt_tokens": 94,
+          "completion_tokens": 11,
+          "reply": "05/12/2026",
+          "error": ""
+        },
+        {
+          "task_id": "ca-total",
+          "ok": false,
+          "latency_s": 0.4644018253311515,
+          "prompt_tokens": 109,
+          "completion_tokens": 7,
+          "reply": "891250",
+          "error": ""
+        },
+        {
+          "task_id": "part-ile-de-france",
+          "ok": true,
+          "latency_s": 0.3265687832608819,
+          "prompt_tokens": 83,
+          "completion_tokens": 4,
+          "reply": "28%",
+          "error": ""
+        },
+        {
+          "task_id": "avis-identifiant",
+          "ok": true,
+          "latency_s": 0.5514198867604136,
+          "prompt_tokens": 83,
+          "completion_tokens": 9,
+          "reply": "2026-041",
+          "error": ""
+        },
+        {
+          "task_id": "panier-moyen",
+          "ok": false,
+          "latency_s": 0.33138325437903404,
+          "prompt_tokens": 86,
+          "completion_tokens": 4,
+          "reply": "465",
+          "error": ""
+        },
+        {
+          "task_id": "tri-indesirable",
+          "ok": false,
+          "latency_s": 0.28413034323602915,
+          "prompt_tokens": 98,
+          "completion_tokens": 3,
+          "reply": "administratif",
+          "error": ""
+        },
+        {
+          "task_id": "phishing-oui-non",
+          "ok": false,
+          "latency_s": 0.24985753372311592,
+          "prompt_tokens": 92,
+          "completion_tokens": 2,
+          "reply": "Non",
+          "error": ""
+        },
+        {
+          "task_id": "date-la-plus-recente",
+          "ok": true,
+          "latency_s": 0.6448832377791405,
+          "prompt_tokens": 102,
+          "completion_tokens": 11,
+          "reply": "2026-11-20",
+          "error": ""
+        }
+      ]
+    },
+    {
+      "target": "local-qwen3-vl-8b",
+      "model": "qwen/qwen3-vl-8b",
+      "label": "local",
+      "base_url": "http://192.168.1.153:1234/v1",
+      "ok_rate": 90.0,
+      "p50_s": 11.592,
+      "p95_s": 28.696,
+      "tokens_out_per_s": 0.4,
+      "cost_per_1k_tasks": 0.0,
+      "errors": 0,
+      "samples": [
+        {
+          "task_id": "mail-urgence",
+          "ok": true,
+          "latency_s": 4.527266036719084,
+          "prompt_tokens": 104,
+          "completion_tokens": 2,
+          "reply": "urgent",
+          "error": ""
+        },
+        {
+          "task_id": "facture-montant",
+          "ok": true,
+          "latency_s": 15.383700829930604,
+          "prompt_tokens": 110,
+          "completion_tokens": 7,
+          "reply": "342,00",
+          "error": ""
+        },
+        {
+          "task_id": "facture-echeance",
+          "ok": true,
+          "latency_s": 28.696491767652333,
+          "prompt_tokens": 94,
+          "completion_tokens": 11,
+          "reply": "05/12/2026",
+          "error": ""
+        },
+        {
+          "task_id": "ca-total",
+          "ok": false,
+          "latency_s": 18.285873842425644,
+          "prompt_tokens": 109,
+          "completion_tokens": 7,
+          "reply": "952700",
+          "error": ""
+        },
+        {
+          "task_id": "part-ile-de-france",
+          "ok": true,
+          "latency_s": 5.339887898415327,
+          "prompt_tokens": 83,
+          "completion_tokens": 3,
+          "reply": "28",
+          "error": ""
+        },
+        {
+          "task_id": "avis-identifiant",
+          "ok": true,
+          "latency_s": 25.376644548028708,
+          "prompt_tokens": 83,
+          "completion_tokens": 9,
+          "reply": "2026-041",
+          "error": ""
+        },
+        {
+          "task_id": "panier-moyen",
+          "ok": true,
+          "latency_s": 7.621186000294983,
+          "prompt_tokens": 86,
+          "completion_tokens": 4,
+          "reply": "469",
+          "error": ""
+        },
+        {
+          "task_id": "tri-indesirable",
+          "ok": true,
+          "latency_s": 7.800049147568643,
+          "prompt_tokens": 98,
+          "completion_tokens": 4,
+          "reply": "indesirable",
+          "error": ""
+        },
+        {
+          "task_id": "phishing-oui-non",
+          "ok": true,
+          "latency_s": 2.6566982865333557,
+          "prompt_tokens": 92,
+          "completion_tokens": 2,
+          "reply": "oui",
+          "error": ""
+        },
+        {
+          "task_id": "date-la-plus-recente",
+          "ok": true,
+          "latency_s": 26.42596197500825,
+          "prompt_tokens": 102,
+          "completion_tokens": 11,
+          "reply": "2026-11-20",
+          "error": ""
+        }
+      ]
+    },
+    {
+      "target": "cloud-deepseek-flash",
+      "model": "deepseek-chat",
+      "label": "cloud",
+      "base_url": "https://api.deepseek.com/v1",
+      "ok_rate": 100.0,
+      "p50_s": 0.934,
+      "p95_s": 1.251,
+      "tokens_out_per_s": 3.1,
+      "cost_per_1k_tasks": 0.0232,
+      "errors": 0,
+      "samples": [
+        {
+          "task_id": "mail-urgence",
+          "ok": true,
+          "latency_s": 1.2111172461882234,
+          "prompt_tokens": 93,
+          "completion_tokens": 2,
+          "reply": "urgent",
+          "error": ""
+        },
+        {
+          "task_id": "facture-montant",
+          "ok": true,
+          "latency_s": 1.0129492646083236,
+          "prompt_tokens": 93,
+          "completion_tokens": 3,
+          "reply": "342,00",
+          "error": ""
+        },
+        {
+          "task_id": "facture-echeance",
+          "ok": true,
+          "latency_s": 0.6478797812014818,
+          "prompt_tokens": 80,
+          "completion_tokens": 6,
+          "reply": "05/12/2026",
+          "error": ""
+        },
+        {
+          "task_id": "ca-total",
+          "ok": true,
+          "latency_s": 0.985360779799521,
+          "prompt_tokens": 78,
+          "completion_tokens": 2,
+          "reply": "860900",
+          "error": ""
+        },
+        {
+          "task_id": "part-ile-de-france",
+          "ok": true,
+          "latency_s": 0.8745084907859564,
+          "prompt_tokens": 67,
+          "completion_tokens": 1,
+          "reply": "28",
+          "error": ""
+        },
+        {
+          "task_id": "avis-identifiant",
+          "ok": true,
+          "latency_s": 0.8835912281647325,
+          "prompt_tokens": 72,
+          "completion_tokens": 4,
+          "reply": "2026-041",
+          "error": ""
+        },
+        {
+          "task_id": "panier-moyen",
+          "ok": true,
+          "latency_s": 1.2510355282574892,
+          "prompt_tokens": 72,
+          "completion_tokens": 1,
+          "reply": "469",
+          "error": ""
+        },
+        {
+          "task_id": "tri-indesirable",
+          "ok": true,
+          "latency_s": 0.681431476958096,
+          "prompt_tokens": 91,
+          "completion_tokens": 3,
+          "reply": "indesirable",
+          "error": ""
+        },
+        {
+          "task_id": "phishing-oui-non",
+          "ok": true,
+          "latency_s": 0.682910643517971,
+          "prompt_tokens": 84,
+          "completion_tokens": 1,
+          "reply": "oui",
+          "error": ""
+        },
+        {
+          "task_id": "date-la-plus-recente",
+          "ok": true,
+          "latency_s": 1.0915892561897635,
+          "prompt_tokens": 81,
+          "completion_tokens": 6,
+          "reply": "2026-11-20",
+          "error": ""
+        }
+      ]
+    }
+  ]
+}

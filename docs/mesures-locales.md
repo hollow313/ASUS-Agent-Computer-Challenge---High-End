@@ -1,3 +1,9 @@
+> Mise à jour du 20/11/2026, 15:39 UTC : nouvelle passe complète des trois cibles sur la même
+> machine. 7B : 60 %, p50 0,40 s, p95 0,64 s. 8B vision : 90 %, p50 11,6 s, p95 28,7 s. Cloud
+> DeepSeek Chat : 100 %, p50 0,93 s, p95 1,25 s, 0,02 € les 1 000 tâches. Rapport brut :
+> [`mesures/mesures-20261120.md`](mesures/mesures-20261120.md). Les tableaux ci-dessous sont la
+> première passe, conservée pour montrer la variabilité entre deux exécutions.
+
 # Mesures, modèles locaux sur la machine actuelle
 
 Mesures réelles, exécutées le 20/11/2026 sur mon poste, GPU **3 Go de VRAM**, via LM Studio.
