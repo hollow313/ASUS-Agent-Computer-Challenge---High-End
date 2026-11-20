@@ -24,7 +24,7 @@ using the repo's speech tool (`tts_speak`, `/audio/speech` endpoint).
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
 # without a published image: docker build -t vigie . && docker run --rm -p 8080:8080 vigie
 # or, without Docker: python3 -m agentdemo serve --port 8080
-python3 -m unittest discover -s tests -v # 29 tests, no dependency
+python3 -m unittest discover -s tests -v # 30 tests, no dependency
 ```
 
 Then, in the UI: **self-repair**, which shows learning across two passes.
@@ -262,7 +262,7 @@ agentdemo/
 ├── server.py # HTTP API + web UI (http.server, stdlib)
 ├── web/index.html # single page, no dependency
 └── scenarios/ # 4 scenarios: cassette + scenario.json + fixtures
-tests/test_demo.py # 29 tests: scenarios, learning, sandbox, budget
+tests/test_demo.py # 30 tests: scenarios, learning, sandbox, budget
 bench/ # measurement bench: bench.py, tasks, prices, simulated endpoint
 video/ # title cards and UI capture for the video (slides.py, record.py)
 docs/ # screenshots, architecture, local measurements, scenarios, 3-min path
@@ -285,7 +285,7 @@ Dockerfile, docker-compose.yml, Makefile, .github/workflows/docker-build.yml
 ## 8. Tests and CI
 
 ```bash
-python3 -m unittest discover -s tests -v # 29 tests, no framework
+python3 -m unittest discover -s tests -v # 30 tests, no framework
 ```
 
 Scenarios reach `done`, deliverables are checked on disk, `self-repair` proves pass 2 is shorter

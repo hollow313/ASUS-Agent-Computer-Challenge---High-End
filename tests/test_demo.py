@@ -545,6 +545,27 @@ class ScenarioTests(unittest.TestCase):
         staged = list((root / "runs" / run_id / "workspace" / "inputs").glob("*.csv"))
         self.assertEqual([p.name for p in staged], ["ventes.csv"])
 
+    def test_mail_tools_require_a_configured_account(self) -> None:
+        """Sans compte, l'outil refuse avec un message actionnable ; avec un compte injoignable, il dit pourquoi."""
+        from agentdemo.settings_store import MailConfig, Settings
+        from agentdemo.tools import Sandbox, ToolError, build_registry
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        sandbox = Sandbox(Path(tmp.name))
+
+        registry = build_registry(sandbox, [])
+        with self.assertRaises(ToolError) as ctx:
+            registry["mail_list"].fn()
+        self.assertIn("/settings", str(ctx.exception))
+
+        settings = Settings()
+        settings.mail = MailConfig(host="127.0.0.1", port=1, user="x@example.com", password="p", ssl=False)
+        registry = build_registry(sandbox, [], settings=settings)
+        with self.assertRaises(ToolError) as ctx:
+            registry["mail_list"].fn(limit=1)
+        self.assertIn("connexion IMAP impossible", str(ctx.exception))
+
     def test_routing_resolution_order(self) -> None:
         """Forçage manuel > règle > défaut, et les règles s'évaluent dans l'ordre."""
         from agentdemo.routing import RoutingTable, Rule, Target
