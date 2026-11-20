@@ -41,7 +41,8 @@ class RunStore:
         workspace = self.data_dir / "runs" / run_id / "workspace"
         workspace.mkdir(parents=True, exist_ok=True)
         scenario.stage(workspace)
-        skills = SkillStore(self.data_dir / "runs" / run_id / "skills")
+        # Store global : une procédure apprise au run N est disponible au run N+1.
+        skills = SkillStore(self.data_dir / "skills")
         labels = scenario.pass_labels()
         llm = llm or {}
         if mode == "live":
@@ -159,6 +160,16 @@ def make_handler(store: RunStore):
             path = urlparse(self.path).path
             if path in ("/", "/index.html"):
                 return self._send_file(WEB_DIR / "index.html")
+            if path == "/api/skills":
+                store_skills = SkillStore(store.data_dir / "skills")
+                return self._send_json(
+                    {
+                        "skills": [
+                            {"name": skill.name, "summary": skill.summary}
+                            for skill in store_skills.list()
+                        ]
+                    }
+                )
             if path == "/api/scenarios":
                 return self._send_json({"scenarios": [s.as_summary() for s in list_scenarios()]})
             if path == "/healthz":

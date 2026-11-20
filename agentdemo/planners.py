@@ -147,8 +147,13 @@ class OpenAICompatPlanner:
             lines.append(f"- {tool.signature} — {tool.description}")
         lines += [
             "",
-            "Règles : une seule action par tour, JSON strict, pas de balises de code.",
-            "Quand le livrable est écrit et relu, réponds avec la clé 'final'.",
+            "Règles :",
+            "- une seule action par tour, JSON strict, pas de balises de code ;",
+            "- si le catalogue contient skill_recall, commence par le consulter : une procédure",
+            "  déjà apprise évite de refaire une erreur coûteuse ;",
+            "- quand une étape échoue ou qu'une découverte te coûte du temps, écris la leçon",
+            "  avec skill_write : elle sera relue au prochain run ;",
+            "- quand le livrable est écrit et relu, réponds avec la clé 'final'.",
         ]
         return "\n".join(lines)
 

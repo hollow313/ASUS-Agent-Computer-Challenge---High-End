@@ -168,9 +168,23 @@ Every tool operates inside the run sandbox. An absolute path or a `../` escape i
 
 ### Procedural memory
 
-Procedures live in `data/runs/<run_id>/skills/*.md`, outside the run sandbox, so they survive the
-run and the next pass re-reads them. The store is reset per new run to keep the demo
-deterministic and replayable; in production it is global and permanent.
+Procedures live in `data/skills/*.md`, **outside the run sandbox**, so they survive the run and
+the next run re-reads them. The UI lists known procedures and `GET /api/skills` returns the same.
+
+### Does the agent really improve itself?
+
+Yes, in the precise sense of **procedural memory** — not in the sense of a model that retrains:
+
+- **what is real**: `skill_write` / `skill_recall` write and re-read files on disk; a procedure
+  written during run N is available to run N+1; in live mode the model is instructed to consult
+  its procedures before acting and to record a lesson when a step fails or costs time;
+- **what the demo shows**: in `self-repair`, pass 2 reads the procedure and finishes in 4 steps
+  with zero errors, against 6 steps and one error in pass 1;
+- **what is not here**: no model fine-tuning, no pruning of stale procedures, no confidence
+  score, no detection of a wrong lesson. A bad lesson persists and pollutes later runs — that is
+  the real production problem, and it is out of scope here;
+- **in my production agent**: ~90 such procedures, written and corrected over failures, with a
+  manual read whenever a result looks off.
 
 ---
 

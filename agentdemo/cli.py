@@ -60,7 +60,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     workspace = root / "runs" / run_id / "workspace"
     workspace.mkdir(parents=True, exist_ok=True)
     scenario.stage(workspace)
-    skills = SkillStore(root / "runs" / run_id / "skills")
+    skills = SkillStore(root / "skills")  # persiste entre les runs, c'est le principe
 
     print(f"▸ scénario  : {scenario.slug} ({scenario.title})")
     print(f"▸ objectif  : {scenario.objective}")

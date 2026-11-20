@@ -197,10 +197,27 @@ pas sur le nombre d'outils qu'on lui donne.
 
 ### Mémoire procédurale
 
-Les procédures vivent dans `data/runs/<run_id>/skills/*.md`, hors du bac à sable du run : elles
-survivent donc à la fin du run, et la passe suivante les relit. Le store est recréé à chaque
-nouveau run pour que la démo reste déterministe et rejouable ; en production il est global et
-persiste indéfiniment.
+Les procédures vivent dans `data/skills/*.md`, **hors du bac à sable du run**. Elles survivent
+donc à la fin du run et au run lui-même : ce qu'un run apprend, le suivant le relit. L'interface
+affiche la liste des procédures connues (panneau « Procédures apprises »), et
+`GET /api/skills` renvoie la même chose.
+
+### L'agent s'auto-améliore-t-il vraiment ?
+
+Oui, au sens précis de **mémoire procédurale**, et non au sens d'un modèle qui s'entraînerait :
+
+- **ce qui est réel** : les outils `skill_write` / `skill_recall` écrivent et relisent des fichiers
+  sur disque ; une procédure écrite au run N est disponible au run N+1 ; en mode live, le modèle
+  reçoit la consigne de consulter ses procédures avant d'agir et d'écrire la leçon quand une
+  étape échoue ou coûte du temps ;
+- **ce qui est démontré** dans `self-repair` : la passe 2 lit la procédure et termine en 4 étapes
+  sans erreur, contre 6 étapes et une erreur en passe 1 ;
+- **ce qui n'est pas fait ici** : pas d'affinage de modèle, pas de suppression des procédures
+  obsolètes, pas de score de confiance, pas de détection de procédure fausse. Une mauvaise leçon
+  persiste et pollue les runs suivants — c'est le vrai travail de production, et il n'est pas
+  dans cette démo ;
+- **dans mon agent de production** : ~90 procédures de ce type, écrites et corrigées au fil des
+  échecs, avec relecture manuelle quand un résultat surprend.
 
 ---
 
