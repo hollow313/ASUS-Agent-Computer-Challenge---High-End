@@ -98,6 +98,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             max_steps=args.max_steps or scenario.max_steps,
             on_step=on_step,
             skills=skills,
+            children_dir=scenario.root / "children",
         )
         result = agent.run(scenario.objective, run_id=f"{run_id}-p{index + 1}")
         errors = sum(1 for s in result.steps if s.error)
@@ -244,6 +245,16 @@ def cmd_skills(args: argparse.Namespace) -> int:
     if args.prune:
         retired = store.prune()
         print(f"{len(retired)} procédure(s) mise(s) à la retraite : {', '.join(retired) or 'aucune'}")
+    if args.resolve:
+        decisions = store.resolve_conflicts(args.resolve if isinstance(args.resolve, str) else None)
+        for item in decisions:
+            print(
+                f"conflit sur « {item['topic']} » : {item['winner']} garde la main "
+                f"({item['winner_confidence']} % contre {item['loser_confidence']} %), "
+                f"{item['loser']} passe superseded"
+            )
+        if not decisions:
+            print("aucun conflit de procédures détecté")
     rows = store.ledger()
     if not rows:
         print("aucune procédure enregistrée")
@@ -300,6 +311,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     skills = sub.add_parser("skills", help="registre des procédures apprises")
     skills.add_argument("--prune", action="store_true", help="met à la retraite ce qui est périmé")
+    skills.add_argument("--resolve", nargs="?", const=True, default=None, metavar="SUJET",
+                        help="arbitre des procédures contradictoires, éventuellement sur un seul sujet")
     skills.set_defaults(func=cmd_skills)
 
     serve = sub.add_parser("serve", help="lance l'interface web")

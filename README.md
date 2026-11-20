@@ -5,7 +5,7 @@
 [![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dépendances](https://img.shields.io/badge/d%C3%A9pendances-0-2ea043)
-![tests](https://img.shields.io/badge/tests-12%20passent-2ea043)
+![tests](https://img.shields.io/badge/tests-15%20passent-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 ![image](https://img.shields.io/badge/image%20docker-41%20Mo-2496ed)
 
@@ -26,7 +26,7 @@ Trois commandes, aucune clé, aucun réseau, aucune dépendance :
 ```bash
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
 python3 -m agentdemo run --scenario self-repair     # la démo en terminal
-python3 -m unittest discover -s tests               # 12 tests, 30 ms
+python3 -m unittest discover -s tests               # 15 tests, 40 ms
 ```
 
 Puis, dans l'interface : **Auto-réparation**, qui montre l'apprentissage en deux passes.
@@ -88,13 +88,14 @@ Trois choses sont réelles ici, et c'est ce qui distingue un agent d'un chatbot 
 3. **La vérification fait partie de la boucle.** Dans chaque scénario, l'agent relit le fichier
    qu'il vient d'écrire avant de conclure. Un livrable annoncé n'est pas un livrable.
 
-Quatre scénarios sont fournis, tous exécutables sans modèle :
+Cinq scénarios sont fournis, tous exécutables sans modèle :
 
 | Scénario | Objectif donné à l'agent | Livrables réels |
 | --- | --- | --- |
 | `cyber-brief` | Agréger trois flux, hiérarchiser, rédiger un briefing daté | `briefing.md` |
 | `inbox-triage` | Lire 5 messages, classer en déplaçant les fichiers, rapport d'actions | `rapport-tri.md` + `triaged/` |
 | `dataset-report` | Profiler un CSV, tracer un graphique, produire une note à 3 constats | `synthese.md`, `graphique.svg` |
+| `delegation` | Déléguer trois zones à trois sous-agents, relire leurs livrables, agréger | `comparatif.md` + 3 `resume.md` |
 | `self-repair` | **Trois passes sur le même objectif** : la première se casse et écrit une procédure, la deuxième l'applique, la troisième la voit devenir fausse et la remplace | `veille.md` + deux versions de la procédure |
 
 ### L'auto-amélioration, sans mythologie
@@ -128,6 +129,25 @@ modèle quand elle vieillit, et l'arbitrage entre deux procédures contradictoir
 des procédures obsolètes, lui, est implémenté et testé.
 
 ![Comparatif des deux passes](docs/screenshot-selfrepair.png)
+
+### Orchestration : un agent peut en convoquer d'autres
+
+Un agent seul devient vite un agent qui fait tout mal. Le scénario `delegation` montre l'autre
+approche : le parent ne traite pas les trois zones lui-même, il **délègue** chacune à un sous-agent
+(`spawn_agent`), avec son propre répertoire, sa propre trace et son propre budget d'étapes. Puis il
+relit les livrables rendus avant d'agréger, au lieu de faire confiance à des résumés.
+
+```
+parent (6 étapes)
+├── sous-agent nord (3 étapes) → delegations/nord/resume.md
+├── sous-agent sud  (3 étapes) → delegations/sud/resume.md
+├── sous-agent ouest (3 étapes) → delegations/ouest/resume.md
+└── agrégation → comparatif.md
+```
+
+Ce qui compte : le budget est **cloisonné** (un sous-agent bavard ne peut pas épuiser le parent),
+les artefacts sont **rangés** par délégation, et le parent **vérifie** ce qu'il reçoit. C'est le
+même mécanisme que mon agent de production utilise pour paralléliser des tâches indépendantes.
 
 ---
 
@@ -302,7 +322,7 @@ agentdemo/
 ├── server.py             # API HTTP et interface web (http.server, stdlib)
 ├── web/index.html        # interface d'une page, aucune dépendance
 └── scenarios/            # cyber-brief, inbox-triage, dataset-report, self-repair
-tests/test_demo.py        # 12 tests : scénarios, cycle de vie des procédures, bac à sable
+tests/test_demo.py        # 15 tests : scénarios, procédures, délégation, bac à sable
 bench/                    # banc de mesure : tâches, prix, endpoint simulé
 video/                    # cartons, capture d'interface et script de narration
 docs/                     # captures, architecture, comparatif, scénarios, parcours 3 min
@@ -326,7 +346,7 @@ docs/                     # captures, architecture, comparatif, scénarios, parc
 ## Vérifier par soi-même
 
 ```bash
-python3 -m unittest discover -s tests -v   # 12 tests, aucun framework
+python3 -m unittest discover -s tests -v   # 15 tests, aucun framework
 python3 -m agentdemo validate              # cohérence des cassettes avec les outils
 python3 bench/bench.py --targets bench/targets.json
 ```

@@ -8,6 +8,7 @@ that is exactly what the model sees as an observation.
 from __future__ import annotations
 
 import csv
+import json
 import os
 import shutil
 import urllib.error
@@ -56,7 +57,13 @@ class Sandbox:
         return str(path.relative_to(self.root))
 
 
-def build_registry(sandbox: Sandbox, artifacts: list[str], skills: "SkillStore | None" = None) -> dict[str, Tool]:
+def build_registry(
+    sandbox: Sandbox,
+    artifacts: list[str],
+    skills: "SkillStore | None" = None,
+    children_dir: "Path | None" = None,
+    runs_dir: "Path | None" = None,
+) -> dict[str, Tool]:
     """Return the tool registry bound to one sandbox (and, optionally, a skill store)."""
 
     def note(path: Path) -> None:
@@ -81,14 +88,39 @@ def build_registry(sandbox: Sandbox, artifacts: list[str], skills: "SkillStore |
             raise ToolError("mémoire procédurale désactivée dans ce run")
         return skills.format_recall(keyword, sandbox.root)
 
-    def skill_write(name: str, content: str, check: str = "") -> str:
+    def skill_write(name: str, content: str, check: str = "", topic: str = "") -> str:
         if skills is None:
             raise ToolError("mémoire procédurale désactivée dans ce run")
-        skill = skills.write(name, content, check)
+        skill = skills.write(name, content, check, topic)
         claim = f" contrat « {check} »" if check else " sans contrat de vérification"
         return (
             f"procédure « {skill.name} » enregistrée ({len(content)} caractères){claim} "
             f"confiance {round(100 * skill.confidence)} %"
+        )
+
+    def skill_revise(name: str, content: str, check: str = "", reason: str = "") -> str:
+        if skills is None:
+            raise ToolError("mémoire procédurale désactivée dans ce run")
+        revised = skills.revise(name, content, check, reason)
+        if revised is None:
+            raise ToolError(f"procédure inconnue : {name}")
+        state = "réactivée" if revised.status == "active" else "toujours stale (contrat non vérifié)"
+        return (
+            f"procédure « {revised.name} » révisée, {state}, "
+            f"révision n°{revised.meta.get('revisions', '1')}, confiance {round(100 * revised.confidence)} %"
+        )
+
+    def skill_resolve(topic: str = "") -> str:
+        if skills is None:
+            raise ToolError("mémoire procédurale désactivée dans ce run")
+        decisions = skills.resolve_conflicts(topic or None)
+        if not decisions:
+            return "aucun conflit de procédures détecté"
+        return "\n".join(
+            f"- {item['topic']} : {item['winner']} garde la main "
+            f"(confiance {item['winner_confidence']} % contre {item['loser_confidence']} %), "
+            f"{item['loser']} passe superseded"
+            for item in decisions
         )
 
     def skill_feedback(name: str, ok: bool = True) -> str:
@@ -110,6 +142,39 @@ def build_registry(sandbox: Sandbox, artifacts: list[str], skills: "SkillStore |
             f"{len(retired)} procédure(s) mise(s) à la retraite : {', '.join(retired)}"
             if retired
             else "aucune procédure à mettre à la retraite"
+        )
+
+    def spawn_agent(objective: str, source: str, max_steps: int = 6) -> str:
+        """Délègue un objectif à un sous-agent, avec sa propre trace et son propre budget.
+
+        Le sous-agent travaille dans `delegations/<source>/`, ne partage ni budget ni journal avec
+        son parent, et rend un résumé vérifiable. C'est l'orchestration, pas un appel de fonction.
+        """
+        if children_dir is None:
+            raise ToolError("délégation désactivée dans ce run")
+        from .agent import Agent  # import local : éviter le cycle agent -> tools
+        from .planners import ReplayPlanner
+
+        cassette_path = Path(children_dir) / f"{source}.json"
+        if not cassette_path.exists():
+            raise ToolError(f"sous-agent inconnu : {source}")
+        tape = json.loads(cassette_path.read_text(encoding="utf-8"))
+        child_ws = sandbox.root / "delegations" / source
+        child_ws.mkdir(parents=True, exist_ok=True)
+        child = Agent(
+            planner=ReplayPlanner(tape),
+            workspace=child_ws,
+            runs_dir=Path(runs_dir or sandbox.root.parent),
+            max_steps=int(max_steps),
+        )
+        result = child.run(objective, run_id=f"child-{source}")
+        for name in result.artifacts:
+            note(child_ws / name)
+        errors = sum(1 for step in result.steps if step.error)
+        return (
+            f"sous-agent « {source} » : statut {result.status}, {len(result.steps)} étapes, "
+            f"{errors} erreur(s), livrables : {', '.join('delegations/' + source + '/' + a for a in result.artifacts) or 'aucun'} "
+            f"| {result.summary}"
         )
 
     def fs_list(path: str = ".") -> str:
@@ -272,6 +337,12 @@ def build_registry(sandbox: Sandbox, artifacts: list[str], skills: "SkillStore |
             "génère un fichier audio depuis un texte (endpoint /audio/speech, désactivé par défaut)",
             tts_speak,
         ),
+        "spawn_agent": Tool(
+            "spawn_agent",
+            "spawn_agent(objective, source, max_steps?)",
+            "délègue un objectif à un sous-agent avec son propre budget",
+            spawn_agent,
+        ),
         "skill_list": Tool("skill_list", "skill_list()", "liste les procédures déjà apprises", skill_list),
         "skill_recall": Tool(
             "skill_recall",
@@ -281,9 +352,21 @@ def build_registry(sandbox: Sandbox, artifacts: list[str], skills: "SkillStore |
         ),
         "skill_write": Tool(
             "skill_write",
-            "skill_write(name, content, check?)",
-            "enregistre une procédure, avec un contrat de vérification optionnel",
+            "skill_write(name, content, check?, topic?)",
+            "enregistre une procédure, avec contrat de vérification et sujet optionnels",
             skill_write,
+        ),
+        "skill_revise": Tool(
+            "skill_revise",
+            "skill_revise(name, content, check?, reason?)",
+            "réécrit une procédure périmée, la réactive seulement si le nouveau contrat passe",
+            skill_revise,
+        ),
+        "skill_resolve": Tool(
+            "skill_resolve",
+            "skill_resolve(topic?)",
+            "arbitre des procédures contradictoires : la confiance la plus haute gagne",
+            skill_resolve,
         ),
         "skill_feedback": Tool(
             "skill_feedback",

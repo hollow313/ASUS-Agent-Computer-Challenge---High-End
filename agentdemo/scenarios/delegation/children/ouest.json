@@ -1,0 +1,21 @@
+[
+  {
+    "thought": "Je lis le fichier ouest.csv de mon périmètre.",
+    "tool": "fs_read",
+    "args": {
+      "path": "regions/ouest.csv"
+    }
+  },
+  {
+    "thought": "J'additionne le chiffre d'affaires de ces deux régions et je rédige une note courte.",
+    "tool": "fs_write",
+    "args": {
+      "path": "resume.md",
+      "content": "# Résumé ouest\n\n87 450 euros (Bretagne) + 121 900 euros (Nouvelle-Aquitaine) = 209 350 euros.\n\nZone la plus faible en volume, mais la marge y était la plus élevée au trimestre précédent.\n"
+    }
+  },
+  {
+    "thought": "Note écrite, je rends la main au parent.",
+    "final": "Résumé ouest produit."
+  }
+]

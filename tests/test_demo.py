@@ -177,6 +177,74 @@ class ScenarioTests(unittest.TestCase):
         self.assertIsNone(skills.get("fragile"))
         self.assertEqual(len(list((skills.root / "retired").glob("*.md"))), 1)
 
+    def test_procedure_can_be_revised(self) -> None:
+        """Une procédure périmée peut être réécrite, mais seulement si son nouveau contrat passe."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "ws"
+        workspace.mkdir()
+        (workspace / "v2.txt").write_text("ok", encoding="utf-8")
+        skills = SkillStore(root / "skills")
+
+        skills.write("source", "# Procédure\n\nLire source.txt.", check="path_exists source.txt")
+        self.assertEqual(len(skills.recall("source", workspace)), 0, "contrat cassé, rien n'est servi")
+
+        revised = skills.revise(
+            "source", "# Procédure\n\nLire v2.txt, source.txt n'existe plus.", "path_exists v2.txt",
+            reason="fichier renommé",
+        )
+        self.assertIsNotNone(revised)
+        self.assertEqual(revised.status, "active")
+        self.assertEqual(revised.meta["revisions"], "1")
+        self.assertEqual(len(skills.recall("source", workspace)), 1, "la révision vérifiée est servie")
+
+        # révision avec un contrat qui ne passe pas : la procédure ne redevient pas servie
+        bad = skills.revise("source", "# Procédure\n\nLire nimporte quoi.", "path_exists absent.txt")
+        self.assertEqual(bad.status, "stale")
+        self.assertEqual(len(skills.recall("source", workspace)), 0)
+
+    def test_conflicting_procedures_are_arbitrated(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        skills = SkillStore(Path(tmp.name) / "skills")
+        skills.write("a", "# Procédure\n\nUtiliser la méthode A.", topic="export-csv")
+        skills.write("b", "# Procédure\n\nUtiliser la méthode B.", topic="export-csv")
+
+        for _ in range(3):
+            skills.feedback("b", True)
+        decisions = skills.resolve_conflicts()
+        self.assertEqual(len(decisions), 1)
+        self.assertEqual(decisions[0]["winner"], "b", "la confiance la plus haute gagne")
+        self.assertEqual(skills.get("a").status, "superseded")
+        self.assertEqual(skills.get("a").meta["superseded_by"], "b")
+        self.assertEqual(skills.get("b").status, "active")
+
+    def test_agent_can_delegate_to_sub_agents(self) -> None:
+        """Le parent délègue trois zones, relit les livrables et agrège."""
+        scenario = get_scenario("delegation")
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "ws"
+        workspace.mkdir()
+        scenario.stage(workspace)
+        agent = Agent(
+            planner=ReplayPlanner(scenario.cassette()),
+            workspace=workspace,
+            runs_dir=root / "runs",
+            max_steps=scenario.max_steps,
+            children_dir=scenario.root / "children",
+        )
+        result = agent.run(scenario.objective, run_id="deleg")
+
+        self.assertEqual(result.status, "done")
+        self.assertFalse([s for s in result.steps if s.error], "aucune étape en erreur")
+        for zone in ("nord", "sud", "ouest"):
+            self.assertTrue((workspace / "delegations" / zone / "resume.md").exists(), zone)
+        self.assertTrue((workspace / "comparatif.md").exists())
+        self.assertEqual(len([a for a in result.artifacts if a.startswith("delegations/")]), 3)
+
     def test_budget_is_enforced(self) -> None:
         scenario = get_scenario("cyber-brief")
         tmp = tempfile.TemporaryDirectory()

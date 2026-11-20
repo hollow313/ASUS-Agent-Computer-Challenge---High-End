@@ -76,6 +76,7 @@ class Agent:
         max_steps: int = 14,
         on_step: Callable[[Step], None] | None = None,
         skills: SkillStore | None = None,
+        children_dir: "Path | None" = None,
     ) -> None:
         self.planner = planner
         self.sandbox = Sandbox(workspace)
@@ -83,6 +84,7 @@ class Agent:
         self.max_steps = max_steps
         self.on_step = on_step
         self.skills = skills
+        self.children_dir = children_dir
 
     def run(self, objective: str, run_id: str | None = None) -> RunResult:
         run_id = run_id or uuid.uuid4().hex[:10]
@@ -94,7 +96,9 @@ class Agent:
             planner=getattr(self.planner, "label", "unknown"),
         )
         artifacts: list[str] = []
-        tools = build_registry(self.sandbox, artifacts, self.skills)
+        tools = build_registry(
+            self.sandbox, artifacts, self.skills, self.children_dir, self.runs_dir
+        )
         history: list[dict[str, Any]] = []
 
         for index in range(1, self.max_steps + 1):

@@ -1,0 +1,21 @@
+[
+  {
+    "thought": "Je lis le fichier nord.csv de mon périmètre.",
+    "tool": "fs_read",
+    "args": {
+      "path": "regions/nord.csv"
+    }
+  },
+  {
+    "thought": "J'additionne le chiffre d'affaires de ces deux régions et je rédige une note courte.",
+    "tool": "fs_write",
+    "args": {
+      "path": "resume.md",
+      "content": "# Résumé nord\n\n183 400 euros (Hauts-de-France) + 98 200 euros (Grand-Est) = 281 600 euros.\n\nDeux régions, concentration moyenne, marge non renseignée dans la source.\n"
+    }
+  },
+  {
+    "thought": "Note écrite, je rends la main au parent.",
+    "final": "Résumé nord produit."
+  }
+]

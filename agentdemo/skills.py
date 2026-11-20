@@ -33,7 +33,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 
-META_KEYS = ("uses", "success", "failure", "status", "check", "created", "last_used", "retired")
+META_KEYS = ("topic", "uses", "success", "failure", "status", "check", "created", "last_used",
+             "revisions", "superseded_by", "retired")
 STALE_AFTER_DAYS = int(os.environ.get("AGENTDEMO_SKILL_STALE_DAYS", "30"))
 
 
@@ -126,6 +127,7 @@ class SkillStore:
         self.root.mkdir(parents=True, exist_ok=True)
         self.retired_dir = self.root / "retired"
         self.retired_dir.mkdir(parents=True, exist_ok=True)
+        self._last_sandbox: "Path | None" = None
 
     # ---------- lecture ----------
     def _path(self, name: str) -> Path:
@@ -171,6 +173,7 @@ class SkillStore:
     # ---------- rappel ----------
     def recall(self, keyword: str = "", sandbox: "Path | None" = None) -> list[Skill]:
         """Rappelle les procédures valides ; celles dont le contrat casse sont écartées."""
+        self._last_sandbox = Path(sandbox) if sandbox else None
         keyword = (keyword or "").strip().lower()
         selected = [
             skill
@@ -202,7 +205,7 @@ class SkillStore:
         return "\n\n".join(blocks)
 
     # ---------- écriture ----------
-    def write(self, name: str, content: str, check: str = "") -> Skill:
+    def write(self, name: str, content: str, check: str = "", topic: str = "") -> Skill:
         path = self._path(name)
         today = date.today().isoformat()
         existing = self.get(name)
@@ -214,6 +217,8 @@ class SkillStore:
         meta.setdefault("last_used", today)
         if check:
             meta["check"] = check
+        if topic:
+            meta["topic"] = topic
         path.write_text(render(meta, content), encoding="utf-8")
         written = self.get(name)
         assert written is not None
@@ -232,6 +237,82 @@ class SkillStore:
             skill.meta["status"] = "stale"
         skill.path.write_text(render(skill.meta, skill.body), encoding="utf-8")
         return self.get(name)
+
+    def revise(self, name: str, content: str, check: str = "", reason: str = "") -> "Skill | None":
+        """Réécrit une procédure périmée, puis ne la réactive que si le nouveau contrat passe.
+
+        La révision est tracée : compteur `revisions` et ancien corps conservé dans `history`.
+        Si le nouveau contrat ne passe pas, la procédure reste `stale` : on ne remplace pas une
+        leçon morte par une leçon non vérifiée.
+        """
+        skill = self.get(name)
+        if skill is None:
+            retired = self.retired_dir / self._path(name).name
+            if not retired.exists():
+                return None
+            meta, body = parse(retired.read_text(encoding="utf-8"))
+            skill = Skill(retired.stem, meta, body, retired)
+
+        ok, message = self.verify(Skill(name, {"check": check} if check else {}, ""), self._last_sandbox)
+        meta = dict(skill.meta)
+        meta["revisions"] = str(_as_int(meta.get("revisions")) + 1)
+        meta["status"] = "active" if ok else "stale"
+        if check:
+            meta["check"] = check
+        if reason:
+            meta["revision_note"] = reason[:120]
+        history = self.root.parent / "history"
+        history.mkdir(parents=True, exist_ok=True)
+        (history / f"{skill.name}-v{meta['revisions']}.md").write_text(
+            render(skill.meta, skill.body), encoding="utf-8"
+        )
+        target = self._path(name)
+        target.write_text(render(meta, content), encoding="utf-8")
+        # une procédure retirée doit sortir de retired/ ; une procédure active se réécrit sur place
+        if skill.path and skill.path.exists() and skill.path.resolve() != target.resolve():
+            skill.path.unlink()
+        return self.get(name)
+
+    def resolve_conflicts(self, topic: str | None = None) -> list[dict]:
+        """Arbitre des procédures qui traitent le même sujet.
+
+        Règle : à sujet égal, la confiance la plus haute gagne ; à confiance égale, celle qui a le
+        plus d'usages ; à égalité parfaite, la plus récemment utilisée. Le perdant n'est pas
+        supprimé : il passe `superseded` et pointe vers le gagnant.
+        """
+        groups: dict[str, list[Skill]] = {}
+        for skill in self.list():
+            key = skill.meta.get("topic", "").strip().lower() or skill.name
+            groups.setdefault(key, []).append(skill)
+        if topic:
+            groups = {k: v for k, v in groups.items() if topic.lower() == k}
+
+        decisions = []
+        for key, skills in groups.items():
+            if len(skills) < 2:
+                continue
+            ranked = sorted(
+                skills,
+                key=lambda s: (s.confidence, s.uses, s.meta.get("last_used", "")),
+                reverse=True,
+            )
+            winner, losers = ranked[0], ranked[1:]
+            for loser in losers:
+                if not loser.path:
+                    continue
+                loser.meta["status"] = "superseded"
+                loser.meta["superseded_by"] = winner.name
+                loser.path.write_text(render(loser.meta, loser.body), encoding="utf-8")
+                decisions.append(
+                    {
+                        "topic": key,
+                        "winner": winner.name,
+                        "loser": loser.name,
+                        "winner_confidence": round(100 * winner.confidence),
+                        "loser_confidence": round(100 * loser.confidence),
+                    }
+                )
+        return decisions
 
     def prune(self, min_confidence: float = 0.35, min_uses: int = 2) -> list[str]:
         """Met à la retraite ce qui est stale, ou peu fiable et assez utilisé. Jamais de suppression."""

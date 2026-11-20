@@ -101,6 +101,7 @@ class RunStore:
                         max_steps=scenario.max_steps,
                         on_step=on_step,
                         skills=skills,
+                        children_dir=scenario.root / "children",
                     )
                     result = agent.run(state["objective"], run_id=f"{run_id}-p{index + 1}")
                     with self.lock:
