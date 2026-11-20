@@ -1,11 +1,13 @@
-# Agent Computer — runnable agentic demo
+# Vigie — runnable agentic demo
 
 [Français](README.md) · **English**
 
 **ASUS Agent Computer Challenge submission — High-End category**
 
-A deliberately small but honest demo: an agent receives an objective, picks tools, chains steps,
-**verifies what it produced** and leaves a deliverable on disk. No API key, no network, no
+**Vigie** — the agent that takes the watch: it receives an objective, picks tools, chains steps,
+**verifies what it produced** and leaves a deliverable on disk.
+
+A deliberately small but honest demo. No API key, no network, no
 dependency — two commands and it runs.
 
 **Presentation video (64 s)**: [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4).

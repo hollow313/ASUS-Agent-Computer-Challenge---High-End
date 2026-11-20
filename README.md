@@ -1,11 +1,13 @@
-# Agent Computer — démo agentique exécutable
+# Vigie — démo agentique exécutable
 
 **Français** · [English](README.en.md)
 
 **Candidature ASUS Agent Computer Challenge — catégorie High-End**
 
-Une démo volontairement petite, mais honnête : un agent qui reçoit un objectif, choisit des
-outils, enchaîne les étapes, **vérifie ce qu'il a produit** et rend un livrable sur le disque.
+**Vigie** — l'agent qui prend le quart : il reçoit un objectif, choisit ses outils, enchaîne les
+étapes, **vérifie ce qu'il a produit** et rend un livrable sur le disque.
+
+Une démo volontairement petite, mais honnête.
 Aucune clé API, aucun réseau, aucune dépendance : deux commandes et ça tourne.
 
 **Vidéo de présentation (64 s)** : [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4)

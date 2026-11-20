@@ -1,4 +1,4 @@
-# Architecture
+# Vigie — architecture
 
 ## Vue d'ensemble
 

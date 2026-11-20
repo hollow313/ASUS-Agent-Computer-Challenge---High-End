@@ -1,4 +1,4 @@
-# Parcours de 3 minutes pour l'évaluateur
+# Vigie — parcours de 3 minutes pour l'évaluateur
 
 Aucune installation n'est nécessaire pour les deux premières étapes si vous partez de l'image
 publiée. Tout est en français, aucune clé n'est demandée.

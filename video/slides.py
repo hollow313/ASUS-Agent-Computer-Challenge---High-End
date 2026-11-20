@@ -40,7 +40,7 @@ TITLE = f"""<!doctype html><html lang=fr><meta charset=utf-8><style>{BASE_CSS}
   <h1>Un agent qui <span>agit</span>,<br>vérifie, et apprend de ses erreurs</h1>
   <div class=rule></div>
   <p>Objectif → outils → vérification → livrable. Pas une démo : un agent de production, ramené à une boucle exécutable en deux commandes.</p>
-  <div class=foot>docker run holloow313/agent-computer-challenge-high-end · 9 tests · aucune clé requise</div>
+  <div class=foot>Vigie · docker run holloow313/agent-computer-challenge-high-end · 9 tests · aucune clé requise</div>
 </body></html>"""
 
 END = f"""<!doctype html><html lang=fr><meta charset=utf-8><style>{BASE_CSS}
@@ -51,7 +51,7 @@ END = f"""<!doctype html><html lang=fr><meta charset=utf-8><style>{BASE_CSS}
   .foot {{ margin-top: 34px; font: 15px/1.7 ui-monospace, monospace; color: #5e6675; }}
 </style>
 <body>
-  <h1>Ce qu'il faut retenir</h1>
+  <h1>Vigie — ce qu'il faut retenir</h1>
   <ul>
     <li><b>·</b> une boucle agentique réelle, journal JSON, bac à sable par run</li>
     <li><b>·</b> mémoire procédurale : 6 étapes / 1 erreur → 4 étapes / 0 erreur</li>
