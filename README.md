@@ -19,6 +19,7 @@ Aucune clé API, aucun réseau, aucune dépendance : deux commandes et ça tourn
 
 ```bash
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
+# sans image publiée : docker build -t vigie . && docker run --rm -p 8080:8080 vigie
 # ou, sans Docker :  python3 -m agentdemo serve --port 8080
 python3 -m unittest discover -s tests -v     # 9 tests, aucune dépendance
 ```
@@ -216,6 +217,10 @@ remplit la liste des modèles disponibles. Ces champs priment sur les variables 
 
 C'est le point qui compte pour un Agent Computer : **la même boucle, les mêmes outils, le même
 journal**, avec le calcul qui reste sur la machine et aucune donnée qui sort.
+
+Le mode live a été exercé dans les deux sens : sur un modèle local servi par LM Studio (Qwen 7B et
+8B en Q4, voir les mesures de la section 11) et sur un endpoint cloud, avec un vrai modèle qui
+enchaîne les huit étapes du briefing sans intervention.
 
 ---
 

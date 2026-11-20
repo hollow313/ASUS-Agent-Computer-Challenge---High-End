@@ -18,6 +18,7 @@ dependency — two commands and it runs.
 
 ```bash
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
+# without a published image: docker build -t vigie . && docker run --rm -p 8080:8080 vigie
 # or, without Docker:  python3 -m agentdemo serve --port 8080
 python3 -m unittest discover -s tests -v     # 9 tests, no dependency
 ```
