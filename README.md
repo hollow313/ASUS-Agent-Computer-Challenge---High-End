@@ -1,5 +1,7 @@
 # Agent Computer — démo agentique exécutable
 
+**Français** · [English](README.en.md)
+
 **Candidature ASUS Agent Computer Challenge — catégorie High-End**
 
 Une démo volontairement petite, mais honnête : un agent qui reçoit un objectif, choisit des
@@ -42,10 +44,13 @@ pensée, chaque appel d'outil, chaque observation, la durée, le bilan. Tout est
 ### Option A — Docker (recommandé)
 
 ```bash
-# 1. image publiée automatiquement par la CI (GitHub Actions → ghcr.io)
+# 1. image publiée par la CI (Docker Hub)
+docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
+
+# 2. même image depuis GitHub Container Registry (GHCR)
 docker run --rm -p 8080:8080 ghcr.io/hollow313/asus-agent-computer-challenge-high-end:latest
 
-# 2. ou construite localement depuis les sources
+# 3. ou construite localement depuis les sources
 docker compose up --build
 # → http://localhost:8080
 ```
@@ -75,6 +80,33 @@ python3 -m agentdemo run --scenario dataset-report
 
 Chaque run écrit son espace de travail dans `data/runs/<run_id>/workspace/` : c'est là que se
 trouvent les livrables.
+
+### Volumes, UID et montages (NAS / TrueNAS)
+
+Le conteneur tourne en **UID/GID 568**, l'identifiant des applications sur TrueNAS SCALE : les
+fichiers écrits restent lisibles depuis l'hôte sans se battre avec les permissions. Si vous
+forcez un autre utilisateur, passez `-u $(id -u):$(id -g)` — la seule contrainte est que `/data`
+soit inscriptible par cet UID.
+
+**Un seul dossier est à monter : `/data`.** Il contient les runs, les livrables, les journaux
+JSON et les procédures apprises. Rien d'autre n'est nécessaire : aucun fichier de configuration,
+aucun secret, aucun accès au socket Docker ni au démon.
+
+```bash
+# volume nommé : rien à préparer
+docker run --rm -p 8080:8080 -v agentdemo-data:/data \
+  holloow313/asus-agent-computer-challenge-high-end:latest
+
+# dossier de l'hôte : lui donner le UID 568 avant de démarrer
+mkdir -p /mnt/tank/apps/agent-computer-demo
+chown -R 568:568 /mnt/tank/apps/agent-computer-demo
+docker run --rm -p 8080:8080 -v /mnt/tank/apps/agent-computer-demo:/data \
+  holloow313/asus-agent-computer-challenge-high-end:latest
+```
+
+Pour purger la démo : `rm -rf /mnt/tank/apps/agent-computer-demo/*` (ou `docker volume rm`
+du volume nommé). Aucun port à ouvrir vers l'extérieur, aucun accès réseau sortant en mode
+replay : `8080` en local suffit.
 
 > Aucune dépendance à installer. Aucun `pip install`. Le paquet n'utilise que la bibliothèque
 > standard (voir `requirements.txt`, volontairement vide).
@@ -290,16 +322,16 @@ MIT — voir `LICENSE`. Auteur : Loïc Huon.
 ## English summary
 
 A minimal, runnable agentic loop submitted to the ASUS Agent Computer Challenge (High-End
-category). An agent receives an objective, picks tools, chains steps, verifies its own output
-and writes real deliverables to disk. Two planners share one loop: a deterministic offline
-replay (no API key, no network, real tool execution in a per-run sandbox) and an
-OpenAI-compatible live planner that works with a local model (Ollama, LM Studio, vLLM).
+category): an agent receives an objective, picks tools, chains steps, verifies its own output
+and writes real deliverables to disk. Two planners share one loop — a deterministic offline
+replay (no API key, no network, but real tool execution in a per-run sandbox) and an
+OpenAI-compatible live planner for a local model (Ollama, LM Studio, vLLM). Four scenarios,
+including `self-repair` where a second pass goes from 6 steps / 1 error to 4 steps / 0 errors.
 
 ```bash
-docker compose up --build   # http://localhost:8080
+docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
 python3 -m agentdemo run --scenario cyber-brief   # no dependency, no key
-python3 -m unittest discover -s tests -v          # 8 tests
+python3 -m unittest discover -s tests -v          # 9 tests
 ```
 
-Three scenarios: RSS → dated briefing, inbox triage → report, CSV → analysis + SVG chart.
-Everything is sandboxed, logged as JSON, and safe to run.
+→ Full documentation in English: [README.en.md](README.en.md)

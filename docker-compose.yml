@@ -1,8 +1,12 @@
 services:
   demo:
+    image: holloow313/asus-agent-computer-challenge-high-end:latest
     build: .
-    image: agent-computer-demo:1.0.0
     container_name: agent-computer-demo
+    # UID/GID 568 : applications NAS (TrueNAS SCALE). Le Dockerfile crée déjà cet
+    # utilisateur ; cette ligne force le runtime à tourner avec, même sur une
+    # image construite ailleurs.
+    user: "568:568"
     ports:
       - "8080:8080"
     environment:
@@ -11,8 +15,13 @@ services:
       AGENTDEMO_LLM_BASE_URL: "${AGENTDEMO_LLM_BASE_URL:-http://ollama:11434/v1}"
       AGENTDEMO_LLM_MODEL: "${AGENTDEMO_LLM_MODEL:-qwen2.5-coder:7b}"
       AGENTDEMO_ALLOW_NETWORK: "${AGENTDEMO_ALLOW_NETWORK:-0}"
+      AGENTDEMO_DATA_DIR: /data
     volumes:
+      # Seul dossier à monter : /data (runs, journaux, procédures).
+      # Volume nommé — rien à préparer :
       - demo-data:/data
+      # Ou un dossier de l'hôte, à condition qu'il appartienne au UID 568 :
+      # - /mnt/tank/apps/agent-computer-demo:/data
     restart: unless-stopped
 
   # Décommentez ce service (et `docker compose --profile ollama up`) pour

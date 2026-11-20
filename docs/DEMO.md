@@ -6,8 +6,18 @@ publiée. Tout est en français, aucune clé n'est demandée.
 ## 1. Lancer (30 s)
 
 ```bash
+# image Docker Hub
+docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
+
+# même image sur GHCR
 docker run --rm -p 8080:8080 ghcr.io/hollow313/asus-agent-computer-challenge-high-end:latest
+
+# avec persistance des runs (UID 568 = applications NAS)
+docker run --rm -p 8080:8080 -v "$PWD/data:/data" holloow313/asus-agent-computer-challenge-high-end:latest
 ```
+
+Le conteneur tourne en UID/GID 568 et n'a besoin que d'un dossier monté : `/data`. Sans montage,
+Docker crée un volume anonyme et tout fonctionne quand même.
 
 Ou sans Docker : `python3 -m agentdemo serve --port 8080` (Python 3.10+, zéro dépendance).
 

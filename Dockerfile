@@ -3,7 +3,8 @@ FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="Agent Computer — demo" \
       org.opencontainers.image.description="Minimal agentic loop: objective, tools, verification, deliverable" \
-      org.opencontainers.image.licenses="MIT"
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.url="https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End"
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -12,9 +13,15 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 COPY agentdemo ./agentdemo
 
-RUN mkdir -p /data && useradd --create-home --uid 10001 agent \
-    && chown -R agent:agent /app /data
-USER agent
+# UID/GID 568 : identifiant des applications sur TrueNAS SCALE (et des volumes
+# partagés sur la plupart des NAS). Les fichiers écrits restent donc accessibles
+# depuis l'hôte sans jouer avec les permissions.
+RUN groupadd --gid 568 agent \
+    && useradd --uid 568 --gid 568 --home-dir /home/agent --create-home --shell /usr/sbin/nologin agent \
+    && mkdir -p /data \
+    && chown -R 568:568 /app /data /home/agent
+
+USER 568:568
 
 VOLUME ["/data"]
 EXPOSE 8080
