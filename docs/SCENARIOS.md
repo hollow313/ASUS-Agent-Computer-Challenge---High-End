@@ -86,6 +86,32 @@ plus vite. Dans `scenario.json` :
 
 L'interface affiche les deux passes séparées et le comparatif (étapes, erreurs).
 
+## Sous-agents (délégation)
+
+Un scénario peut convoquer des sous-agents. Chaque sous-agent a sa cassette dans
+`children/<nom>.json`, son répertoire (`delegations/<nom>/`) et son budget :
+
+```json
+{"thought": "Trois zones indépendantes, je délègue.", "tool": "spawn_agent",
+ "args": {"objective": "Analyse la zone nord", "source": "nord", "max_steps": 6}}
+```
+
+Le parent reçoit un résumé et doit relire les livrables avant d'agréger. Exemple complet dans
+`scenarios/delegation/`.
+
+## Modifier les fixtures entre deux passes
+
+Pour démontrer qu'une procédure peut devenir fausse, une passe peut renommer un fichier avant de
+démarrer :
+
+```json
+{"label": "passe 3, procédure devenue fausse", "cassette": "cassette3.json",
+ "mutate": {"move": [["feeds/flux-avis-112026.xml", "feeds/flux-avis-2027.xml"]]}}
+```
+
+Le contrat `path_exists` de la procédure casse, elle est retirée, l'agent réexplore et la remplace.
+C'est ce que fait `self-repair`.
+
 ## Combien de scénarios ?
 
 Quatre suffisent. Un catalogue de dix scénarios dilue le propos : un jury retient la profondeur

@@ -124,9 +124,22 @@ python3 -m agentdemo skills            # registre : statut, succès, usages, con
 python3 -m agentdemo skills --prune    # met à la retraite ce qui est périmé
 ```
 
-Ce qui reste hors périmètre, et je l'assume : la **réécriture du contenu** d'une procédure par le
-modèle quand elle vieillit, et l'arbitrage entre deux procédures contradictoires. Le tri automatique
-des procédures obsolètes, lui, est implémenté et testé.
+### Réécrire une procédure, arbitrer un conflit
+
+Deux cas restaient ouverts, ils sont traités :
+
+- **révision** : `skill_revise(name, content, check)` réécrit une procédure périmée, archive
+  l'ancienne version dans `skills/history/`, puis ne la réactive **que si le nouveau contrat
+  passe**. Un modèle peut proposer la réécriture en mode réel, la vérification reste mécanique.
+  Une révision non vérifiée laisse la procédure `stale` : on ne remplace pas une leçon morte par
+  une leçon non contrôlée ;
+- **arbitrage** : deux procédures du même sujet (`topic`) ne cohabitent pas. `skill_resolve`
+  garde celle qui a la meilleure confiance, puis le plus d'usages, puis la plus récente. La perdante
+  passe `superseded` et pointe vers la gagnante, sans être supprimée.
+
+Ce qui reste hors périmètre, et je l'assume : le déclenchement **automatique** d'une révision sans
+que l'agent le décide, et l'évaluation du **contenu** de deux procédures contradictoires (seul le
+sujet est arbitré, pas la formulation).
 
 ![Comparatif des deux passes](docs/screenshot-selfrepair.png)
 
