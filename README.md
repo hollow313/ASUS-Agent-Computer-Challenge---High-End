@@ -8,7 +8,7 @@ Une démo volontairement petite, mais honnête : un agent qui reçoit un objecti
 outils, enchaîne les étapes, **vérifie ce qu'il a produit** et rend un livrable sur le disque.
 Aucune clé API, aucun réseau, aucune dépendance : deux commandes et ça tourne.
 
-**Vidéo de présentation (80 s)** : [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4)
+**Vidéo de présentation (64 s)** : [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4)
 — boucle agentique, mémoire procédurale, mesures locales.
 
 ![Interface de la démo](docs/screenshot-run.png)

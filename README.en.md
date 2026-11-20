@@ -8,7 +8,7 @@ A deliberately small but honest demo: an agent receives an objective, picks tool
 **verifies what it produced** and leaves a deliverable on disk. No API key, no network, no
 dependency — two commands and it runs.
 
-**Presentation video (80 s)**: [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4).
+**Presentation video (64 s)**: [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4).
 
 ![Demo interface](docs/screenshot-run.png)
 
