@@ -97,6 +97,20 @@ python3 -m agentdemo run --scenario dataset-report
 python3 -m agentdemo run --scenario self-repair
 ```
 
+Without the web UI, endpoint and model are command line options. Example with a local model
+served by LM Studio on port 1234 of your machine:
+
+```bash
+python3 -m agentdemo run --scenario cyber-brief --live \
+  --base-url http://YOUR-IP:1234/v1 \
+  --model llama-3.1-8b
+```
+
+With Ollama, same shape: `--base-url http://localhost:11434/v1 --model qwen2.5-coder:7b`.
+If the endpoint needs a key, `--api-key sk-...` or the `AGENTDEMO_LLM_API_KEY` variable.
+The same values exist as environment variables for containers: `AGENTDEMO_LLM_BASE_URL`,
+`AGENTDEMO_LLM_MODEL`, `AGENTDEMO_LLM_API_KEY`.
+
 Each run writes its workspace under `data/runs/<run_id>/workspace/`, that is where the
 deliverables are.
 

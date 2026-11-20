@@ -25,10 +25,19 @@ from .scenarios_loader import Scenario
 DEFAULT_DATA_DIR = Path(os.environ.get("AGENTDEMO_DATA_DIR", "data"))
 
 
-def _make_planner(scenario, live: bool, model: str | None, base_url: str | None, index: int = 0):
+def _make_planner(
+    scenario,
+    live: bool,
+    model: str | None,
+    base_url: str | None,
+    index: int = 0,
+    api_key: str | None = None,
+):
     if live:
         stub_tools = build_registry(_NullSandbox(), [])
-        return OpenAICompatPlanner(base_url=base_url, model=model, tools=stub_tools)
+        return OpenAICompatPlanner(
+            base_url=base_url, model=model, api_key=api_key, tools=stub_tools
+        )
     return ReplayPlanner(scenario.cassette(index))
 
 
@@ -70,8 +79,10 @@ def cmd_run(args: argparse.Namespace) -> int:
     status = "done"
     recap = []
     for index, label in enumerate(scenario.pass_labels()):
-        planner = _make_planner(scenario, args.live, args.model, args.base_url, index)
-        print(f", {label or f'passe {index + 1}'} · planificateur {getattr(planner, 'label', '?')}")
+        planner = _make_planner(
+            scenario, args.live, args.model, args.base_url, index, args.api_key
+        )
+        print(f"▸ {label or f'passe {index + 1}'} · planificateur {getattr(planner, 'label', '?')}")
 
         def on_step(step) -> None:
             tool = step.tool or "final"
@@ -243,7 +254,12 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--scenario", default="cyber-brief")
     run.add_argument("--live", action="store_true", help="utilise un modèle réellement (OpenAI-compatible)")
     run.add_argument("--model", help="nom du modèle en mode live")
-    run.add_argument("--base-url", help="endpoint compatible OpenAI (défaut : http://localhost:11434/v1)")
+    run.add_argument(
+        "--base-url",
+        help="endpoint compatible OpenAI, par exemple http://MON-IP:1234/v1 pour LM Studio "
+        "(défaut : AGENTDEMO_LLM_BASE_URL ou http://localhost:11434/v1)",
+    )
+    run.add_argument("--api-key", help="clé API si l'endpoint en exige une (ou AGENTDEMO_LLM_API_KEY)")
     run.add_argument("--max-steps", type=int)
     run.set_defaults(func=cmd_run)
 
