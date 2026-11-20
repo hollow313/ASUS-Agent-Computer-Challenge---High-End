@@ -239,6 +239,16 @@ def cmd_new(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_fit(args: argparse.Namespace) -> int:
+    """Dimensionnement : ce qui tient dans une carte pour un contexte donné."""
+    from .fit import table
+
+    print(table(args.vram, args.context))
+    print()
+    print("estimation de dimensionnement (poids + cache d'attention + marge runtime), pas une mesure.")
+    return 0
+
+
 def cmd_maintain(args: argparse.Namespace) -> int:
     """Entretien automatique : réparer, arbitrer, retirer. Conçu pour tourner en tâche de fond."""
     from .maintenance import Maintainer
@@ -342,6 +352,11 @@ def build_parser() -> argparse.ArgumentParser:
     new.add_argument("--tag", action="append")
     new.add_argument("--force", action="store_true")
     new.set_defaults(func=cmd_new)
+
+    fit = sub.add_parser("fit", help="quels modèles tiennent dans une carte")
+    fit.add_argument("--vram", type=float, default=32.0, help="mémoire vidéo de la carte, en Go")
+    fit.add_argument("--context", type=int, default=32768, help="contexte visé, en tokens")
+    fit.set_defaults(func=cmd_fit)
 
     maintain = sub.add_parser("maintain", help="entretien automatique des procédures")
     maintain.add_argument("--once", action="store_true", help="une seule passe")

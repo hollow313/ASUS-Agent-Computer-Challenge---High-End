@@ -421,6 +421,12 @@ runnable demo and measurements.
 
 ---
 
+### Sizing, computed
+
+`python3 -m agentdemo fit --vram 32 --context 32768` computes what fits on a given card: weights by
+quantisation, attention cache, runtime margin. On 32 GB at 32 k context, a 32B model fits in Q4 with
+1.6 GB left, in Q6 at 8 k context, and not at all on 16 GB.
+
 ## 13. Licence and author
 
 MIT, see `LICENSE`. Author: Loïc Huon.

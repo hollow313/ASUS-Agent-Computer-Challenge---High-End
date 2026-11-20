@@ -294,6 +294,27 @@ class ScenarioTests(unittest.TestCase):
         self.assertTrue(report.superseded or report.retired, "un conflit doit être tranché")
         self.assertEqual(skills.get("verifiee").status, "active", "la preuve prime sur la confiance")
 
+    def test_vram_planning_is_consistent(self) -> None:
+        """Le dimensionnement doit être monotone : plus de VRAM ne fait jamais tenir moins."""
+        from agentdemo.fit import MODELS, fits, plan
+
+        rows_3 = {row["model"]: row for row in plan(3, 8192)}
+        rows_32 = {row["model"]: row for row in plan(32, 32768)}
+        self.assertEqual(rows_3["qwen2.5-coder-32b"]["quant"], "ne rentre pas", "un 32B ne tient pas sur 3 Go")
+        self.assertIn(rows_32["qwen2.5-coder-32b"]["quant"], ("Q4", "Q5"), "un 32B tient en Q4/Q5 sur 32 Go")
+        self.assertEqual(rows_32["llama-3.3-70b"]["quant"], "ne rentre pas", "un 70B ne tient pas sur 32 Go")
+
+        # réalité assumée : sur 3 Go, un 7B Q4 ne tient pas entièrement, il est déporté en partie
+        # sur le CPU, ce qui explique la latence mesurée
+        model = next(m for m in MODELS if m.name == "qwen2.5-coder-7b")
+        ok_3go, _, _ = fits(3, model, "Q4", 4096)
+        ok_8go, _, _ = fits(8, model, "Q4", 4096)
+        self.assertFalse(ok_3go, "3 Go ne suffisent pas pour un 7B Q4, même en contexte court")
+        self.assertTrue(ok_8go, "8 Go suffisent pour un 7B Q4 en contexte court")
+
+        rows_16 = {row["model"]: row for row in plan(16, 32768)}
+        self.assertEqual(rows_16["qwen2.5-coder-32b"]["quant"], "ne rentre pas", "16 Go ne suffit pas pour un 32B")
+
     def test_budget_is_enforced(self) -> None:
         scenario = get_scenario("cyber-brief")
         tmp = tempfile.TemporaryDirectory()

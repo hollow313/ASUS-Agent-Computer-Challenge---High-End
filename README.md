@@ -7,7 +7,6 @@
 ![dépendances](https://img.shields.io/badge/d%C3%A9pendances-0-2ea043)
 ![tests](https://img.shields.io/badge/tests-17%20passent-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
-![image](https://img.shields.io/badge/image%20docker-41%20Mo-2496ed)
 
 **Français** · [English](README.en.md)
 
@@ -202,6 +201,27 @@ sur 3 Go de VRAM, un agent qui enchaîne huit étapes doit choisir entre être r
 | veille et courrier traités sur le cloud | tout reste sur la machine, données sensibles comprises |
 | RAG personnel irréaliste | index sur mes archives, réponses citées |
 
+### Ce que ça donne, chiffré
+
+Le dimensionnement se calcule, il ne s'espère pas. `agentdemo fit` fait le calcul pour une carte et
+un contexte donnés : poids selon la quantification, cache d'attention, marge pour le runtime.
+
+```bash
+python3 -m agentdemo fit --vram 32 --context 32768
+```
+
+```
+modèle                     taille        quant   mémoire    marge
+qwen2.5-coder-7b            7.6 B           Q8    11.7 Go   20.3 Go
+qwen2.5-coder-14b          14.7 B           Q8    20.9 Go   11.1 Go
+mistral-small-24b          23.6 B           Q6    26.9 Go    5.1 Go
+qwen2.5-coder-32b          32.8 B           Q4    30.4 Go    1.6 Go
+llama-3.3-70b              70.6 B ne rentre pas    56.0 Go  -24.0 Go
+```
+
+À 8 k de contexte, le même 32B monte en Q6. À 16 Go de VRAM, il ne rentre pas du tout, même en Q4 :
+c'est précisément pour ça que la carte visée est en 32 Go, et pas une carte intermédiaire.
+
 L'argument n'est pas le prix du token : à 5 centimes les 1 000 exécutions, le cloud le moins cher
 reste moins cher qu'une carte pour mon volume actuel, et je l'assume dans le comparatif. Les trois
 vrais arguments sont la **souveraineté** (ce qui ne doit pas sortir ne sort plus), la **parité de
@@ -357,6 +377,7 @@ agentdemo/
 ├── tools.py              # 18 outils : fichiers, analyse, voix, procédures, délégation
 ├── skills.py             # mémoire procédurale : contrats, confiance, révision, arbitrage
 ├── maintenance.py        # entretien automatique : réparer, arbitrer, retirer
+├── fit.py                # dimensionnement mémoire : ce qui tient dans une carte
 ├── scenarios_loader.py   # chargement des scénarios, cassettes et fixtures
 ├── cli.py                # CLI : scenarios, run, serve, skills, maintain, validate, new
 ├── server.py             # API HTTP et interface web (http.server, stdlib)
@@ -392,6 +413,7 @@ python3 -m unittest discover -s tests -v   # 17 tests, aucun framework
 python3 -m agentdemo validate              # cohérence des cassettes avec les outils
 python3 -m agentdemo skills                # registre des procédures et leur confiance
 python3 -m agentdemo maintain --once       # entretien : réparer, arbitrer, retirer
+python3 -m agentdemo fit --vram 32         # ce qui tient dans la carte visée
 python3 bench/bench.py --targets bench/targets.json
 ```
 
