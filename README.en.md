@@ -24,7 +24,7 @@ using the repo's speech tool (`tts_speak`, `/audio/speech` endpoint).
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
 # without a published image: docker build -t vigie . && docker run --rm -p 8080:8080 vigie
 # or, without Docker: python3 -m agentdemo serve --port 8080
-python3 -m unittest discover -s tests -v # 20 tests, no dependency
+python3 -m unittest discover -s tests -v # 23 tests, no dependency
 ```
 
 Then, in the UI: **self-repair**, which shows learning across two passes.
@@ -262,7 +262,7 @@ agentdemo/
 ├── server.py # HTTP API + web UI (http.server, stdlib)
 ├── web/index.html # single page, no dependency
 └── scenarios/ # 4 scenarios: cassette + scenario.json + fixtures
-tests/test_demo.py # 20 tests: scenarios, learning, sandbox, budget
+tests/test_demo.py # 23 tests: scenarios, learning, sandbox, budget
 bench/ # measurement bench: bench.py, tasks, prices, simulated endpoint
 video/ # title cards and UI capture for the video (slides.py, record.py)
 docs/ # screenshots, architecture, local measurements, scenarios, 3-min path
@@ -285,7 +285,7 @@ Dockerfile, docker-compose.yml, Makefile, .github/workflows/docker-build.yml
 ## 8. Tests and CI
 
 ```bash
-python3 -m unittest discover -s tests -v # 20 tests, no framework
+python3 -m unittest discover -s tests -v # 23 tests, no framework
 ```
 
 Scenarios reach `done`, deliverables are checked on disk, `self-repair` proves pass 2 is shorter
@@ -435,6 +435,14 @@ endpoint) and exits non-zero on a blocking failure.
 
 `python3 -m agentdemo export` packages a run as a readable archive: full journal, declared
 deliverables and a summary page. Also available as `GET /api/runs/<id>/export`.
+
+## Model routing
+
+`/routing` configures which model handles which task: any number of targets (two LM Studio
+instances, two clouds, or a mix), ordered rules (sensitive keywords, scenario, objective pattern,
+catch-all) and a manual override for demos. Each real run records its decision, target, model and
+reason. `python3 -m agentdemo route --objective "…"` prints the decision from the command line.
+Details: [`docs/ROUTAGE.md`](docs/ROUTAGE.md).
 
 ## 13. Licence and author
 

@@ -136,6 +136,7 @@
 <header>
   <h1>Agent Computer</h1>
   <p>objectif → planification → outils → vérification → livrable</p>
+  <a class="badge" href="/routing" style="text-decoration:none">ROUTAGE DES MODÈLES ↗</a>
   <span class="badge" id="modeBadge">MODE REPLAY · DÉTERMINISTE</span>
 </header>
 
@@ -352,7 +353,10 @@ async function poll() {
   renderResult(run);
   const dot = $("dot");
   dot.className = "dot " + run.status;
-  $("statusText").textContent = `${run.status} · ${run.steps.length} étapes · ${run.mode} · ${run.title}`;
+  const route = run.routing
+    ? ` · ${run.routing.target} (${run.routing.reason})`
+    : "";
+  $("statusText").textContent = `${run.status} · ${run.steps.length} étapes · ${run.mode}${route} · ${run.title}`;
   if (run.status !== "running") {
     clearInterval(state.polling);
     state.polling = null;

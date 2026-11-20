@@ -357,6 +357,61 @@ class ScenarioTests(unittest.TestCase):
         self.assertIn("run42", readme)
         self.assertIn("statut", readme)
 
+    def test_routing_resolution_order(self) -> None:
+        """Forçage manuel > règle > défaut, et les règles s'évaluent dans l'ordre."""
+        from agentdemo.routing import RoutingTable, Rule, Target
+
+        table = RoutingTable(
+            targets=[
+                Target("local-a", "petit", "http://localhost:1234/v1", "petit"),
+                Target("local-b", "gros", "http://localhost:1234/v1", "gros"),
+                Target("cloud", "cloud", "https://api.exemple.invalid/v1", "gros-cloud", "cloud"),
+            ],
+            rules=[
+                Rule("sensitive", "", "local-b", "données sensibles en local"),
+                Rule("scenario", "dataset-report", "cloud", "analyse non sensible"),
+                Rule("keyword", r"r[ée]sum", "local-a", "tâche mécanique"),
+                Rule("always", "", "local-b", "défaut"),
+            ],
+            default_target="local-b",
+        )
+        self.assertEqual(table.resolve("Résume le dossier").target.id, "local-a")
+        self.assertEqual(table.resolve("Analyse ce jeu de données", "dataset-report").target.id, "cloud")
+        self.assertEqual(table.resolve("Résume le dossier client").target.id, "local-b", "sensible passe avant")
+        self.assertEqual(table.resolve("Écris un poème").target.id, "local-b")
+
+        table.override = "cloud"
+        self.assertEqual(table.resolve("Résume le dossier client").target.id, "cloud", "le forçage prime")
+        self.assertEqual(table.resolve("Résume").matched, "override")
+
+    def test_routing_rejects_a_broken_policy(self) -> None:
+        from agentdemo.routing import RoutingError, RoutingTable, Rule, Target
+
+        table = RoutingTable(targets=[Target("a", "A", "http://localhost:1234/v1", "m")], default_target="a")
+        with self.assertRaises(RoutingError):
+            table.set_rules([Rule("keyword", "(", "a")])  # expression invalide
+        with self.assertRaises(RoutingError):
+            table.set_rules([Rule("scenario", "x", "absente")])  # cible inconnue
+        with self.assertRaises(RoutingError):
+            table.remove_target("a")  # cible par défaut retirée sans repli
+
+    def test_routing_round_trip(self) -> None:
+        import json
+        from agentdemo.routing import RoutingTable
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        path = Path(tmp.name) / "routing.json"
+        table = RoutingTable.default()
+        table.override = "cloud"
+        table.record(table.resolve("test"), "test")
+        table.save(path)
+        reloaded = RoutingTable.load(path)
+        self.assertEqual(reloaded.override, "cloud")
+        self.assertEqual(len(reloaded.targets), len(table.targets))
+        self.assertEqual(len(reloaded.history), 1)
+        self.assertIn("targets", json.loads(path.read_text(encoding="utf-8")))
+
     def test_budget_is_enforced(self) -> None:
         scenario = get_scenario("cyber-brief")
         tmp = tempfile.TemporaryDirectory()

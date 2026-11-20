@@ -20,6 +20,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 from .agent import Agent, Step
 from .planners import OpenAICompatPlanner, ReplayPlanner, normalize_base_url
+from .routing import RoutingError, RoutingTable, Target
 from .scenarios_loader import get_scenario, list_scenarios
 from .skills import SkillStore
 from .tools import build_registry
@@ -45,6 +46,21 @@ class RunStore:
         skills = SkillStore(self.data_dir / "skills")
         labels = scenario.pass_labels()
         llm = llm or {}
+        routing_decision = None
+        if mode == "live" and not (llm.get("base_url") and llm.get("model")):
+            # aucune cible fournie à la main : c'est la politique de routage qui décide
+            try:
+                table = RoutingTable.load(self.data_dir / "routing.json")
+                decision = table.resolve(objective or scenario.objective, slug)
+                routing_decision = table.record(decision, objective or scenario.objective, slug)
+                table.save(self.data_dir / "routing.json")
+            except RoutingError as exc:
+                raise ValueError(f"routage impossible : {exc}") from exc
+            llm = {
+                "base_url": decision.target.base_url,
+                "model": decision.target.model,
+                "api_key": decision.target.api_key,
+            }
         if mode == "live":
             base_url = str(llm.get("base_url") or "").strip()
             model = str(llm.get("model") or "").strip()
@@ -66,6 +82,7 @@ class RunStore:
             "recap": [],
             "started_at": time.time(),
             "workspace": str(workspace),
+            "routing": routing_decision,
         }
         with self.lock:
             self.runs[run_id] = state
@@ -165,6 +182,20 @@ def make_handler(store: RunStore):
             path = urlparse(self.path).path
             if path in ("/", "/index.html"):
                 return self._send_file(WEB_DIR / "index.html")
+            if path == "/routing":
+                return self._send_file(WEB_DIR / "routing.html")
+            if path == "/api/routing":
+                table = RoutingTable.load(store.data_dir / "routing.json")
+                return self._send_json(
+                    {
+                        "targets": [t.as_public() for t in table.targets],
+                        "rules": [{"match": r.match, "value": r.value, "target": r.target, "note": r.note} for r in table.rules],
+                        "default_target": table.default_target,
+                        "override": table.override,
+                        "sensitive_words": table.sensitive_words,
+                        "history": table.history[-20:],
+                    }
+                )
             if path == "/api/maintenance":
                 log = store.data_dir / "maintenance.jsonl"
                 lines = log.read_text(encoding="utf-8").splitlines()[-20:] if log.exists() else []
@@ -211,6 +242,66 @@ def make_handler(store: RunStore):
 
         def do_POST(self) -> None:  # noqa: N802
             path = urlparse(self.path).path
+            length = int(self.headers.get("Content-Length") or 0)
+            try:
+                payload = json.loads(self.rfile.read(length) or b"{}")
+            except json.JSONDecodeError:
+                return self._send_json({"error": "json invalide"}, status=400)
+            if path == "/api/routing":
+                raw = payload or {}
+                try:
+                    table = RoutingTable.load(store.data_dir / "routing.json")
+                    if "targets" in raw:
+                        table.targets = [Target(**item) for item in raw["targets"]]
+                    if "rules" in raw:
+                        from .routing import Rule
+
+                        table.rules = [
+                            Rule(
+                                match=str(item.get("match", "")),
+                                value=str(item.get("value", "")),
+                                target=str(item.get("target", "")),
+                                note=str(item.get("note", "")),
+                            )
+                            for item in raw["rules"]
+                        ]
+                    if "default_target" in raw:
+                        table.default_target = str(raw["default_target"])
+                    if "override" in raw:
+                        table.override = str(raw["override"] or "")
+                    if "sensitive_words" in raw:
+                        table.sensitive_words = [str(w) for w in raw["sensitive_words"]]
+                    table.save(store.data_dir / "routing.json")
+                except (RoutingError, TypeError, KeyError) as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"ok": True})
+            if path == "/api/routing/decide":
+                try:
+                    table = RoutingTable.load(store.data_dir / "routing.json")
+                    decision = table.resolve(
+                        str(payload.get("objective", "")), str(payload.get("scenario", ""))
+                    )
+                except RoutingError as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                payload_out = decision.as_dict()
+                if table.override:
+                    # on montre aussi ce que la politique aurait décidé, pour rester lisible
+                    without_override = RoutingTable(
+                        targets=table.targets,
+                        rules=table.rules,
+                        default_target=table.default_target,
+                        sensitive_words=table.sensitive_words,
+                    )
+                    payload_out["policy_decision"] = without_override.resolve(
+                        str(payload.get("objective", "")), str(payload.get("scenario", ""))
+                    ).as_dict()
+                return self._send_json(payload_out)
+            if path == "/api/routing/probe":
+                table = RoutingTable.load(store.data_dir / "routing.json")
+                target = next((t for t in table.targets if t.id == payload.get("target")), None)
+                if target is None:
+                    return self._send_json({"error": "cible inconnue"}, status=404)
+                return self._probe_models({"base_url": [target.base_url], "api_key": [target.api_key]})
             if path == "/api/maintenance/run":
                 from .maintenance import Maintainer
 
@@ -227,11 +318,6 @@ def make_handler(store: RunStore):
                 return self._send_json(report.as_dict())
             if path != "/api/run":
                 return self._send_json({"error": "route inconnue"}, status=404)
-            length = int(self.headers.get("Content-Length") or 0)
-            try:
-                payload = json.loads(self.rfile.read(length) or b"{}")
-            except json.JSONDecodeError:
-                return self._send_json({"error": "json invalide"}, status=400)
             try:
                 run_id = store.start(
                     slug=str(payload.get("scenario", "cyber-brief")),

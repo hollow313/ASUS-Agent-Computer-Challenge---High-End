@@ -5,7 +5,7 @@
 [![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dépendances](https://img.shields.io/badge/d%C3%A9pendances-0-2ea043)
-![tests](https://img.shields.io/badge/tests-20%20passent-2ea043)
+![tests](https://img.shields.io/badge/tests-23%20passent-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **Français** · [English](README.en.md)
@@ -25,7 +25,7 @@ Trois commandes, aucune clé, aucun réseau, aucune dépendance :
 ```bash
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
 python3 -m agentdemo run --scenario self-repair     # la démo en terminal
-python3 -m unittest discover -s tests               # 20 tests, 75 ms
+python3 -m unittest discover -s tests               # 23 tests, 90 ms
 ```
 
 Puis, dans l'interface : **Auto-réparation**, qui montre l'apprentissage en trois passes.
@@ -185,6 +185,29 @@ parent (6 étapes)
 Ce qui compte : le budget est **cloisonné** (un sous-agent bavard ne peut pas épuiser le parent),
 les artefacts sont **rangés** par délégation, et le parent **vérifie** ce qu'il reçoit. C'est le
 même mécanisme que mon agent de production utilise pour paralléliser des tâches indépendantes.
+
+---
+
+## Quel modèle pour quelle tâche
+
+Un agent qui parle à un seul modèle est un agent qui prend le mauvais outil pour chaque tâche. La
+page **`/routing`** règle la politique : autant de cibles qu'on veut (deux instances LM Studio,
+deux clouds, ou un mélange), des règles ordonnées, et un forçage manuel pour les démonstrations.
+
+Les règles s'évaluent dans l'ordre, la première qui matche gagne : mots sensibles (donc local),
+scénario, motif dans l'objectif, puis un garde-fou. Chaque exécution réelle journalise sa décision,
+cible, modèle et raison.
+
+![Page de routage](docs/screenshot-routing.png)
+
+```bash
+python3 -m agentdemo route --objective "Résume le dossier client"     # → local, données sensibles
+python3 -m agentdemo route --objective "Analyse ce jeu de données" --scenario dataset-report
+python3 -m agentdemo route --override lm-32b                          # force une cible
+```
+
+Dans l'interface de démonstration, un bouton mène à cette page, et la barre de statut d'un run
+affiche la cible retenue avec sa raison. Détail complet : [`docs/ROUTAGE.md`](docs/ROUTAGE.md).
 
 ---
 
@@ -378,14 +401,16 @@ agentdemo/
 ├── skills.py             # mémoire procédurale : contrats, confiance, révision, arbitrage
 ├── maintenance.py        # entretien automatique : réparer, arbitrer, retirer
 ├── fit.py                # dimensionnement mémoire : ce qui tient dans une carte
+├── routing.py            # politique de routage : cibles, règles, forçage, historique
 ├── doctor.py             # diagnostic d'installation
 ├── export.py             # archive d'un run : journal, livrables, synthèse
 ├── scenarios_loader.py   # chargement des scénarios, cassettes et fixtures
 ├── cli.py                # CLI : run, serve, doctor, export, fit, skills, maintain, validate, new
 ├── server.py             # API HTTP et interface web (http.server, stdlib)
 ├── web/index.html        # interface d'une page, aucune dépendance
+├── web/routing.html      # page de configuration du routage
 └── scenarios/            # cyber-brief, inbox-triage, dataset-report, delegation, self-repair
-tests/test_demo.py        # 20 tests : scénarios, procédures, délégation, bac à sable
+tests/test_demo.py        # 23 tests : scénarios, procédures, délégation, bac à sable
 bench/                    # banc de mesure : tâches, prix, endpoint simulé
 video/                    # cartons, capture d'interface et script de narration
 docs/                     # captures, architecture, comparatif, scénarios, parcours 3 min
@@ -404,6 +429,9 @@ docs/                     # captures, architecture, comparatif, scénarios, parc
 | `/api/maintenance` | GET | dernières passes d'entretien |
 | `/api/maintenance/run` | POST | déclenche une passe d'entretien |
 | `/api/runs/<id>/export` | GET | archive du run : journal et livrables |
+| `/api/routing` | GET, POST | politique de routage : cibles, règles, forçage |
+| `/api/routing/decide` | POST | décision pour un objectif, avec la version sans forçage |
+| `/routing` | GET | page de configuration du routage |
 | `/api/llm/models` | GET | sonde un endpoint compatible OpenAI |
 | `/healthz` | GET | sonde de santé |
 
@@ -412,11 +440,12 @@ docs/                     # captures, architecture, comparatif, scénarios, parc
 ## Vérifier par soi-même
 
 ```bash
-python3 -m unittest discover -s tests -v   # 20 tests, aucun framework
+python3 -m unittest discover -s tests -v   # 23 tests, aucun framework
 python3 -m agentdemo validate              # cohérence des cassettes avec les outils
 python3 -m agentdemo skills                # registre des procédures et leur confiance
 python3 -m agentdemo maintain --once       # entretien : réparer, arbitrer, retirer
 python3 -m agentdemo fit --vram 32         # ce qui tient dans la carte visée
+python3 -m agentdemo route --objective "…"  # décision de routage pour un objectif
 python3 -m agentdemo doctor                # diagnostic d'installation, avant de lancer
 python3 -m agentdemo export                # archive le dernier run : journal et livrables
 python3 bench/bench.py --targets bench/targets.json

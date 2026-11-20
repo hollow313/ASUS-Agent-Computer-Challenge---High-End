@@ -239,6 +239,35 @@ def cmd_new(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_route(args: argparse.Namespace) -> int:
+    """Affiche (ou force) la décision de routage pour un objectif donné."""
+    from .routing import RoutingError, RoutingTable
+
+    path = Path(args.out or DEFAULT_DATA_DIR) / "routing.json"
+    try:
+        table = RoutingTable.load(path)
+        if args.override is not None:
+            table.override = "" if args.override in ("", "none", "aucun") else args.override
+            table.save(path)
+            print(f"forçage manuel : {table.override or 'désactivé'}")
+        if not args.objective:
+            print(f"{len(table.targets)} cible(s), {len(table.rules)} règle(s), défaut : {table.default_target}")
+            for rule in table.rules:
+                where = f" {rule.value}" if rule.value else ""
+                print(f"  - {rule.match}{where} → {rule.target} ({rule.note})")
+            return 0
+        decision = table.resolve(args.objective, args.scenario or "")
+    except RoutingError as exc:
+        print(f"erreur de politique : {exc}", file=sys.stderr)
+        return 1
+    print(f"objectif  : {args.objective}")
+    print(f"scénario  : {args.scenario or '(aucun)'}")
+    print(f"décision  : {decision.target.id} ({decision.target.model}, {decision.target.kind})")
+    print(f"raison    : {decision.reason}")
+    print(f"règle     : {decision.matched}")
+    return 0
+
+
 def cmd_doctor(args: argparse.Namespace) -> int:
     """Diagnostic d'installation : ce qui est prêt, ce qui manque, ce qui est optionnel."""
     from .doctor import doctor
@@ -382,6 +411,12 @@ def build_parser() -> argparse.ArgumentParser:
     new.add_argument("--tag", action="append")
     new.add_argument("--force", action="store_true")
     new.set_defaults(func=cmd_new)
+
+    route = sub.add_parser("route", help="décision de routage pour un objectif")
+    route.add_argument("--objective", help="objectif à router (sinon, affiche la politique)")
+    route.add_argument("--scenario", help="slug de scénario, utilisé par les règles de type scenario")
+    route.add_argument("--override", help="force une cible ('none' pour désactiver le forçage)")
+    route.set_defaults(func=cmd_route)
 
     doctor = sub.add_parser("doctor", help="vérifie que l'installation peut tourner")
     doctor.add_argument("--base-url", help="endpoint de modèle à tester (optionnel)")

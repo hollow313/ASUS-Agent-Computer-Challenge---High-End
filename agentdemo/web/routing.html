@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vigie · routage des modèles</title>
+<style>
+  :root {
+    --bg: #0b0e14; --panel: #12161f; --panel-2: #171c27; --line: #232a38;
+    --text: #e6ebf5; --muted: #8a94a8; --accent: #5b8cff; --ok: #3ecf8e; --warn: #f5a524; --err: #ff6b6b;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; padding: 22px 28px 16px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 17px; margin: 0; letter-spacing: .14em; text-transform: uppercase; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  header a { margin-left: auto; color: var(--accent); font: 12px/1 var(--mono); text-decoration: none; }
+  main { padding: 22px 28px 60px; display: grid; gap: 26px; max-width: 1180px; }
+  section { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 16px 18px; }
+  h2 { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+  .row { display: grid; gap: 8px; align-items: end; padding: 9px 0; border-bottom: 1px solid var(--panel-2); }
+  .row:last-child { border-bottom: 0; }
+  .targets .row { grid-template-columns: 96px 1fr 1.2fr 200px 88px 120px; }
+  .rules .row { grid-template-columns: 170px 1fr 150px 1fr 88px; }
+  label { display: block; font: 10.5px/1.4 var(--mono); color: #8390a6; }
+  input, select, textarea {
+    width: 100%; margin-top: 3px; background: #0d1119; color: var(--text); border: 1px solid var(--line);
+    border-radius: 7px; padding: 7px 8px; font: 12px/1.3 var(--mono);
+  }
+  input:focus, select:focus, textarea:focus { outline: 1px solid var(--accent); }
+  button { cursor: pointer; background: #16203a; color: #9dbcff; border: 1px solid #24314a; border-radius: 7px; padding: 7px 10px; font: 11px/1 var(--mono); }
+  button:hover { border-color: #2f3a4d; }
+  button.primary { background: var(--accent); color: #080b12; border: 0; font-weight: 650; }
+  button.danger { background: #2a1620; color: #ff9c9c; border-color: #4a2530; }
+  button.mini { padding: 6px 7px; }
+  button[disabled] { opacity: .45; cursor: not-allowed; }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+  .note { font: 10.5px/1.5 var(--mono); color: #6f7a90; }
+  .status { font: 11.5px/1.4 var(--mono); margin-top: 10px; }
+  .status.ok { color: var(--ok); } .status.err { color: var(--err); }
+  .banner { border: 1px solid #5a4318; background: #221a09; color: #f0c674; border-radius: 10px; padding: 10px 13px; font: 12px/1.5 var(--mono); }
+  .decision { border: 1px solid #1f4a3a; background: #10201a; border-radius: 10px; padding: 12px; font: 12.5px/1.7 var(--mono); }
+  .decision b { color: var(--ok); }
+  table { width: 100%; border-collapse: collapse; font: 11.5px/1.7 var(--mono); }
+  th { text-align: left; color: #7f8ba1; font-weight: 500; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  td { border-bottom: 1px solid var(--panel-2); color: #c3cbdb; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 900px) {
+    .targets .row, .rules .row, .grid2 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Vigie · routage</h1>
+  <p>quel modèle traite quelle tâche, avec une règle écrite et un journal de décision</p>
+  <a href="/">← interface de démonstration</a>
+</header>
+
+<main>
+  <div id="overrideBanner" class="banner" hidden></div>
+
+  <section class="targets">
+    <h2>Cibles (LM Studio, Ollama, cloud)</h2>
+    <div id="targetRows"></div>
+    <div class="bar">
+      <button id="addTarget">+ ajouter une cible</button>
+      <span class="note">deux instances LM Studio, deux clouds, ou un mélange : rien n'est imposé</span>
+    </div>
+  </section>
+
+  <section class="rules">
+    <h2>Règles, dans l'ordre (la première qui matche gagne)</h2>
+    <div id="ruleRows"></div>
+    <div class="bar">
+      <button id="addRule">+ ajouter une règle</button>
+      <label style="max-width:320px">cible par défaut
+        <select id="defaultTarget"></select>
+      </label>
+      <label style="max-width:320px">mots sensibles (virgules)
+        <input id="sensitiveWords">
+      </label>
+    </div>
+  </section>
+
+  <section>
+    <h2>Forçage manuel</h2>
+    <div class="bar">
+      <label style="max-width:340px">imposer un modèle
+        <select id="overrideSelect"></select>
+      </label>
+      <button id="clearOverride" disabled>lever le forçage</button>
+      <span class="note">vide = la politique décide. Utile pour une démo ou pour comparer deux modèles sur la même tâche.</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tester une décision</h2>
+    <div class="grid2">
+      <label>objectif
+        <textarea id="testObjective" rows="3">Résume le dossier client et classe les pièces jointes</textarea>
+      </label>
+      <label>scénario
+        <select id="testScenario">
+          <option value="">(aucun)</option>
+          <option>cyber-brief</option>
+          <option>inbox-triage</option>
+          <option>dataset-report</option>
+          <option>delegation</option>
+          <option>self-repair</option>
+        </select>
+      </label>
+    </div>
+    <div class="bar"><button id="decide">voir la décision</button></div>
+    <div id="decisionBox"></div>
+  </section>
+
+  <section>
+    <h2>Dernières décisions</h2>
+    <table>
+      <thead><tr><th>horodatage</th><th>scénario</th><th>cible</th><th>modèle</th><th>raison</th></tr></thead>
+      <tbody id="historyRows"></tbody>
+    </table>
+  </section>
+
+  <div class="bar">
+    <button class="primary" id="save">Enregistrer la politique</button>
+    <button id="reload">Recharger</button>
+    <span id="status" class="status"></span>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let state = { targets: [], rules: [], default_target: "", override: "", sensitive_words: [], history: [] };
+
+const MATCHES = [
+  ["sensitive", "mots sensibles"],
+  ["scenario", "scénario"],
+  ["keyword", "motif dans l'objectif"],
+  ["always", "toujours"],
+];
+
+const MATCH_LABELS = { sensitive: "mots sensibles", scenario: "scénario", keyword: "motif", always: "toujours", default: "cible par défaut", override: "forçage manuel" };
+
+function matchLabel(matched) {
+  if (!matched) return "aucune";
+  const [kind, value] = matched.split(/:(.*)/s);
+  const label = MATCH_LABELS[kind] || kind;
+  return value ? `${label} « ${value} »` : label;
+}
+
+function esc(text) {
+  return String(text ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+function render() {
+  // cibles
+  $("targetRows").innerHTML = state.targets.map((t, i) => `
+    <div class="row">
+      <label>id<input value="${esc(t.id)}" data-kind="target" data-i="${i}" data-f="id"></label>
+      <label>libellé<input value="${esc(t.label)}" data-kind="target" data-i="${i}" data-f="label"></label>
+      <label>endpoint<input value="${esc(t.base_url)}" data-kind="target" data-i="${i}" data-f="base_url" placeholder="http://IP:1234/v1"></label>
+      <label>modèle<input value="${esc(t.model)}" data-kind="target" data-i="${i}" data-f="model"></label>
+      <label>type
+        <select data-kind="target" data-i="${i}" data-f="kind">
+          <option value="local" ${t.kind === "local" ? "selected" : ""}>local</option>
+          <option value="cloud" ${t.kind === "cloud" ? "selected" : ""}>cloud</option>
+        </select>
+      </label>
+      <div>
+        <button class="mini" data-probe="${esc(t.id)}" title="interroger /models">tester</button>
+        <button class="mini danger" data-del-target="${i}">retirer</button>
+      </div>
+    </div>`).join("") || '<p class="note">aucune cible</p>';
+
+  // règles
+  $("ruleRows").innerHTML = state.rules.map((r, i) => `
+    <div class="row">
+      <label>type
+        <select data-kind="rule" data-i="${i}" data-f="match">
+          ${MATCHES.map(([v, l]) => `<option value="${v}" ${r.match === v ? "selected" : ""}>${l}</option>`).join("")}
+        </select>
+      </label>
+      <label>valeur<input value="${esc(r.value)}" data-kind="rule" data-i="${i}" data-f="value" placeholder="${r.match === "scenario" ? "dataset-report" : r.match === "keyword" ? "résum|tri" : r.match === "sensitive" ? "liste de mots sensibles ci-dessous" : "laisser vide"}"></label>
+      <label>cible
+        <select data-kind="rule" data-i="${i}" data-f="target">
+          ${state.targets.map((t) => `<option value="${esc(t.id)}" ${r.target === t.id ? "selected" : ""}>${esc(t.id)}</option>`).join("")}
+        </select>
+      </label>
+      <label>note<input value="${esc(r.note)}" data-kind="rule" data-i="${i}" data-f="note"></label>
+      <div>
+        <button class="mini" data-up="${i}" title="monter dans l ordre">↑</button>
+        <button class="mini danger" data-del-rule="${i}" title="supprimer la regle">×</button>
+      </div>
+    </div>`).join("") || '<p class="note">aucune règle : la cible par défaut s\'applique</p>';
+
+  $("defaultTarget").innerHTML = state.targets
+    .map((t) => `<option value="${esc(t.id)}" ${state.default_target === t.id ? "selected" : ""}>${esc(t.id)}</option>`).join("");
+  $("overrideSelect").innerHTML =
+    '<option value="">aucun (la politique décide)</option>' +
+    state.targets.map((t) => `<option value="${esc(t.id)}" ${state.override === t.id ? "selected" : ""}>${esc(t.id)} — ${esc(t.model)}</option>`).join("");
+  $("sensitiveWords").value = state.sensitive_words.join(", ");
+
+  $("clearOverride").disabled = !state.override;
+  const banner = $("overrideBanner");
+  const alwaysRule = state.rules.findIndex((r) => r.match === "always");
+  const messages = [];
+  if (state.override) {
+    messages.push(`Forçage manuel actif : toutes les exécutions en mode réel passent par « ${state.override} », quelles que soient les règles.`);
+  }
+  if (alwaysRule >= 0) {
+    messages.push(`La règle ${alwaysRule + 1} (toujours) attrape tout : la cible par défaut et les règles placées après elle ne servent jamais.`);
+  }
+  banner.hidden = messages.length === 0;
+  banner.innerHTML = messages.join("<br>");
+
+  const history = state.history.slice().sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+  $("historyRows").innerHTML = history.map((h) => `
+    <tr><td>${esc(h.at)}</td><td>${esc(h.scenario || "-")}</td>
+    <td>${esc(h.label || h.target)} <span class="note">(${esc(h.target)})</span></td>
+    <td>${esc(h.model)}</td><td>${esc(h.reason)}</td></tr>`).join("")
+    || '<tr><td colspan="5" class="note">aucune décision enregistrée</td></tr>';
+}
+
+async function load() {
+  const res = await fetch("/api/routing");
+  state = await res.json();
+  render();
+  setStatus("politique chargée");
+}
+
+function setStatus(text, kind = "") {
+  const box = $("status");
+  box.textContent = text;
+  box.className = "status " + kind;
+}
+
+document.addEventListener("input", (event) => {
+  const el = event.target;
+  const i = Number(el.dataset.i);
+  const f = el.dataset.f;
+  if (el.dataset.kind === "target") state.targets[i][f] = el.value;
+  if (el.dataset.kind === "rule") state.rules[i][f] = el.value;
+});
+
+document.addEventListener("click", async (event) => {
+  const el = event.target;
+  if (el.dataset.delTarget !== undefined) {
+    state.targets.splice(Number(el.dataset.delTarget), 1);
+    render();
+  }
+  if (el.dataset.delRule !== undefined) {
+    state.rules.splice(Number(el.dataset.delRule), 1);
+    render();
+  }
+  if (el.dataset.up !== undefined) {
+    const i = Number(el.dataset.up);
+    if (i > 0) {
+      [state.rules[i - 1], state.rules[i]] = [state.rules[i], state.rules[i - 1]];
+      render();
+    }
+  }
+  if (el.dataset.probe) {
+    setStatus("test de " + el.dataset.probe + "…");
+    const res = await fetch("/api/routing/probe", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ target: el.dataset.probe }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      setStatus(`${el.dataset.probe} : ${(data.models || []).join(", ") || "aucun modèle chargé"}`, data.models && data.models.length ? "ok" : "err");
+    } else {
+      setStatus(data.error || "erreur", "err");
+    }
+  }
+});
+
+$("addTarget").onclick = () => {
+  state.targets.push({ id: "cible-" + (state.targets.length + 1), label: "Nouvelle cible", base_url: "http://MON-IP:1234/v1", model: "", kind: "local" });
+  render();
+};
+$("addRule").onclick = () => {
+  state.rules.push({ match: "keyword", value: "", target: state.targets[0]?.id || "", note: "" });
+  render();
+};
+$("defaultTarget").onchange = (e) => { state.default_target = e.target.value; };
+$("overrideSelect").onchange = (e) => { state.override = e.target.value; render(); };
+$("reload").onclick = load;
+$("clearOverride").onclick = async () => {
+  state.override = "";
+  $("overrideSelect").value = "";
+  render();
+  const res = await fetch("/api/routing", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(state),
+  });
+  setStatus(res.ok ? "forçage levé et enregistré" : "échec de l'enregistrement", res.ok ? "ok" : "err");
+};
+
+$("decide").onclick = async () => {
+  const res = await fetch("/api/routing/decide", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ objective: $("testObjective").value, scenario: $("testScenario").value }),
+  });
+  const data = await res.json();
+  const box = $("decisionBox");
+  if (!res.ok) { box.innerHTML = `<div class="decision" style="border-color:#4a2530;background:#201014;color:#ff9c9c">${esc(data.error)}</div>`; return; }
+  const policy = data.policy_decision
+    ? `<br><span class="note">sans forçage, la politique aurait choisi : ${esc(data.policy_decision.target.label || data.policy_decision.target.id)} (${esc(data.policy_decision.reason)})</span>`
+    : "";
+  box.innerHTML = `<div class="decision">
+    → <b>${esc(data.target.label || data.target.id)}</b> <span class="note">(${esc(data.target.id)})</span> · modèle ${esc(data.target.model)} · ${esc(data.target.kind)}<br>
+    raison : ${esc(data.reason)}<br>
+    règle appliquée : ${esc(matchLabel(data.matched))}${policy}<br>
+    <span class="note">aperçu, non journalisé : seules les exécutions réelles alimentent l'historique.</span></div>`;
+};
+
+// enregistrement de la politique (le serveur attend un POST)
+$("save").addEventListener("click", async (event) => {
+  event.preventDefault();
+  state.sensitive_words = $("sensitiveWords").value.split(",").map((w) => w.trim()).filter(Boolean);
+  const res = await fetch("/api/routing", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(state),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok) { setStatus("politique enregistrée", "ok"); load(); }
+  else setStatus(data.error || "refusé : vérifie les identifiants, les URLs et les règles", "err");
+}, true);
+
+load();
+</script>
+</body>
+</html>
