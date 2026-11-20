@@ -20,10 +20,18 @@ class Scenario:
     max_steps: int
     tags: list[str]
     root: Path
+    passes: list[dict[str, Any]]
 
-    def cassette(self) -> list[dict[str, Any]]:
-        path = self.root / "cassette.json"
+    def cassette(self, index: int = 0) -> list[dict[str, Any]]:
+        """Recorded trace of pass ``index`` (a scenario can be replayed twice to
+        show what the agent learned between two runs)."""
+        passes = self.passes or [{"label": "", "cassette": "cassette.json"}]
+        name = passes[min(index, len(passes) - 1)].get("cassette", "cassette.json")
+        path = self.root / name
         return json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+
+    def pass_labels(self) -> list[str]:
+        return [p.get("label", "") for p in (self.passes or [{"label": ""}])]
 
     def stage(self, workspace: Path) -> None:
         """Copy the scenario fixtures into the run workspace."""
@@ -45,6 +53,7 @@ class Scenario:
             "objective": self.objective,
             "tags": self.tags,
             "steps": len(self.cassette()),
+            "passes": self.pass_labels(),
         }
 
 
@@ -66,6 +75,7 @@ def list_scenarios() -> list[Scenario]:
                 max_steps=int(meta.get("max_steps", 14)),
                 tags=list(meta.get("tags", [])),
                 root=folder,
+                passes=list(meta.get("passes", [{"label": "", "cassette": "cassette.json"}])),
             )
         )
     return scenarios

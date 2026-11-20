@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from .planners import Planner
+from .skills import SkillStore
 from .tools import Sandbox, ToolError, build_registry
 
 
@@ -74,12 +75,14 @@ class Agent:
         runs_dir: Path,
         max_steps: int = 14,
         on_step: Callable[[Step], None] | None = None,
+        skills: SkillStore | None = None,
     ) -> None:
         self.planner = planner
         self.sandbox = Sandbox(workspace)
         self.runs_dir = Path(runs_dir)
         self.max_steps = max_steps
         self.on_step = on_step
+        self.skills = skills
 
     def run(self, objective: str, run_id: str | None = None) -> RunResult:
         run_id = run_id or uuid.uuid4().hex[:10]
@@ -91,7 +94,7 @@ class Agent:
             planner=getattr(self.planner, "label", "unknown"),
         )
         artifacts: list[str] = []
-        tools = build_registry(self.sandbox, artifacts)
+        tools = build_registry(self.sandbox, artifacts, self.skills)
         history: list[dict[str, Any]] = []
 
         for index in range(1, self.max_steps + 1):

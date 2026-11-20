@@ -99,6 +99,15 @@
   .artifacts a:hover { border-color: #2f3a4d; background: var(--panel-2); }
   .artifacts a span { color: #5e6675; }
   .empty { color: #5e6675; font: 12.5px/1.6 var(--mono); }
+  .passbar {
+    margin: 14px 0 8px; font: 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
+    color: #9dbcff; border-top: 1px dashed var(--line); padding-top: 12px;
+  }
+  .recap { border: 1px solid var(--line); border-radius: 10px; margin-top: 10px; overflow: hidden; }
+  .recap .row { display: flex; justify-content: space-between; gap: 12px; padding: 9px 12px; font: 12px/1 var(--mono); border-bottom: 1px solid var(--line); }
+  .recap .row:last-child { border-bottom: 0; }
+  .recap .ok { color: var(--ok); }
+  .recap .warn { color: var(--warn); }
   .thumb { width: 100%; max-width: 660px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; display: block; }
   @media (max-width: 860px) {
     main { grid-template-columns: 1fr; }
@@ -191,11 +200,17 @@ function renderSteps(run) {
     box.innerHTML = '<p class="empty">L\'agent démarre…</p>';
     return;
   }
+  let lastPass = null;
   box.innerHTML = run.steps.map((step) => {
     const final = !step.tool;
     const args = Object.keys(step.args || {}).length
       ? `<details><summary>arguments</summary><pre>${escapeHtml(JSON.stringify(step.args, null, 2))}</pre></details>` : "";
-    return `<div class="step${step.error ? " err" : ""}">
+    let divider = "";
+    if (step.pass_label && step.pass !== lastPass) {
+      lastPass = step.pass;
+      divider = `<div class="passbar">${escapeHtml(step.pass_label)}</div>`;
+    }
+    return `${divider}<div class="step${step.error ? " err" : ""}">
       <div class="head">
         <span class="idx">${String(step.index).padStart(2, "0")}</span>
         <span class="tool${final ? " final" : ""}">${escapeHtml(step.tool || "final")}</span>
@@ -209,8 +224,13 @@ function renderSteps(run) {
 }
 
 function renderResult(run) {
+  const recap = (run.recap || []).length > 1
+    ? `<div class="recap">${run.recap.map((p) =>
+        `<div class="row"><span>${escapeHtml(p.label)}</span>
+         <span class="${p.errors ? "warn" : "ok"}">${p.steps} étapes · ${p.errors} erreur${p.errors > 1 ? "s" : ""}</span></div>`).join("")}</div>`
+    : "";
   $("result").innerHTML = run.summary
-    ? `<div class="result"><strong>bilan</strong><p>${escapeHtml(run.summary)}</p></div>` : "";
+    ? `<div class="result"><strong>bilan</strong><p>${escapeHtml(run.summary)}</p></div>${recap}` : "";
   const thumbs = run.artifacts.filter((n) => n.endsWith(".svg")).map((n) =>
     `<img class="thumb" alt="aperçu ${escapeHtml(n)}" src="/api/artifacts/${run.run_id}/${encodeURI(n)}">`).join("");
   $("artifacts").innerHTML = run.artifacts.length

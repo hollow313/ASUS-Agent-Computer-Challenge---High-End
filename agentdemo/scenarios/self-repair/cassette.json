@@ -1,0 +1,44 @@
+[
+  {
+    "thought": "Objectif simple : deux entrées de veille depuis le dossier feeds. Je lis le flux directement.",
+    "tool": "fs_read",
+    "args": {
+      "path": "feeds/cert.xml"
+    }
+  },
+  {
+    "thought": "Le nom était une supposition de ma part. Je n'invente pas un second nom : je liste le dossier pour voir ce qui existe réellement.",
+    "tool": "fs_list",
+    "args": {
+      "path": "feeds"
+    }
+  },
+  {
+    "thought": "Un seul flux, nommé `flux-avis-112026.xml`. Je le lis.",
+    "tool": "fs_read",
+    "args": {
+      "path": "feeds/flux-avis-112026.xml",
+      "max_chars": 1500
+    }
+  },
+  {
+    "thought": "J'écris les deux entrées demandées, avec le fait puis l'enjeu.",
+    "tool": "fs_write",
+    "args": {
+      "path": "veille.md",
+      "content": "# Veille — 20/11/2026\n\n**Service d'API exposé : entrées non validées, exécution de code**\nAvis 2026-051. Enjeu analyste : les instances non redémarrées restent vulnérables après le patch — vérifier l'état de redémarrage avant de clôturer.\n\n**Bibliothèque de chiffrement en fin de support (juin 2027)**\nEnjeu analyste : la migration est longue sur les projets anciens, l'inventaire des dépendances doit commencer maintenant.\n\n---\n*Demo générée à partir de flux d'exemple. Aucune donnée réelle.*\n"
+    }
+  },
+  {
+    "thought": "C'est exactement le genre d'erreur que je ne veux pas repayer : j'enregistre la leçon (nom réel du fichier, et la règle « lister avant de lire ») dans une procédure réutilisable.",
+    "tool": "skill_write",
+    "args": {
+      "name": "feeds-avis",
+      "content": "# Procédure — flux d'avis dans `feeds/`\n\nLe flux n'est pas `feeds/cert.xml` : le nom réel est `feeds/flux-avis-112026.xml`.\n\nRègle générale : sur un dossier de flux inconnu, appeler `fs_list` d'abord, ne jamais deviner un nom de fichier. Coût de l'erreur évitée : une étape + une lecture ratée par run."
+    }
+  },
+  {
+    "thought": "Livrable écrit et leçon enregistrée. Objectif atteint, avec une erreur au compteur.",
+    "final": "veille.md écrit (2 entrées). 1 erreur récupérée, 1 procédure enregistrée : le prochain run doit faire mieux."
+  }
+]

@@ -18,16 +18,17 @@ from pathlib import Path
 from .agent import Agent
 from .planners import OpenAICompatPlanner, ReplayPlanner
 from .scenarios_loader import get_scenario, list_scenarios
+from .skills import SkillStore
 from .tools import build_registry
 
 DEFAULT_DATA_DIR = Path(os.environ.get("AGENTDEMO_DATA_DIR", "data"))
 
 
-def _make_planner(scenario, live: bool, model: str | None, base_url: str | None):
+def _make_planner(scenario, live: bool, model: str | None, base_url: str | None, index: int = 0):
     if live:
         stub_tools = build_registry(_NullSandbox(), [])
         return OpenAICompatPlanner(base_url=base_url, model=model, tools=stub_tools)
-    return ReplayPlanner(scenario.cassette())
+    return ReplayPlanner(scenario.cassette(index))
 
 
 class _NullSandbox:
@@ -45,6 +46,8 @@ def cmd_scenarios(_args: argparse.Namespace) -> int:
         print(f"{scenario.slug:<14} {scenario.title}")
         print(f"{'':14} {scenario.blurb}")
         print(f"{'':14} objectif : {scenario.objective[:120]}…")
+        if len(scenario.pass_labels()) > 1:
+            print(f"{'':14} passes   : {' / '.join(scenario.pass_labels())}")
         print()
     return 0
 
@@ -56,37 +59,45 @@ def cmd_run(args: argparse.Namespace) -> int:
     workspace = root / "runs" / run_id / "workspace"
     workspace.mkdir(parents=True, exist_ok=True)
     scenario.stage(workspace)
-
-    planner = _make_planner(scenario, args.live, args.model, args.base_url)
-    agent = Agent(
-        planner=planner,
-        workspace=workspace,
-        runs_dir=root / "runs",
-        max_steps=args.max_steps or scenario.max_steps,
-    )
+    skills = SkillStore(root / "runs" / run_id / "skills")
 
     print(f"▸ scénario  : {scenario.slug} ({scenario.title})")
-    print(f"▸ planificateur : {getattr(planner, 'label', '?')}")
     print(f"▸ objectif  : {scenario.objective}")
     print(f"▸ espace    : {workspace}")
     print()
 
-    def on_step(step) -> None:
-        tool = step.tool or "final"
-        mark = "✗" if step.error else "·"
-        print(f"{mark} [{step.index:02d}] {tool:<16} {step.duration_ms:>4} ms  {step.thought[:96]}")
-        if step.tool is None and step.observation:
-            print(f"        ↳ {step.observation[:200]}")
+    status = "done"
+    recap = []
+    for index, label in enumerate(scenario.pass_labels()):
+        planner = _make_planner(scenario, args.live, args.model, args.base_url, index)
+        print(f"— {label or f'passe {index + 1}'} · planificateur {getattr(planner, 'label', '?')}")
 
-    agent.on_step = on_step
-    result = agent.run(scenario.objective, run_id=run_id)
+        def on_step(step) -> None:
+            tool = step.tool or "final"
+            mark = "✗" if step.error else "·"
+            print(f"  {mark} [{step.index:02d}] {tool:<16} {step.duration_ms:>4} ms  {step.thought[:90]}")
 
-    print()
-    print(f"▸ statut    : {result.status}")
+        agent = Agent(
+            planner=planner,
+            workspace=workspace,
+            runs_dir=root / "runs",
+            max_steps=args.max_steps or scenario.max_steps,
+            on_step=on_step,
+            skills=skills,
+        )
+        result = agent.run(scenario.objective, run_id=f"{run_id}-p{index + 1}")
+        errors = sum(1 for s in result.steps if s.error)
+        recap.append(f"{label or f'passe {index + 1}'} : {len(result.steps)} étapes, {errors} erreur(s), {result.status}")
+        status = result.status
+        print()
+
+    print("▸ statut    :", status)
+    for line in recap:
+        print("▸", line)
     print(f"▸ bilan     : {result.summary}")
     print(f"▸ livrables : {', '.join(result.artifacts) or '(aucun)'}")
-    print(f"▸ journal   : {root / 'runs' / (run_id + '.json')}")
-    return 0 if result.status == "done" else 1
+    print(f"▸ journal   : {root / 'runs' / (run_id + '-p1.json')}")
+    return 0 if status == "done" else 1
 
 
 def cmd_serve(args: argparse.Namespace) -> int:

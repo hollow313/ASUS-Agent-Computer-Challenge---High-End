@@ -88,9 +88,19 @@ trouvent les livrables.
 | `cyber-brief` | Agréger trois flux RSS, hiérarchiser, rédiger un briefing daté de 5 entrées | `briefing.md` |
 | `inbox-triage` | Lire 5 messages, les classer en déplaçant les fichiers, rapport d'actions | `rapport-tri.md` + arborescence `triaged/` |
 | `dataset-report` | Profiler un CSV, tracer un graphique, produire une note à 3 constats | `synthese.md`, `graphique.svg` |
+| `self-repair` | **Deux passes sur le même objectif** : la première devine un nom de fichier et se casse, l'agent écrit la procédure, la seconde va droit au but | `veille.md` + une procédure persistée |
 
-Ils couvrent trois familles d'usage réel : **synthèse d'informations**, **tri / décision**, et
-**analyse de données**. Ce sont exactement les tâches que je délègue au quotidien.
+Ils couvrent quatre familles d'usage réel : **synthèse d'informations**, **tri / décision**,
+**analyse de données**, et **apprentissage par l'erreur**. Ce sont exactement les tâches que je
+délègue au quotidien.
+
+### Le scénario `self-repair`, en une ligne
+
+Passe 1 : 6 étapes, 1 erreur (mauvais nom de fichier deviné), et l'agent **écrit la leçon** dans
+une procédure. Passe 2, même objectif : il **relit la procédure d'abord**, puis 4 étapes et
+zéro erreur. C'est la seule chose de cette démo qui ne s'achète pas avec un meilleur modèle :
+c'est de la mémoire procédurale, et c'est ce que fait mon agent de production à l'échelle de
+~90 procédures.
 
 ---
 
@@ -143,9 +153,19 @@ remontée `../` est refusé, pas « corrigé ».
 | `chart_bar` | `chart_bar(path, label_column, value_column, output, title?)` | graphique SVG |
 | `rss_rank` | `rss_rank(paths[], top_n?)` | parsing de flux RSS + classement |
 | `http_get` | `http_get(url, max_chars?)` | GET HTTP — **désactivé par défaut** |
+| `skill_recall` | `skill_recall(keyword?)` | relit une procédure apprise avant d'agir |
+| `skill_write` | `skill_write(name, content)` | enregistre une procédure réutilisable |
+| `skill_list` | `skill_list()` | inventaire des procédures connues |
 
 Ce catalogue est délibérément court. Un agent se juge sur la façon dont il choisit ses outils,
 pas sur le nombre d'outils qu'on lui donne.
+
+### Mémoire procédurale
+
+Les procédures vivent dans `data/runs/<run_id>/skills/*.md`, hors du bac à sable du run : elles
+survivent donc à la fin du run, et la passe suivante les relit. Le store est recréé à chaque
+nouveau run pour que la démo reste déterministe et rejouable ; en production il est global et
+persiste indéfiniment.
 
 ---
 
@@ -175,6 +195,7 @@ agentdemo/
 ├── agent.py              # la boucle : planification → outil → observation → bilan
 ├── planners.py           # ReplayPlanner (hors ligne) + OpenAICompatPlanner (modèle live)
 ├── tools.py              # outils + bac à sable + génération SVG
+├── skills.py             # mémoire procédurale persistante
 ├── scenarios_loader.py   # chargement des scénarios et des fixtures
 ├── cli.py                # CLI : scenarios / run / serve
 ├── server.py             # API HTTP + interface web (http.server, stdlib)
@@ -183,7 +204,7 @@ agentdemo/
     ├── cyber-brief/      # scenario.json + cassette.json + fixtures/
     ├── inbox-triage/
     └── dataset-report/
-tests/test_demo.py        # 8 tests : scénarios, bac à sable, budget
+tests/test_demo.py        # 9 tests : scénarios, apprentissage, bac à sable, budget
 docs/                     # captures d'écran et notes d'architecture
 Dockerfile, docker-compose.yml, Makefile
 ```
@@ -207,9 +228,10 @@ Dockerfile, docker-compose.yml, Makefile
 python3 -m unittest discover -s tests -v
 ```
 
-8 tests, aucun framework : les trois scénarios vont jusqu'au bout sans étape en erreur, les
-livrables sont vérifiés sur le disque, le bac à sable refuse les évasions, le budget d'étapes
-est respecté, un outil inconnu produit une observation d'erreur au lieu d'un crash.
+9 tests, aucun framework : les scénarios vont jusqu'au bout, les livrables sont vérifiés sur le
+disque, `self-repair` prouve que la passe 2 est plus courte et sans erreur, le bac à sable
+refuse les évasions, le budget d'étapes est respecté, un outil inconnu produit une observation
+d'erreur au lieu d'un crash.
 
 ---
 
@@ -225,10 +247,12 @@ Je préfère l'écrire noir sur blanc, un jury technique le verra de toute faço
   assumé : une démo qui exige une clé API ou un modèle de 20 Go n'est pas une démo, c'est une
   condition d'accès. Le mode live existe pour prouver que la boucle fonctionne avec un vrai
   modèle, y compris un modèle local.
-- **Le catalogue d'outils est réduit** à 8 outils, tous en lecture/écriture de fichiers et en
+- **Le catalogue d'outils est réduit** à 11 outils, tous en lecture/écriture de fichiers et en
   analyse. Pas de shell, pas d'envoi de mail, pas d'automatisation de navigateur ici.
-- **Pas de mémoire persistante entre les runs** dans cette version : la mémoire procédurale est
-  décrite dans la candidature, son implémentation de production n'est pas dans ce dépôt.
+- **La mémoire procédurale est une version réduite** : un dossier de procédures markdown, relu
+  au run suivant, mais sans déduplication, sans score de confiance et sans révision
+  automatique. À l'échelle de production (~90 procédures), le vrai travail est le tri et la
+  correction des procédures obsolètes ; ce dépôt n'en montre que le principe.
 
 Ce que la démo démontre en revanche n'est pas simulé : la boucle, les outils, le bac à sable,
 le journal, la vérification, l'arrêt propre en cas d'erreur ou de budget dépassé.

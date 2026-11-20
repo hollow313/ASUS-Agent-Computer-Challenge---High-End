@@ -56,13 +56,32 @@ class Sandbox:
         return str(path.relative_to(self.root))
 
 
-def build_registry(sandbox: Sandbox, artifacts: list[str]) -> dict[str, Tool]:
-    """Return the tool registry bound to one sandbox."""
+def build_registry(sandbox: Sandbox, artifacts: list[str], skills: "SkillStore | None" = None) -> dict[str, Tool]:
+    """Return the tool registry bound to one sandbox (and, optionally, a skill store)."""
 
     def note(path: Path) -> None:
         name = sandbox.rel(path)
         if name not in artifacts:
             artifacts.append(name)
+
+    def skill_list() -> str:
+        if skills is None:
+            raise ToolError("mémoire procédurale désactivée dans ce run")
+        found = skills.list()
+        if not found:
+            return "aucune procédure enregistrée"
+        return "\n".join(f"- {s.name} : {s.summary}" for s in found)
+
+    def skill_recall(keyword: str = "") -> str:
+        if skills is None:
+            raise ToolError("mémoire procédurale désactivée dans ce run")
+        return skills.format_recall(keyword)
+
+    def skill_write(name: str, content: str) -> str:
+        if skills is None:
+            raise ToolError("mémoire procédurale désactivée dans ce run")
+        path = skills.write(name, content)
+        return f"procédure « {path.stem} » enregistrée ({len(content)} caractères) — réutilisable aux runs suivants"
 
     def fs_list(path: str = ".") -> str:
         target = sandbox.resolve(path)
@@ -186,6 +205,19 @@ def build_registry(sandbox: Sandbox, artifacts: list[str]) -> dict[str, Tool]:
         ),
         "rss_rank": Tool("rss_rank", "rss_rank(paths[], top_n?)", "lit des flux RSS et les classe", rss_rank),
         "http_get": Tool("http_get", "http_get(url, max_chars?)", "GET HTTP (désactivé par défaut)", http_get),
+        "skill_list": Tool("skill_list", "skill_list()", "liste les procédures déjà apprises", skill_list),
+        "skill_recall": Tool(
+            "skill_recall",
+            "skill_recall(keyword?)",
+            "relit une procédure apprise avant d'agir (mémoire persistante)",
+            skill_recall,
+        ),
+        "skill_write": Tool(
+            "skill_write",
+            "skill_write(name, content)",
+            "enregistre une procédure réutilisable après un échec ou une découverte",
+            skill_write,
+        ),
     }
 
 

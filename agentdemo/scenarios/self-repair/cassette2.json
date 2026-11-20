@@ -1,0 +1,29 @@
+[
+  {
+    "thought": "Avant d'agir, je relis ce que je sais déjà sur ce dossier de flux.",
+    "tool": "skill_recall",
+    "args": {
+      "keyword": "feeds"
+    }
+  },
+  {
+    "thought": "La procédure donne le nom exact du fichier. Je vais droit au but, sans lister et sans deviner.",
+    "tool": "fs_read",
+    "args": {
+      "path": "feeds/flux-avis-112026.xml",
+      "max_chars": 1500
+    }
+  },
+  {
+    "thought": "J'écris le livrable. Même objectif, même contenu, deux étapes de moins et aucune erreur.",
+    "tool": "fs_write",
+    "args": {
+      "path": "veille.md",
+      "content": "# Veille — 20/11/2026\n\n**Service d'API exposé : entrées non validées, exécution de code**\nAvis 2026-051. Enjeu analyste : les instances non redémarrées restent vulnérables après le patch — vérifier l'état de redémarrage avant de clôturer.\n\n**Bibliothèque de chiffrement en fin de support (juin 2027)**\nEnjeu analyste : la migration est longue sur les projets anciens, l'inventaire des dépendances doit commencer maintenant.\n\n---\n*Demo générée à partir de flux d'exemple. Aucune donnée réelle.*\n"
+    }
+  },
+  {
+    "thought": "4 étapes contre 6, zéro erreur contre une. C'est ça, la mémoire procédurale.",
+    "final": "veille.md réécrit en 4 étapes et 0 erreur (contre 6 étapes et 1 erreur en passe 1) : la procédure enregistrée a été relue et appliquée."
+  }
+]

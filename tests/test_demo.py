@@ -12,6 +12,7 @@ from pathlib import Path
 from agentdemo.agent import Agent
 from agentdemo.planners import ReplayPlanner
 from agentdemo.scenarios_loader import get_scenario, list_scenarios
+from agentdemo.skills import SkillStore
 from agentdemo.tools import Sandbox, ToolError, build_registry
 
 
@@ -35,7 +36,7 @@ class ScenarioTests(unittest.TestCase):
 
     def test_scenarios_are_discoverable(self) -> None:
         slugs = {s.slug for s in list_scenarios()}
-        self.assertEqual({"cyber-brief", "inbox-triage", "dataset-report"}, slugs)
+        self.assertEqual({"cyber-brief", "inbox-triage", "dataset-report", "self-repair"}, slugs)
 
     def test_cyber_brief(self) -> None:
         result, workspace = self.run_scenario("cyber-brief")
@@ -65,6 +66,37 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(chart.count("<rect"), 7)  # fond + 6 régions
         synthese = (workspace / "synthese.md").read_text(encoding="utf-8")
         self.assertIn("860 900", synthese)
+
+    def test_self_repair_learns_between_two_passes(self) -> None:
+        """The point of the feature: the second pass is shorter and error-free."""
+        scenario = get_scenario("self-repair")
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "ws"
+        workspace.mkdir()
+        scenario.stage(workspace)
+        skills = SkillStore(root / "skills")
+
+        passes = []
+        for index in range(2):
+            agent = Agent(
+                planner=ReplayPlanner(scenario.cassette(index)),
+                workspace=workspace,
+                runs_dir=root / "runs",
+                max_steps=scenario.max_steps,
+                skills=skills,
+            )
+            passes.append(agent.run(scenario.objective, run_id=f"p{index}"))
+
+        first, second = passes
+        self.assertEqual(first.status, "done")
+        self.assertEqual(second.status, "done")
+        self.assertEqual(sum(1 for s in first.steps if s.error), 1, "la passe 1 doit se casser une fois")
+        self.assertEqual(sum(1 for s in second.steps if s.error), 0, "la passe 2 ne doit plus échouer")
+        self.assertLess(len(second.steps), len(first.steps), "la passe 2 doit être plus courte")
+        self.assertTrue((skills.root / "feeds-avis.md").exists(), "la procédure doit être persistée")
+        self.assertTrue((workspace / "veille.md").exists())
 
     def test_budget_is_enforced(self) -> None:
         scenario = get_scenario("cyber-brief")

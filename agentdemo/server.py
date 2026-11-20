@@ -20,6 +20,7 @@ from urllib.parse import unquote, urlparse
 from .agent import Agent, Step
 from .planners import OpenAICompatPlanner, ReplayPlanner
 from .scenarios_loader import get_scenario, list_scenarios
+from .skills import SkillStore
 from .tools import build_registry
 
 WEB_DIR = Path(__file__).resolve().parent / "web"
@@ -39,11 +40,8 @@ class RunStore:
         workspace = self.data_dir / "runs" / run_id / "workspace"
         workspace.mkdir(parents=True, exist_ok=True)
         scenario.stage(workspace)
-
-        if mode == "live":
-            planner = OpenAICompatPlanner(tools=build_registry(_NullSandbox(), []))
-        else:
-            planner = ReplayPlanner(scenario.cassette())
+        skills = SkillStore(self.data_dir / "runs" / run_id / "skills")
+        labels = scenario.pass_labels()
 
         state: dict[str, Any] = {
             "run_id": run_id,
@@ -55,33 +53,50 @@ class RunStore:
             "steps": [],
             "artifacts": [],
             "summary": "",
+            "recap": [],
             "started_at": time.time(),
             "workspace": str(workspace),
         }
         with self.lock:
             self.runs[run_id] = state
 
-        agent = Agent(
-            planner=planner,
-            workspace=workspace,
-            runs_dir=self.data_dir / "runs",
-            max_steps=scenario.max_steps,
-        )
-
-        def on_step(step: Step) -> None:
-            with self.lock:
-                state["steps"].append(step.as_dict())
-
-        agent.on_step = on_step
-
         def worker() -> None:
             try:
-                result = agent.run(state["objective"], run_id=run_id)
-                payload = result.as_dict()
-                with self.lock:
-                    state["status"] = payload["status"]
-                    state["summary"] = payload["summary"]
-                    state["artifacts"] = payload["artifacts"]
+                for index, label in enumerate(labels):
+                    if mode == "live":
+                        planner = OpenAICompatPlanner(tools=build_registry(_NullSandbox(), []))
+                    else:
+                        planner = ReplayPlanner(scenario.cassette(index))
+
+                    def on_step(step: Step, index: int = index) -> None:
+                        payload = step.as_dict()
+                        payload["pass"] = index + 1
+                        payload["pass_label"] = labels[index]
+                        with self.lock:
+                            state["steps"].append(payload)
+
+                    agent = Agent(
+                        planner=planner,
+                        workspace=workspace,
+                        runs_dir=self.data_dir / "runs",
+                        max_steps=scenario.max_steps,
+                        on_step=on_step,
+                        skills=skills,
+                    )
+                    result = agent.run(state["objective"], run_id=f"{run_id}-p{index + 1}")
+                    with self.lock:
+                        state["status"] = result.status
+                        state["summary"] = result.summary
+                        state["artifacts"] = result.artifacts
+                        state["recap"].append(
+                            {
+                                "label": label or f"passe {index + 1}",
+                                "status": result.status,
+                                "steps": len(result.steps),
+                                "errors": sum(1 for s in result.steps if s.error),
+                                "summary": result.summary,
+                            }
+                        )
             except Exception as exc:  # noqa: BLE001 - surfaced to the UI
                 traceback.print_exc()
                 with self.lock:

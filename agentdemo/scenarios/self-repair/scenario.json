@@ -1,0 +1,22 @@
+{
+  "slug": "self-repair",
+  "title": "Auto-réparation → procédure apprise",
+  "blurb": "Deux passes sur le même objectif : la première se casse sur un nom de fichier deviné, l'agent écrit la procédure, la seconde va droit au but.",
+  "objective": "Produis veille.md à partir des flux du dossier feeds : deux entrées maximum, le fait puis l'enjeu. Si une étape échoue, note la leçon dans une procédure réutilisable.",
+  "max_steps": 8,
+  "tags": [
+    "mémoire procédurale",
+    "erreur récupérée",
+    "2 passes"
+  ],
+  "passes": [
+    {
+      "label": "passe 1 — sans procédure",
+      "cassette": "cassette.json"
+    },
+    {
+      "label": "passe 2 — avec la procédure apprise",
+      "cassette": "cassette2.json"
+    }
+  ]
+}
