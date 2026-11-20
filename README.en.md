@@ -290,6 +290,19 @@ Three figures per target: **success rate** on 10 real agent tasks graded by exac
 bench writes a markdown report, raw JSON and an SVG chart. See [`bench/README.md`](bench/README.md).
 A simulated endpoint lets CI test the plumbing without a GPU or a key.
 
-## 12. Licence and author
+## 12. Adding a scenario
+
+```bash
+python3 -m agentdemo new --slug invoice-triage --title "Invoice triage" \
+  --objective "Classify invoices from inbox and write rapport.md."
+python3 -m agentdemo validate --slug invoice-triage
+python3 -m agentdemo run --scenario invoice-triage
+```
+
+A scenario is a folder with `scenario.json` (objective, step budget), `cassette.json` (one action
+per step, `args` keys matching the tool signature exactly) and `fixtures/` (synthetic data).
+`validate` cross-checks cassettes against the real tools. Full format: [`docs/SCENARIOS.md`](docs/SCENARIOS.md).
+
+## 13. Licence and author
 
 MIT — see `LICENSE`. Author: Loïc Huon.

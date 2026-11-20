@@ -333,7 +333,22 @@ consommés. Le banc produit un rapport markdown, les données brutes en JSON et 
 Détail dans [`bench/README.md`](bench/README.md). Un endpoint simulé (`bench/fake_endpoint.py`)
 permet de tester le banc sans GPU ni clé : c'est ce que fait le job CI `bench`.
 
-## 12. Licence et auteur
+## 12. Ajouter un scénario
+
+```bash
+python3 -m agentdemo new --slug tri-factures --title "Tri de factures" \
+  --objective "Classe les factures du dossier inbox et écris rapport.md."
+python3 -m agentdemo validate --slug tri-factures
+python3 -m agentdemo run --scenario tri-factures
+```
+
+Un scénario, c'est un dossier avec `scenario.json` (objectif, budget), `cassette.json` (une
+action par étape, clés d'`args` strictement conformes à la signature de l'outil) et `fixtures/`
+(données synthétiques). `validate` compare les cassettes aux outils réels : outil inconnu,
+argument manquant ou superflu, absence de conclusion. Format complet et pièges :
+[`docs/SCENARIOS.md`](docs/SCENARIOS.md).
+
+## 13. Licence et auteur
 
 MIT — voir `LICENSE`. Auteur : Loïc Huon.
 
