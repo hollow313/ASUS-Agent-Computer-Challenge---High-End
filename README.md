@@ -380,8 +380,8 @@ docker run --rm -p 8080:8080 -v agentdemo-data:/data \
   holloow313/asus-agent-computer-challenge-high-end:latest
 
 # dossier de l'hôte, à donner au UID 568 avant de démarrer
-mkdir -p /mnt/tank/apps/agent-demo && chown -R 568:568 /mnt/tank/apps/agent-demo
-docker run --rm -p 8080:8080 -v /mnt/tank/apps/agent-demo:/data \
+mkdir -p /mnt/<pool>/apps/agent-demo && chown -R 568:568 /mnt/<pool>/apps/agent-demo
+docker run --rm -p 8080:8080 -v /mnt/<pool>/apps/agent-demo:/data \
   holloow313/asus-agent-computer-challenge-high-end:latest
 ```
 

@@ -21,7 +21,7 @@ services:
       # Volume nommé, rien à préparer :
       - demo-data:/data
       # Ou un dossier de l'hôte, à condition qu'il appartienne au UID 568 :
-      # - /mnt/tank/apps/agent-computer-demo:/data
+      # - /mnt/<pool>/apps/agent-computer-demo:/data
     restart: unless-stopped
 
   # Décommentez ce service (et `docker compose --profile ollama up`) pour
