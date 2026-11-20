@@ -36,7 +36,9 @@ class ScenarioTests(unittest.TestCase):
 
     def test_scenarios_are_discoverable(self) -> None:
         slugs = {s.slug for s in list_scenarios()}
-        self.assertEqual({"cyber-brief", "inbox-triage", "dataset-report", "self-repair"}, slugs)
+        self.assertEqual(
+            {"cyber-brief", "inbox-triage", "dataset-report", "self-repair", "delegation"}, slugs
+        )
 
     def test_cyber_brief(self) -> None:
         result, workspace = self.run_scenario("cyber-brief")
