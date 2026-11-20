@@ -32,7 +32,7 @@ Ce qu'il faut regarder : l'agent se relit avant de conclure, et chaque étape es
 
 ## 3. Voir l'agent apprendre (45 s)
 
-Choisir **Auto-réparation → procédure apprise**, relancer. Le run se déroule en **deux passes
+Choisir **Auto-réparation → procédure apprise**, relancer. Le run se déroule en **trois passes
 affichées l'une sous l'autre** :
 
 - passe 1 : 6 étapes, **1 erreur** (nom de fichier deviné), l'agent écrit la leçon ;
@@ -44,7 +44,7 @@ procédurale, pas un prompt plus long.
 ## 4. Vérifier que ce n'est pas du théâtre (60 s)
 
 ```bash
-python3 -m unittest discover -s tests -v # 9 tests
+python3 -m unittest discover -s tests -v # 17 tests
 python3 -m agentdemo run --scenario self-repair
 python3 -m agentdemo run --scenario dataset-report --live \
   --model qwen2.5-coder:7b # avec un Ollama local

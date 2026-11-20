@@ -33,7 +33,7 @@ Le générateur crée le dossier, un `scenario.json` pré-rempli, une cassette a
 | `objective` | la consigne complète envoyée à l'agent, nomme le livrable attendu |
 | `max_steps` | budget d'étapes ; dépassement → statut `budget`, jamais de boucle infinie |
 | `tags` | 2-3 étiquettes techniques affichées sous le titre |
-| `passes` | optionnel : liste `{"label": ... "cassette": ...}` pour un scénario en deux passes |
+| `passes` | optionnel : liste `{"label": ... "cassette": ...}` pour un scénario en plusieurs passes |
 
 ## 3. Écrire la cassette
 
@@ -84,7 +84,7 @@ plus vite. Dans `scenario.json` :
 ]
 ```
 
-L'interface affiche les deux passes séparées et le comparatif (étapes, erreurs).
+L'interface affiche les passes séparées et le comparatif (étapes, erreurs).
 
 ## Sous-agents (délégation)
 

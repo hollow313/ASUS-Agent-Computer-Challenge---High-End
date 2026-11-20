@@ -21,8 +21,8 @@ correspondance exacte, température 0, 1 passe(s).
 - aucun des deux ne tient la charge d'un agent qui tourne 24/7 avec des tâches planifiées.
 
 C'est exactement l'argument de la candidature : le goulot n'est pas le modèle, c'est la mémoire
-vidéo. 16 Go de VRAM permettent un 14B en Q5 qui joint la justesse du 8B à une latence utile,
-et surtout de traiter en local ce qui ne doit pas sortir du boîtier.
+vidéo. 32 Go de VRAM permettent un 32B en Q5, ou un 70B en Q4, ce qui joint la justesse du 8B à une
+latence utile, et surtout de traiter en local ce qui ne doit pas sortir du boîtier.
 
 ## Méthode et limites
 

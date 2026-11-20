@@ -47,6 +47,6 @@ bascule vers le cloud dès que la tâche demande du raisonnement. Trois conséqu
 coût par token sur les tâches récurrentes, dépendance réseau, et impossibilité de traiter en
 local les documents sensibles.
 
-Avec 16 Go de VRAM, la même architecture change de nature : 14 B à 32 B en Q4/Q5 utilisables,
+Avec 32 Go de VRAM, la même architecture change de nature : 32 B en Q5, 70 B en Q4 utilisables,
 veille et tri de courrier traités hors ligne, index documentaire personnel réaliste, coût
 marginal ramené à l'électricité. Le plan de mesure sur 30 jours est dans la candidature.

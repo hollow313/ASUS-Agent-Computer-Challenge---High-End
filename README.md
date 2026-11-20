@@ -29,7 +29,7 @@ python3 -m agentdemo run --scenario self-repair     # la démo en terminal
 python3 -m unittest discover -s tests               # 17 tests, 55 ms
 ```
 
-Puis, dans l'interface : **Auto-réparation**, qui montre l'apprentissage en deux passes.
+Puis, dans l'interface : **Auto-réparation**, qui montre l'apprentissage en trois passes.
 
 **Les chiffres, mesurés sur ma machine** (GPU 3 Go de VRAM, quantification Q4, 10 tâches
 vérifiables, notation par correspondance exacte) :
@@ -166,7 +166,7 @@ Ce qui reste hors périmètre, et je l'assume : l'évaluation du **contenu** de 
 contradictoires (le sujet et le contrat sont arbitrés, pas la formulation), et la réécriture d'une
 procédure dont la cible a **disparu sans successeur crédible**, qui finit simplement en retraite.
 
-![Comparatif des deux passes](docs/screenshot-selfrepair.png)
+![Comparatif des trois passes](docs/screenshot-selfrepair.png)
 
 ### Orchestration : un agent peut en convoquer d'autres
 
@@ -355,12 +355,13 @@ agentdemo/
 ├── agent.py              # la boucle : planification, outil, observation, bilan
 ├── planners.py           # ReplayPlanner (hors ligne) + OpenAICompatPlanner (modèle réel)
 ├── tools.py              # 18 outils : fichiers, analyse, voix, procédures, délégation
-├── skills.py             # mémoire procédurale persistante
+├── skills.py             # mémoire procédurale : contrats, confiance, révision, arbitrage
+├── maintenance.py        # entretien automatique : réparer, arbitrer, retirer
 ├── scenarios_loader.py   # chargement des scénarios, cassettes et fixtures
-├── cli.py                # CLI : scenarios, run, serve, validate, new
+├── cli.py                # CLI : scenarios, run, serve, skills, maintain, validate, new
 ├── server.py             # API HTTP et interface web (http.server, stdlib)
 ├── web/index.html        # interface d'une page, aucune dépendance
-└── scenarios/            # cyber-brief, inbox-triage, dataset-report, self-repair
+└── scenarios/            # cyber-brief, inbox-triage, dataset-report, delegation, self-repair
 tests/test_demo.py        # 17 tests : scénarios, procédures, délégation, bac à sable
 bench/                    # banc de mesure : tâches, prix, endpoint simulé
 video/                    # cartons, capture d'interface et script de narration
@@ -389,10 +390,12 @@ docs/                     # captures, architecture, comparatif, scénarios, parc
 ```bash
 python3 -m unittest discover -s tests -v   # 17 tests, aucun framework
 python3 -m agentdemo validate              # cohérence des cassettes avec les outils
+python3 -m agentdemo skills                # registre des procédures et leur confiance
+python3 -m agentdemo maintain --once       # entretien : réparer, arbitrer, retirer
 python3 bench/bench.py --targets bench/targets.json
 ```
 
-La CI fait quatre choses à chaque push : tests sur Python 3.10 et 3.12, les quatre scénarios en
+La CI fait quatre choses à chaque push : tests sur Python 3.10 et 3.12, les cinq scénarios en
 ligne de commande, publication de l'image (Docker Hub et GHCR) et un test qui **démarre le
 conteneur**, appelle `/healthz`, lance un scénario et télécharge le livrable produit.
 
@@ -416,9 +419,10 @@ Un jury technique le verra de toute façon, autant l'écrire :
   mode réel existe pour prouver que la boucle fonctionne avec un vrai modèle.
 - **Le catalogue d'outils est réduit** à dix-huit outils, tous en fichiers et en analyse. Pas de
   shell, pas d'envoi de courrier, pas d'automatisation de navigateur ici.
-- **La mémoire procédurale est une version réduite** : un dossier de procédures markdown relu au
-  run suivant, sans déduplication ni révision automatique. À l'échelle de production, le vrai
-  travail est le tri des procédures obsolètes.
+- **La mémoire procédurale est réduite, mais son cycle de vie est réel** : contrats de
+  vérification, score de confiance, révision, arbitrage et entretien périodique existent et sont
+  testés. Ce qui manque par rapport à la production : l'évaluation du contenu de deux procédures
+  contradictoires, et un historique long permettant de mesurer la dérive dans le temps.
 
 Ce qui est démontré n'est pas simulé : la boucle, les outils, le bac à sable, le journal, la
 vérification, l'arrêt propre en cas d'erreur ou de budget dépassé.
@@ -458,8 +462,8 @@ lesson and applies it next run, so 6 steps and 1 error become 4 steps and 0 erro
 
 Zero dependency, no key, no network: `docker run -p 8080:8080
 holloow313/asus-agent-computer-challenge-high-end:latest`, or `python3 -m agentdemo serve`.
-Four scenarios, 9 tests, a measurement bench, and a CI that runs the container and downloads a
-deliverable. Measured on a 3 GB VRAM GPU: local 7B at 60 % and 0.48 s, local 8B at 90 % and
+Five scenarios (including delegation to sub-agents), 17 tests, a measurement bench, and a CI that
+runs the container and downloads a deliverable. Measured on a 3 GB VRAM GPU: local 7B at 60 % and 0.48 s, local 8B at 90 % and
 18.9 s, cloud at 100 % and 1.02 s for 0.05 € per 1 000 tasks.
 
 Full English documentation: [README.en.md](README.en.md).

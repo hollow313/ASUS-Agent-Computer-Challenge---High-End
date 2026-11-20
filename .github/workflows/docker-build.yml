@@ -29,9 +29,9 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Suite de tests
         run: python -m unittest discover -s tests -v
-      - name: Les quatre scénarios en ligne de commande
+      - name: Les cinq scénarios en ligne de commande
         run: |
-          for scenario in cyber-brief inbox-triage dataset-report self-repair; do
+          for scenario in cyber-brief inbox-triage dataset-report delegation self-repair; do
             python -m agentdemo run --scenario "$scenario"
           done
 
