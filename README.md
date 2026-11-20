@@ -161,9 +161,12 @@ AGENTDEMO_LLM_MODEL=qwen2.5-coder:7b \
 python3 -m agentdemo run --scenario cyber-brief --live
 ```
 
-Ou dans l'interface web : bouton **live (modèle)**, puis *Lancer l'agent*. Les variables
-d'environnement sont les mêmes (`AGENTDEMO_LLM_BASE_URL`, `AGENTDEMO_LLM_MODEL`,
-`AGENTDEMO_LLM_API_KEY` si l'endpoint en exige une).
+Ou dans l'interface web : bouton **live (modèle)** — trois champs apparaissent (endpoint,
+modèle, clé optionnelle) avec un bouton **vérifier l'endpoint** qui interroge `/models` et
+remplit la liste des modèles disponibles. Ces champs priment sur les variables d'environnement
+`AGENTDEMO_LLM_BASE_URL`, `AGENTDEMO_LLM_MODEL`, `AGENTDEMO_LLM_API_KEY`.
+
+![Panneau du modèle live](docs/screenshot-live.png)
 
 C'est le point qui compte pour un Agent Computer : **la même boucle, les mêmes outils, le même
 journal**, avec le calcul qui reste sur la machine et aucune donnée qui sort.

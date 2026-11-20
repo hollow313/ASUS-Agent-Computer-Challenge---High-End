@@ -11,11 +11,12 @@ import mimetypes
 import threading
 import time
 import traceback
+import urllib.request
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from .agent import Agent, Step
 from .planners import OpenAICompatPlanner, ReplayPlanner
@@ -34,7 +35,7 @@ class RunStore:
         self.runs: dict[str, dict[str, Any]] = {}
         self.lock = threading.Lock()
 
-    def start(self, slug: str, mode: str, objective: str | None) -> str:
+    def start(self, slug: str, mode: str, objective: str | None, llm: dict[str, Any] | None = None) -> str:
         scenario = get_scenario(slug)
         run_id = uuid.uuid4().hex[:10]
         workspace = self.data_dir / "runs" / run_id / "workspace"
@@ -42,6 +43,14 @@ class RunStore:
         scenario.stage(workspace)
         skills = SkillStore(self.data_dir / "runs" / run_id / "skills")
         labels = scenario.pass_labels()
+        llm = llm or {}
+        if mode == "live":
+            base_url = str(llm.get("base_url") or "").strip()
+            model = str(llm.get("model") or "").strip()
+            if base_url and not base_url.startswith(("http://", "https://")):
+                raise ValueError("l'endpoint doit commencer par http:// ou https://")
+            if not base_url or not model:
+                raise ValueError("mode live : renseigne l'endpoint et le modèle")
 
         state: dict[str, Any] = {
             "run_id": run_id,
@@ -64,7 +73,12 @@ class RunStore:
             try:
                 for index, label in enumerate(labels):
                     if mode == "live":
-                        planner = OpenAICompatPlanner(tools=build_registry(_NullSandbox(), []))
+                        planner = OpenAICompatPlanner(
+                            base_url=str(llm.get("base_url") or ""),
+                            model=str(llm.get("model") or ""),
+                            api_key=str(llm.get("api_key") or ""),
+                            tools=build_registry(_NullSandbox(), []),
+                        )
                     else:
                         planner = ReplayPlanner(scenario.cassette(index))
 
@@ -149,6 +163,9 @@ def make_handler(store: RunStore):
                 return self._send_json({"scenarios": [s.as_summary() for s in list_scenarios()]})
             if path == "/healthz":
                 return self._send_json({"ok": True})
+            if path == "/api/llm/models":
+                query = parse_qs(urlparse(self.path).query)
+                return self._probe_models(query)
             if path.startswith("/api/runs/"):
                 run_id = path.split("/")[3]
                 state = store.get(run_id)
@@ -177,10 +194,33 @@ def make_handler(store: RunStore):
                     slug=str(payload.get("scenario", "cyber-brief")),
                     mode=str(payload.get("mode", "replay")),
                     objective=payload.get("objective") or None,
+                    llm=payload.get("llm") or None,
                 )
             except KeyError as exc:
                 return self._send_json({"error": str(exc)}, status=400)
+            except ValueError as exc:
+                return self._send_json({"error": str(exc)}, status=400)
             return self._send_json({"run_id": run_id}, status=202)
+
+        def _probe_models(self, query: dict[str, list[str]]) -> None:
+            """Interroge {base_url}/models pour vérifier un endpoint local ou distant."""
+            base_url = (query.get("base_url") or [""])[0].strip().rstrip("/")
+            api_key = (query.get("api_key") or [""])[0].strip()
+            if not base_url.startswith(("http://", "https://")):
+                return self._send_json({"error": "endpoint invalide : http(s) attendu"}, status=400)
+            request = urllib.request.Request(
+                f"{base_url}/models",
+                headers={"Authorization": f"Bearer {api_key}"} if api_key else {},
+            )
+            try:
+                with urllib.request.urlopen(request, timeout=8) as response:  # noqa: S310
+                    payload = json.loads(response.read().decode())
+            except Exception as exc:  # noqa: BLE001 - message renvoyé à l'interface
+                return self._send_json(
+                    {"error": f"endpoint injoignable : {str(exc)[:160]}"}, status=502
+                )
+            models = [m.get("id", "?") for m in payload.get("data", [])][:40]
+            return self._send_json({"ok": True, "base_url": base_url, "models": models})
 
         # ---------- helpers ----------
         def _send_json(self, payload: dict[str, Any], status: int = 200) -> None:
@@ -197,8 +237,13 @@ def make_handler(store: RunStore):
                 return self._send_json({"error": "introuvable"}, status=404)
             body = path.read_bytes()
             guessed, _ = mimetypes.guess_type(path.name)
+            content_type = guessed or "application/octet-stream"
+            # Sans charset explicite, le navigateur devine latin-1 et les accents
+            # des livrables (briefing, rapports) s'affichent en mojibake.
+            if content_type.startswith("text/") or content_type in ("image/svg+xml", "application/json"):
+                content_type = f"{content_type}; charset=utf-8"
             self.send_response(200)
-            self.send_header("Content-Type", guessed or "application/octet-stream")
+            self.send_header("Content-Type", content_type)
             self.send_header("Content-Length", str(len(body)))
             if download:
                 self.send_header("Content-Disposition", f'attachment; filename="{path.name}"')

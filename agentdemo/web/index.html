@@ -62,6 +62,16 @@
     background: var(--accent); color: #080b12; font-weight: 650; font-size: 14px;
   }
   #run:disabled { opacity: .45; cursor: progress; }
+  .livecfg { border: 1px solid var(--line); border-radius: 10px; padding: 11px; margin: 0 0 12px; background: var(--panel-2); }
+  .livecfg label { display: block; font: 10.5px/1.4 var(--mono); color: #8390a6; margin-bottom: 8px; letter-spacing: .03em; }
+  .livecfg label:last-of-type { margin-bottom: 6px; }
+  .livecfg input { width: 100%; margin-top: 4px; background: #0d1119; color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 7px 8px; font: 12px/1.3 var(--mono); }
+  .livecfg input:focus { outline: 1px solid var(--accent); }
+  .livecfg .opt { color: #5e6675; }
+  #checkModels { width: 100%; margin-top: 2px; padding: 8px; font: 11px/1 var(--mono); cursor: pointer; background: #16203a; color: #9dbcff; border: 1px solid #24314a; border-radius: 8px; }
+  .llmstatus { margin: 7px 0 0; font: 10.5px/1.5 var(--mono); color: var(--muted); word-break: break-word; }
+  .llmstatus.ok { color: var(--ok); }
+  .llmstatus.err { color: var(--err); }
   .hint { color: #6f7a90; font-size: 11.5px; margin: 12px 0 0; font-family: var(--mono); }
   .status { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font: 12px/1 var(--mono); color: var(--muted); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
@@ -135,6 +145,21 @@
       <button id="modeLive" aria-pressed="false">live (modèle)</button>
     </div>
 
+    <div class="livecfg" id="liveConfig" hidden>
+      <label>endpoint compatible OpenAI
+        <input id="llmBase" placeholder="http://192.168.1.13:1234/v1" spellcheck="false" autocomplete="off">
+      </label>
+      <label>modèle
+        <input id="llmModel" placeholder="llama-3.1-8b" list="modelList" spellcheck="false" autocomplete="off">
+        <datalist id="modelList"></datalist>
+      </label>
+      <label>clé API <span class="opt">(optionnel, local = vide)</span>
+        <input id="llmKey" type="password" placeholder="—" autocomplete="off">
+      </label>
+      <button id="checkModels" type="button">vérifier l'endpoint</button>
+      <p class="llmstatus" id="llmStatus"></p>
+    </div>
+
     <button id="run">Lancer l'agent</button>
     <p class="hint">Le mode replay rejoue des décisions enregistrées : aucune clé, aucun réseau,
     mais les outils s'exécutent pour de vrai et écrivent dans le bac à sable du run.</p>
@@ -186,8 +211,48 @@ function setMode(mode) {
   state.mode = mode;
   $("modeReplay").setAttribute("aria-pressed", mode === "replay");
   $("modeLive").setAttribute("aria-pressed", mode === "live");
-  $("modeBadge").textContent = mode === "replay" ? "MODE REPLAY · DÉTERMINISTE" : "MODE LIVE · MODÈLE LOCAL";
+  $("modeBadge").textContent = mode === "replay" ? "MODE REPLAY · DÉTERMINISTE" : "MODE LIVE · MODÈLE";
   $("modeBadge").classList.toggle("live", mode === "live");
+  $("liveConfig").hidden = mode !== "live";
+  localStorage.setItem("agentdemo.mode", mode);
+}
+
+function saveLlm() {
+  localStorage.setItem("agentdemo.llm", JSON.stringify({
+    base_url: $("llmBase").value.trim(),
+    model: $("llmModel").value.trim(),
+  }));
+}
+
+function restoreLlm() {
+  try {
+    const saved = JSON.parse(localStorage.getItem("agentdemo.llm") || "{}");
+    if (saved.base_url) $("llmBase").value = saved.base_url;
+    if (saved.model) $("llmModel").value = saved.model;
+  } catch (e) { /* stockage local indisponible : on ignore */ }
+}
+
+async function checkModels() {
+  const base = $("llmBase").value.trim();
+  const key = $("llmKey").value;
+  const box = $("llmStatus");
+  if (!base) { box.className = "llmstatus err"; box.textContent = "renseigne d'abord l'endpoint"; return; }
+  box.className = "llmstatus"; box.textContent = "interrogation de " + base + "…";
+  try {
+    const res = await fetch(`/api/llm/models?base_url=${encodeURIComponent(base)}&api_key=${encodeURIComponent(key)}`);
+    const data = await res.json();
+    if (!res.ok) { box.className = "llmstatus err"; box.textContent = data.error || ("erreur " + res.status); return; }
+    const list = $("modelList");
+    list.innerHTML = data.models.map((m) => `<option value="${escapeHtml(m)}"></option>`).join("");
+    if (!data.models.length) { box.className = "llmstatus err"; box.textContent = "endpoint joignable, aucun modèle chargé"; return; }
+    box.className = "llmstatus ok";
+    box.textContent = `${data.models.length} modèle${data.models.length > 1 ? "s" : ""} : ${data.models.slice(0, 4).join(", ")}`;
+    if (!$("llmModel").value) $("llmModel").value = data.models[0];
+    saveLlm();
+  } catch (e) {
+    box.className = "llmstatus err";
+    box.textContent = "échec réseau : " + e;
+  }
 }
 
 function escapeHtml(text) {
@@ -265,7 +330,14 @@ async function launch() {
   const res = await fetch("/api/run", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ scenario: state.current.slug, mode: state.mode, objective: $("objective").value }),
+    body: JSON.stringify({
+      scenario: state.current.slug,
+      mode: state.mode,
+      objective: $("objective").value,
+      llm: state.mode === "live"
+        ? { base_url: $("llmBase").value.trim(), model: $("llmModel").value.trim(), api_key: $("llmKey").value }
+        : null,
+    }),
   });
   const data = await res.json();
   if (!res.ok) {
@@ -281,6 +353,10 @@ async function launch() {
 $("run").onclick = launch;
 $("modeReplay").onclick = () => setMode("replay");
 $("modeLive").onclick = () => setMode("live");
+$("checkModels").onclick = checkModels;
+["llmBase", "llmModel"].forEach((id) => $(id).addEventListener("change", saveLlm));
+restoreLlm();
+setMode(localStorage.getItem("agentdemo.mode") === "live" ? "live" : "replay");
 loadScenarios();
 </script>
 </body>
