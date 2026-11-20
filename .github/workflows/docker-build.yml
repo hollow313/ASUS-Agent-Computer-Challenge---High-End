@@ -9,7 +9,8 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/agent-computer-demo
+  # Nom d'image imposé en minuscules (GHCR refuse les majuscules du nom de dépôt)
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/asus-agent-computer-challenge-high-end
 
 jobs:
   test:

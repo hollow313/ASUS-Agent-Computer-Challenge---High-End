@@ -42,6 +42,10 @@ pensée, chaque appel d'outil, chaque observation, la durée, le bilan. Tout est
 ### Option A — Docker (recommandé)
 
 ```bash
+# 1. image publiée automatiquement par la CI (GitHub Actions → ghcr.io)
+docker run --rm -p 8080:8080 ghcr.io/hollow313/asus-agent-computer-challenge-high-end:latest
+
+# 2. ou construite localement depuis les sources
 docker compose up --build
 # → http://localhost:8080
 ```
