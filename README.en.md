@@ -14,6 +14,28 @@ dependency — two commands and it runs.
 
 ![Demo interface](docs/screenshot-run.png)
 
+## In thirty seconds
+
+```bash
+docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
+# or, without Docker:  python3 -m agentdemo serve --port 8080
+python3 -m unittest discover -s tests -v     # 9 tests, no dependency
+```
+
+Then, in the UI: **self-repair**, which shows learning across two passes.
+
+**Measured on my machine** (3 GB VRAM GPU, LM Studio, Q4 quantisation, 10 verifiable tasks,
+exact-match grading):
+
+| Local model | Success | p50 | p95 | Cost / 1 000 tasks |
+| --- | --- | --- | --- | --- |
+| qwen2.5-coder-7b | 60 % | 0.48 s | 0.93 s | 0 € |
+| qwen3-vl-8b | 90 % | 18.9 s | 38.2 s | 0 € |
+
+Speed and accuracy are mutually exclusive on this hardware: the fast one is wrong four times out
+of ten, the accurate one costs 39x more time. That is the measured bottleneck, and the point of
+the submission. Method and limits: [`docs/mesures-locales.md`](docs/mesures-locales.md).
+
 ---
 
 ## 1. What this demo proves
@@ -222,7 +244,9 @@ agentdemo/
 ├── web/index.html        # single page, no dependency
 └── scenarios/            # 4 scenarios: cassette + scenario.json + fixtures
 tests/test_demo.py        # 9 tests: scenarios, learning, sandbox, budget
-docs/                     # screenshots, architecture, reviewer walkthrough
+bench/                    # measurement bench: bench.py, tasks, prices, simulated endpoint
+video/                    # title cards and UI capture for the video (slides.py, record.py)
+docs/                     # screenshots, architecture, local measurements, scenarios, 3-min path
 Dockerfile, docker-compose.yml, Makefile, .github/workflows/docker-build.yml
 ```
 
@@ -282,7 +306,7 @@ token, network dependency, and no way to process sensitive documents locally.
 
 | Today (3 GB) | With 16 GB |
 | --- | --- |
-| 3-4 B models, short context | 14 B to 32 B in Q4/Q5, usable context |
+| 7-8 B in Q4, 60 to 90 % success | 14 B to 32 B in Q4/Q5, usable context |
 | anything sensitive goes to the cloud | monitoring and mail triage processed offline |
 | no realistic personal RAG | index over my own archives |
 | cost per token on scheduled tasks | marginal cost = electricity |

@@ -15,6 +15,45 @@ Aucune clé API, aucun réseau, aucune dépendance : deux commandes et ça tourn
 
 ![Interface de la démo](docs/screenshot-run.png)
 
+## En trente secondes
+
+```bash
+docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
+# ou, sans Docker :  python3 -m agentdemo serve --port 8080
+python3 -m unittest discover -s tests -v     # 9 tests, aucune dépendance
+```
+
+Puis, dans l'interface : **Auto-réparation**, qui montre l'apprentissage en deux passes.
+Parcours détaillé pour un évaluateur pressé : [`docs/DEMO.md`](docs/DEMO.md) (3 minutes).
+
+**Résultats mesurés sur ma machine** (GPU 3 Go de VRAM, LM Studio, quantification Q4, 10 tâches
+vérifiables, notation par correspondance exacte) :
+
+| Modèle local | Réussite | p50 | p95 | Coût / 1 000 tâches |
+| --- | --- | --- | --- | --- |
+| qwen2.5-coder-7b | 60 % | 0,48 s | 0,93 s | 0 € |
+| qwen3-vl-8b | 90 % | 18,9 s | 38,2 s | 0 € |
+
+Vitesse et justesse s'excluent sur ce matériel : le rapide se trompe quatre fois sur dix, le juste
+coûte trente-neuf fois plus de temps. C'est la mesure du goulot, et l'objet de la candidature.
+Détail, méthode et limites : [`docs/mesures-locales.md`](docs/mesures-locales.md).
+
+### Sommaire
+
+1. [Ce que cette démo prouve](#1-ce-que-cette-démo-prouve)
+2. [Démarrage rapide](#2-démarrage-rapide)
+3. [Les quatre scénarios](#3-les-quatre-scénarios)
+4. [Deux planificateurs, une seule boucle](#4-deux-planificateurs-une-seule-boucle)
+5. [Les outils](#5-les-outils)
+6. [Modèle de sécurité](#6-modèle-de-sécurité)
+7. [Structure du dépôt](#7-structure-du-dépôt)
+8. [Tests](#8-tests)
+9. [Ce que la démo n'est pas](#9-ce-que-la-démo-nest-pas)
+10. [Du prototype au poste de travail](#10-du-prototype-au-poste-de-travail)
+11. [Mesurer plutôt qu'affirmer](#11-mesurer-plutôt-quaffirmer)
+12. [Ajouter un scénario](#12-ajouter-un-scénario)
+13. [Licence et auteur](#13-licence-et-auteur)
+
 ---
 
 ## 1. Ce que cette démo prouve
@@ -139,6 +178,8 @@ zéro erreur. C'est la seule chose de cette démo qui ne s'achète pas avec un m
 c'est de la mémoire procédurale, et c'est ce que fait mon agent de production à l'échelle de
 ~90 procédures.
 
+![Comparatif des deux passes](docs/screenshot-selfrepair.png)
+
 ---
 
 ## 4. Deux planificateurs, une seule boucle
@@ -238,7 +279,7 @@ Un agent qui exécute des actions doit être contraint. Ce que fait la démo :
 - **Budget d'étapes** : `max_steps` par scénario ; le dépassement produit un statut `budget`,
   jamais une boucle infinie.
 - **Journal complet** : chaque run est rejouable et vérifiable sur disque.
-- **Conteneur non privilégié** : l'image tourne avec un utilisateur non-root (`uid 10001`).
+- **Conteneur non privilégié** : l'image tourne avec un utilisateur non-root (`uid 568`, l'identifiant des applications sur NAS).
 
 Il n'y a aucun secret dans ce dépôt, aucun identifiant, aucune donnée personnelle. Les données
 des scénarios sont synthétiques et vivent dans `agentdemo/scenarios/*/fixtures`.
@@ -249,21 +290,24 @@ des scénarios sont synthétiques et vivent dans `agentdemo/scenarios/*/fixtures
 
 ```
 agentdemo/
-├── agent.py              # la boucle : planification → outil → observation → bilan
+├── agent.py              # la boucle : planification, outil, observation, bilan
 ├── planners.py           # ReplayPlanner (hors ligne) + OpenAICompatPlanner (modèle live)
-├── tools.py              # outils + bac à sable + génération SVG
+├── tools.py              # 11 outils, bac à sable, génération SVG
 ├── skills.py             # mémoire procédurale persistante
-├── scenarios_loader.py   # chargement des scénarios et des fixtures
-├── cli.py                # CLI : scenarios / run / serve
+├── scenarios_loader.py   # chargement des scénarios, cassettes et fixtures
+├── cli.py                # CLI : scenarios, run, serve, validate, new
 ├── server.py             # API HTTP + interface web (http.server, stdlib)
 ├── web/index.html        # interface d'une page, aucune dépendance
 └── scenarios/
     ├── cyber-brief/      # scenario.json + cassette.json + fixtures/
     ├── inbox-triage/
-    └── dataset-report/
+    ├── dataset-report/
+    └── self-repair/      # deux passes : cassette.json + cassette2.json
 tests/test_demo.py        # 9 tests : scénarios, apprentissage, bac à sable, budget
-docs/                     # captures d'écran et notes d'architecture
-Dockerfile, docker-compose.yml, Makefile
+bench/                    # banc de mesure : bench.py, tâches, prix, endpoint simulé
+video/                    # cartons et capture d'interface pour la vidéo (slides.py, record.py)
+docs/                     # captures, architecture, mesures locales, scénarios, parcours 3 min
+Dockerfile, docker-compose.yml, Makefile, .github/workflows/docker-build.yml
 ```
 
 ### API
@@ -318,16 +362,16 @@ le journal, la vérification, l'arrêt propre en cas d'erreur ou de budget dépa
 
 ## 10. Du prototype au poste de travail
 
-La limite actuelle de mon installation est le calcul : **3 Go de VRAM**, donc des modèles de
-3-4 B en quantification agressive, et une bascule quasi systématique vers le cloud dès que la
-tâche demande du raisonnement. Conséquences : coût par token, dépendance réseau, et
+La limite actuelle de mon installation est le calcul : **3 Go de VRAM**, donc des modèles de 7-8 B
+en Q4 au mieux, insuffisants en justesse (voir les mesures de la section 11), et une bascule quasi
+systématique vers le cloud dès que la tâche demande du raisonnement. Conséquences : coût par token, dépendance réseau, et
 impossibilité de traiter en local les documents sensibles.
 
 Un Agent Computer avec 16 Go de VRAM change la nature du système, pas seulement sa vitesse :
 
 | Aujourd'hui (3 Go) | Avec 16 Go |
 | --- | --- |
-| modèles 3-4 B, contexte court | 14 B à 32 B en Q4/Q5, contexte utilisable |
+| 7-8 B en Q4, 60 à 90 % de réussite | 14 B à 32 B en Q4/Q5, contexte utilisable |
 | tout ce qui est sensible part au cloud | veille et tri mail traités hors ligne |
 | pas de RAG personnel réaliste | index sur mes propres archives |
 | coût par token sur les tâches planifiées | coût marginal = électricité |
