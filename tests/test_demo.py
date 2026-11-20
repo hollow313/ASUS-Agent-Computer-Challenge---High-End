@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import tempfile
+import json
 import unittest
 import zipfile
 from pathlib import Path
@@ -356,6 +357,193 @@ class ScenarioTests(unittest.TestCase):
             readme = archive.read("LISEZ-MOI.txt").decode()
         self.assertIn("run42", readme)
         self.assertIn("statut", readme)
+
+    def test_delegation_spawns_a_live_child(self) -> None:
+        """En mode réel, un nom de sous-agent inconnu crée un sous-agent vivant au lieu d'échouer."""
+        from agentdemo.planners import ReplayPlanner as RP
+
+        class FakeLivePlanner(RP):
+            label = "live:fake"
+
+            def __init__(self) -> None:
+                super().__init__([])
+                self.tools = {}
+                self.children = 0
+
+            def child(self):
+                self.children += 1
+                return RP([{"thought": "écrit la synthèse", "tool": "fs_write",
+                            "args": {"path": "resume.md", "content": "# zone nord\nok"}},
+                           {"thought": "fini", "final": "zone analysée"}])
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "run" / "workspace"
+        workspace.mkdir(parents=True)
+        (workspace / "regions").mkdir()
+
+        planner = FakeLivePlanner()
+        planner.trace = [{"thought": "délègue la zone nord", "tool": "spawn_agent",
+                          "args": {"objective": "analyse la zone nord", "name": "nord", "max_steps": 3}},
+                         {"thought": "fini", "final": "délégation terminée"}]
+        children = root / "children"
+        children.mkdir()
+        agent = Agent(
+            planner=planner, workspace=workspace, runs_dir=root / "run", max_steps=4, children_dir=children
+        )
+        result = agent.run("analyse les zones")
+
+        self.assertEqual(planner.children, 1, "le sous-agent aurait dû être créé")
+        self.assertIn("(live)", result.steps[0].observation)
+        self.assertIn("delegations/nord/resume.md", result.steps[0].observation)
+        self.assertTrue((workspace / "delegations" / "nord" / "resume.md").exists())
+
+    def test_repeated_failure_stops_the_run(self) -> None:
+        """Trois fois le même appel en échec : le run s'arrête au lieu de brûler le budget."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "run" / "workspace"
+        workspace.mkdir(parents=True)
+        stuck = {"thought": "je réessaie", "tool": "fs_read", "args": {"path": "inconnu.txt"}}
+        agent = Agent(planner=ReplayPlanner([stuck, dict(stuck), dict(stuck)]),
+                      workspace=workspace, runs_dir=root / "run", max_steps=10)
+        result = agent.run("lis un fichier absent")
+        self.assertEqual(result.status, "blocked")
+        self.assertIn("trois fois", result.summary.lower())
+
+    def test_scenario_created_then_recorded_is_replayable(self) -> None:
+        """Un scénario créé depuis l'interface devient rejouable une fois sa trace enregistrée."""
+        import os
+        from agentdemo import scenarios_loader as loader
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        previous = os.environ.get("AGENTDEMO_DATA_DIR")
+        os.environ["AGENTDEMO_DATA_DIR"] = tmp.name
+        self.addCleanup(lambda: os.environ.__setitem__("AGENTDEMO_DATA_DIR", previous) if previous else os.environ.pop("AGENTDEMO_DATA_DIR", None))
+
+        scenario = loader.create_scenario(
+            slug="audit-liens", title="Audit de liens", objective="écris liens.md", tags=["audit"]
+        )
+        self.assertFalse(scenario.has_cassette(), "un scénario neuf n'a pas de cassette")
+        with self.assertRaises(ValueError):
+            loader.create_scenario(slug="audit-liens", title="doublon", objective="x")
+        with self.assertRaises(ValueError):
+            loader.create_scenario(slug="Bad Slug!", title="t", objective="o")
+
+        steps = [
+            {"index": 1, "thought": "je liste", "tool": "fs_list", "args": {"path": "."}, "observation": "index.html"},
+            {"index": 2, "thought": "j'écris", "tool": "fs_write", "args": {"path": "liens.md", "content": "# liens"},
+             "observation": "écrit"},
+            {"index": 3, "thought": "fini", "tool": None, "args": {}, "observation": "run terminé"},
+        ]
+        cassette = loader.record_cassette(scenario, steps, "audit terminé")
+        self.assertTrue(cassette.exists())
+        replayable = loader.get_scenario("audit-liens")
+        self.assertTrue(replayable.has_cassette())
+        self.assertEqual(len(replayable.cassette()), 3)
+
+        workspace = Path(tmp.name) / "run" / "workspace"
+        workspace.mkdir(parents=True)
+        (workspace / "index.html").write_text("<a href='/x'>x</a>", encoding="utf-8")
+        agent = Agent(planner=ReplayPlanner(replayable.cassette()), workspace=workspace,
+                      runs_dir=Path(tmp.name) / "run", max_steps=5)
+        result = agent.run("écris liens.md")
+        self.assertEqual(result.status, "done")
+        self.assertTrue((workspace / "liens.md").exists())
+
+    def test_settings_mask_the_mail_password(self) -> None:
+        """Le mot de passe IMAP est stocké mais jamais renvoyé en clair."""
+        from agentdemo.settings_store import SECRET_MASK, Settings
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        path = Path(tmp.name) / "settings.json"
+        settings = Settings()
+        settings.update(
+            {
+                "mail": {"host": "imap.example.com", "user": "boite@example.com", "password": "secret-123"},
+                "inputs": {"csv_dir": tmp.name, "feeds": ["https://exemple.fr/rss"]},
+            }
+        )
+        settings.save(path)
+        self.assertEqual(oct(path.stat().st_mode)[-3:], "600", "le fichier contient un secret")
+
+        public = settings.as_public()
+        self.assertEqual(public["mail"]["password"], SECRET_MASK)
+        self.assertNotIn("secret-123", json.dumps(public))
+        self.assertTrue(public["mail"]["configured"])
+
+        # un enregistrement qui renvoie le masque ne doit pas écraser le mot de passe
+        again = Settings.load(path)
+        again.update({"mail": {"host": "imap.example.com", "user": "boite@example.com", "password": SECRET_MASK}})
+        self.assertEqual(again.mail.password, "secret-123")
+
+    def test_job_schedule_computes_the_next_run(self) -> None:
+        from datetime import datetime, timedelta, timezone
+        from agentdemo.settings_store import Job
+
+        now = datetime(2026, 11, 20, 7, 0, tzinfo=timezone.utc)
+        daily = Job(id="a", scenario="cyber-brief", schedule="daily_at", value="08:00")
+        self.assertEqual(daily.next_run(now), "2026-11-20T08:00:00Z")
+        self.assertFalse(daily.is_due(now))
+        self.assertTrue(daily.is_due(datetime(2026, 11, 20, 8, 1, tzinfo=timezone.utc)))
+
+        late = Job(id="b", scenario="cyber-brief", schedule="daily_at", value="07:00")
+        self.assertEqual(late.next_run(now), "2026-11-20T07:00:00Z", "échéance passée : la tâche est en retard")
+        self.assertTrue(late.is_due(now), "une tâche jamais lancée rattrape son échéance")
+
+        done = Job(id="b2", scenario="cyber-brief", schedule="daily_at", value="07:00",
+                   last_run="2026-11-20T07:00:04Z")
+        self.assertFalse(done.is_due(now), "déjà lancée aujourd'hui")
+        self.assertEqual(done.next_run(now), "2026-11-21T07:00:00Z")
+
+        hourly = Job(id="c", scenario="cyber-brief", schedule="every_minutes", value="30")
+        hourly.last_run = "2026-11-20T06:50:00Z"
+        self.assertEqual(hourly.next_run(now), "2026-11-20T07:20:00Z")
+        self.assertFalse(hourly.is_due(now))
+        self.assertTrue(hourly.is_due(datetime(2026, 11, 20, 7, 21, tzinfo=timezone.utc)))
+
+        with self.assertRaises(ValueError):
+            from agentdemo.settings_store import Settings
+
+            bad = Settings()
+            bad.jobs = [Job(id="d", scenario="x", schedule="daily_at", value="25:00")]
+            bad.validate()
+
+    def test_inputs_are_staged_into_the_run(self) -> None:
+        """Le dossier de CSV configuré est copié dans inputs/ et visible des outils."""
+        import os
+        from agentdemo.server import RunStore
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        csv_dir = root / "csv"
+        csv_dir.mkdir()
+        (csv_dir / "ventes.csv").write_text("region,ca\nnord,100\nsud,50\n", encoding="utf-8")
+        from agentdemo.settings_store import Settings
+
+        settings = Settings.load(root / "settings.json")
+        settings.inputs.csv_dir = str(csv_dir)
+        settings.save(root / "settings.json")
+
+        previous = os.environ.get("AGENTDEMO_DATA_DIR")
+        os.environ["AGENTDEMO_DATA_DIR"] = str(root)
+        self.addCleanup(lambda: os.environ.pop("AGENTDEMO_DATA_DIR", None) if previous is None else os.environ.__setitem__("AGENTDEMO_DATA_DIR", previous))
+
+        store = RunStore(root)
+        run_id = store.start("dataset-report", "replay", None)
+        for _ in range(100):
+            if store.runs[run_id]["status"] != "running":
+                break
+            import time as _t
+
+            _t.sleep(0.05)
+        staged = list((root / "runs" / run_id / "workspace" / "inputs").glob("*.csv"))
+        self.assertEqual([p.name for p in staged], ["ventes.csv"])
 
     def test_routing_resolution_order(self) -> None:
         """Forçage manuel > règle > défaut, et les règles s'évaluent dans l'ordre."""

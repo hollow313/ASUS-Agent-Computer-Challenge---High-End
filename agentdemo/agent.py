@@ -77,6 +77,8 @@ class Agent:
         on_step: Callable[[Step], None] | None = None,
         skills: SkillStore | None = None,
         children_dir: "Path | None" = None,
+        delegation_depth: int = 0,
+        settings: Any = None,
     ) -> None:
         self.planner = planner
         self.sandbox = Sandbox(workspace)
@@ -85,6 +87,8 @@ class Agent:
         self.on_step = on_step
         self.skills = skills
         self.children_dir = children_dir
+        self.delegation_depth = delegation_depth
+        self.settings = settings
 
     def run(self, objective: str, run_id: str | None = None) -> RunResult:
         run_id = run_id or uuid.uuid4().hex[:10]
@@ -97,9 +101,20 @@ class Agent:
         )
         artifacts: list[str] = []
         tools = build_registry(
-            self.sandbox, artifacts, self.skills, self.children_dir, self.runs_dir
+            self.sandbox,
+            artifacts,
+            self.skills,
+            self.children_dir,
+            self.runs_dir,
+            parent_planner=self.planner,
+            depth=self.delegation_depth,
+            settings=self.settings,
         )
+        # le planner réel reçoit le catalogue de ce run (et non celui du parent)
+        if hasattr(self.planner, "tools") and not getattr(self.planner, "tools", None):
+            self.planner.tools = tools
         history: list[dict[str, Any]] = []
+        repeats: dict[str, int] = {}  # anti-boucle : mêmes arguments, même erreur
 
         for index in range(1, self.max_steps + 1):
             started = time.perf_counter()
@@ -137,6 +152,29 @@ class Agent:
 
             step = Step(index, thought, tool_name, args, observation, _ms(started), error)
             result.steps.append(step)
+
+            if error:
+                signature = json.dumps([tool_name, args], ensure_ascii=False, sort_keys=True)
+                repeats[signature] = repeats.get(signature, 0) + 1
+                if repeats[signature] >= 3:
+                    # trois fois le même appel en échec : insister ne sert à rien, on s'arrête net
+                    dead = Step(
+                        index,
+                        "Trois tentatives identiques, toutes en échec.",
+                        None,
+                        {},
+                        "run interrompu pour éviter d'épuiser le budget",
+                        _ms(started),
+                        True,
+                    )
+                    result.steps.append(dead)
+                    _notify(self.on_step, dead)
+                    result.status = "blocked"
+                    result.summary = (
+                        f"Bloqué : {tool_name} a échoué trois fois avec les mêmes arguments "
+                        f"({observation[:200]}). Le budget restant n'a pas été gaspillé."
+                    )
+                    break
             history.append(
                 {"thought": thought, "tool": tool_name, "args": args, "observation": observation}
             )

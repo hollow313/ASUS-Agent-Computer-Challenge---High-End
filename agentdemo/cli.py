@@ -64,6 +64,13 @@ def cmd_scenarios(_args: argparse.Namespace) -> int:
 
 def cmd_run(args: argparse.Namespace) -> int:
     scenario = get_scenario(args.scenario)
+    if not args.live and not scenario.has_cassette():
+        print(
+            f"le scénario « {args.scenario} » n'a pas de cassette : lance-le en mode réel "
+            f"(--live --model ...) pour en produire une, ou enregistre la trace depuis l'interface",
+            file=sys.stderr,
+        )
+        return 1
     run_id = uuid.uuid4().hex[:10]
     root = Path(args.out or DEFAULT_DATA_DIR)
     workspace = root / "runs" / run_id / "workspace"
@@ -210,6 +217,27 @@ def cmd_new(args: argparse.Namespace) -> int:
     """Échafaude un scénario : dossier, scenario.json, cassette, fixtures."""
     slug = args.slug
     folder = SCENARIOS_DIR / slug
+    if not args.force:
+        # l'utilisateur écrit dans le volume de données, pas dans le paquet installé
+        from .scenarios_loader import create_scenario, user_scenarios_dir
+
+        try:
+            scenario = create_scenario(
+                slug=slug,
+                title=args.title or slug.replace("-", " ").capitalize(),
+                objective=args.objective or "À décrire : l'objectif complet donné à l'agent.",
+                blurb=args.blurb or "",
+                tags=args.tag or [],
+            )
+        except (ValueError, OSError) as exc:
+            print(f"refusé : {exc}", file=sys.stderr)
+            return 1
+        print(f"▸ scénario créé : {scenario.root}")
+        print(f"  1. python3 -m agentdemo run --scenario {slug} --live --model <modèle>")
+        print(f"  2. ou écris la cassette à la main dans {scenario.root / 'cassette.json'}")
+        print(f"  3. dépose les données d'entrée dans {scenario.root / 'fixtures'}")
+        print(f"  (racine des scénarios utilisateur : {user_scenarios_dir()})")
+        return 0
     if folder.exists() and not args.force:
         print(f"le scénario « {slug} » existe déjà ({folder})", file=sys.stderr)
         return 1

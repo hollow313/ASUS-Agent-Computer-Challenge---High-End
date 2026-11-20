@@ -3,7 +3,7 @@
   "title": "Orchestration de sous-agents",
   "blurb": "Trois zones indépendantes déléguées à trois sous-agents, chacun avec son budget, puis agrégées en un comparatif.",
   "objective": "Analyse les trois zones du dossier regions. Délègue chaque zone à un sous-agent, relis ses livrables, puis écris comparatif.md avec les totaux et un commentaire par zone.",
-  "max_steps": 10,
+  "max_steps": 14,
   "tags": [
     "orchestration",
     "sous-agents",

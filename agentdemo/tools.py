@@ -10,6 +10,7 @@ from __future__ import annotations
 import csv
 import json
 import os
+import re
 import shutil
 import urllib.error
 import urllib.request
@@ -63,6 +64,9 @@ def build_registry(
     skills: "SkillStore | None" = None,
     children_dir: "Path | None" = None,
     runs_dir: "Path | None" = None,
+    parent_planner: Any = None,
+    depth: int = 0,
+    settings: Any = None,
 ) -> dict[str, Tool]:
     """Return the tool registry bound to one sandbox (and, optionally, a skill store)."""
 
@@ -167,38 +171,171 @@ def build_registry(
             else "aucune procédure à mettre à la retraite"
         )
 
-    def spawn_agent(objective: str, source: str, max_steps: int = 6) -> str:
-        """Délègue un objectif à un sous-agent, avec sa propre trace et son propre budget.
+    def spawn_agent(objective: str, name: str = "", source: str = "", max_steps: int = 6) -> str:
+        """Délègue un objectif à un sous-agent, avec son propre budget et sa propre trace.
 
-        Le sous-agent travaille dans `delegations/<source>/`, ne partage ni budget ni journal avec
-        son parent, et rend un résumé vérifiable. C'est l'orchestration, pas un appel de fonction.
+        Deux modes, dans cet ordre :
+
+        1. une cassette enregistrée existe pour ce nom : le sous-agent rejoue une trace connue,
+           utile pour une démonstration déterministe ;
+        2. sinon, si le run courant parle à un vrai modèle, le sous-agent hérite du même endpoint
+           et travaille pour de bon, dans `delegations/<nom>/`, avec son propre budget.
+
+        Le parent ne partage ni budget ni journal avec ses enfants, et la profondeur est bornée
+        pour qu'une délégation ne devienne pas une récursion infinie.
         """
         if children_dir is None:
             raise ToolError("délégation désactivée dans ce run")
+        if depth >= 2:
+            raise ToolError(
+                "profondeur de délégation maximale atteinte (3 niveaux) : traite cette zone toi-même"
+            )
         from .agent import Agent  # import local : éviter le cycle agent -> tools
         from .planners import ReplayPlanner
 
-        cassette_path = Path(children_dir) / f"{source}.json"
-        if not cassette_path.exists():
-            raise ToolError(f"sous-agent inconnu : {source}")
-        tape = json.loads(cassette_path.read_text(encoding="utf-8"))
-        child_ws = sandbox.root / "delegations" / source
+        label = _agent_slug(name or source or objective)
+        cassette_path = Path(children_dir) / f"{label}.json"
+        tape = json.loads(cassette_path.read_text(encoding="utf-8")) if cassette_path.exists() else None
+
+        if tape is not None:
+            child_planner = ReplayPlanner(tape)
+            mode = "replay"
+        else:
+            factory = getattr(parent_planner, "child", None)
+            child_planner = factory() if callable(factory) else None
+            if child_planner is None:
+                available = sorted(p.stem for p in Path(children_dir).glob("*.json"))
+                raise ToolError(
+                    f"aucun sous-agent nommé « {label} » : en mode replay, utilise un nom existant "
+                    f"({', '.join(available) or 'aucun'}) ; en mode réel, n'importe quel nom est accepté"
+                )
+            mode = "live"
+
+        child_ws = sandbox.root / "delegations" / label
+        if child_ws.exists() and any(child_ws.iterdir()):
+            raise ToolError(
+                f"le sous-agent « {label} » a déjà travaillé dans ce run : lis ses livrables "
+                f"(delegations/{label}/) au lieu de le relancer"
+            )
         child_ws.mkdir(parents=True, exist_ok=True)
+        # le sous-agent voit les mêmes entrées que son parent, dans son propre bac à sable
+        for item in sandbox.root.iterdir():
+            if item.name == "delegations":
+                continue
+            destination = child_ws / item.name
+            if item.is_dir():
+                shutil.copytree(item, destination, dirs_exist_ok=True)
+            elif item.is_file():
+                shutil.copy2(item, destination)
         child = Agent(
-            planner=ReplayPlanner(tape),
+            planner=child_planner,
             workspace=child_ws,
             runs_dir=Path(runs_dir or sandbox.root.parent),
-            max_steps=int(max_steps),
+            max_steps=max(1, min(int(max_steps), 8)),
+            children_dir=children_dir,
+            delegation_depth=depth + 1,
         )
-        result = child.run(objective, run_id=f"child-{source}")
-        for name in result.artifacts:
-            note(child_ws / name)
+        child.skills = skills
+        # le sous-agent ne devine pas les chemins : il reçoit l'inventaire de son parent
+        inventory = _inventory(sandbox.root)
+        brief = f"{objective}\n\nFichiers disponibles (chemins relatifs à la racine du bac à sable) :\n{inventory}"
+        result = child.run(brief, run_id=f"child-{label}")
+        for artifact in result.artifacts:
+            note(child_ws / artifact)
         errors = sum(1 for step in result.steps if step.error)
+        produced = ", ".join(f"delegations/{label}/{a}" for a in result.artifacts) or "aucun"
         return (
-            f"sous-agent « {source} » : statut {result.status}, {len(result.steps)} étapes, "
-            f"{errors} erreur(s), livrables : {', '.join('delegations/' + source + '/' + a for a in result.artifacts) or 'aucun'} "
-            f"| {result.summary}"
+            f"sous-agent « {label} » ({mode}) : statut {result.status}, "
+            f"{len(result.steps)} étapes, {errors} erreur(s), livrables : {produced} "
+            f"| {result.summary[:400]}"
         )
+
+    def _inventory(root: Path, limit: int = 40) -> str:
+        """Liste courte des entrées visibles, pour que le sous-agent travaille sur de vrais chemins."""
+        rows: list[str] = []
+        for item in sorted(root.rglob("*")):
+            if "delegations" in item.parts:
+                continue
+            rel = item.relative_to(root).as_posix()
+            rows.append(rel + ("/" if item.is_dir() else ""))
+            if len(rows) >= limit:
+                rows.append("…")
+                break
+        return "\n".join(f"- {row}" for row in rows) or "- (bac à sable vide)"
+
+    def _agent_slug(value: str) -> str:
+        """Nom de dossier stable à partir d'un objectif ou d'un nom libre."""
+        text = str(value or "sous-agent").strip().lower()
+        text = re.sub(r"[^a-z0-9]+", "-", text.replace("é", "e").replace("è", "e").replace("ê", "e").replace("à", "a").replace("ç", "c"))
+        return (text.strip("-")[:40] or "sous-agent")
+
+    def mail_list(limit: int = 8, mailbox: str = "") -> str:
+        """Lit les derniers messages d'une vraie boîte IMAP, si elle est configurée."""
+        from .mailbox import MailError, list_messages
+
+        if settings is None or not settings.mail.host:
+            raise ToolError(
+                "aucune boîte IMAP configurée : renseigne hôte, utilisateur et mot de passe dans /settings"
+            )
+        try:
+            messages = list_messages(settings.mail, limit=max(1, min(int(limit), 25)), mailbox=mailbox)
+        except MailError as exc:
+            raise ToolError(str(exc)) from exc
+        if not messages:
+            return "boîte vide ou dossier sans message"
+        rows = []
+        for item in messages:
+            rows.append(
+                f"- uid {item['uid']} | {item['de'][:60]} | {item['objet'][:90]} | {item['date'][:31]}\n"
+                f"  {item['extrait'][:200]}"
+            )
+        return "\n".join(rows)
+
+    def mail_move(uid: str, folder: str = "") -> str:
+        """Déplace un message vers un dossier d'archive."""
+        from .mailbox import MailError, move_message
+
+        if settings is None or not settings.mail.host:
+            raise ToolError("aucune boîte IMAP configurée : voir /settings")
+        try:
+            return move_message(settings.mail, str(uid), folder)
+        except MailError as exc:
+            raise ToolError(str(exc)) from exc
+
+    def inputs_list(path: str = "inputs") -> str:
+        """Liste les données d'entrée copiées dans le run (CSV, flux, pièces)."""
+        target = sandbox.resolve(path)
+        if not target.is_dir():
+            raise ToolError(f"aucun dossier d'entrée « {path} » : configure-le dans /settings")
+        rows = [f"{item.name}  {item.stat().st_size} o" for item in sorted(target.iterdir()) if item.is_file()]
+        return "\n".join(rows) or "(dossier d'entrée vide)"
+
+    def csv_dir_profile(path: str = "inputs") -> str:
+        """Profile tous les CSV d'un dossier et additionne les volumes d'une colonne."""
+        target = sandbox.resolve(path)
+        if not target.is_dir():
+            raise ToolError(f"dossier introuvable : {path}")
+        files = sorted(target.glob("*.csv"))
+        if not files:
+            raise ToolError(f"aucun CSV dans {path}")
+        rows = []
+        for file in files:
+            try:
+                with file.open(newline="", encoding="utf-8") as handle:
+                    reader = csv.DictReader(handle)
+                    records = list(reader)
+            except (OSError, csv.Error) as exc:
+                rows.append(f"- {file.name} : illisible ({exc})")
+                continue
+            numeric = [
+                column
+                for column in (reader.fieldnames or [])
+                if records and _is_number((records[0].get(column) or "0").replace(",", "."))
+            ]
+            totals = {column: sum(float((r.get(column) or "0").replace(",", ".")) for r in records) for column in numeric}
+            detail = ", ".join(f"{k}={round(v, 2)}" for k, v in totals.items()) or "aucune colonne numérique"
+            rows.append(f"- {file.name} : {len(records)} lignes, colonnes {', '.join(reader.fieldnames or [])} | totaux {detail}")
+        return "\n".join(rows)
 
     def fs_list(path: str = ".") -> str:
         target = sandbox.resolve(path)
@@ -342,6 +479,30 @@ def build_registry(
 
     return {
         "fs_list": Tool("fs_list", "fs_list(path)", "liste un dossier du bac à sable", fs_list),
+        "mail_list": Tool(
+            "mail_list",
+            "mail_list(limit?, mailbox?)",
+            "lit les derniers messages d'une vraie boîte IMAP (expéditeur, objet, extrait)",
+            mail_list,
+        ),
+        "mail_move": Tool(
+            "mail_move",
+            "mail_move(uid, folder?)",
+            "déplace un message IMAP vers le dossier d'archive configuré",
+            mail_move,
+        ),
+        "inputs_list": Tool(
+            "inputs_list",
+            "inputs_list(path?)",
+            "liste les données d'entrée du run (dossier inputs/)",
+            inputs_list,
+        ),
+        "csv_dir_profile": Tool(
+            "csv_dir_profile",
+            "csv_dir_profile(path?)",
+            "profile tous les CSV d'un dossier et calcule les totaux",
+            csv_dir_profile,
+        ),
         "fs_read": Tool("fs_read", "fs_read(path, max_chars?)", "lit un fichier texte", fs_read),
         "fs_write": Tool("fs_write", "fs_write(path, content)", "écrit un fichier (livrable)", fs_write),
         "fs_move": Tool("fs_move", "fs_move(src, dst)", "déplace un fichier", fs_move),
@@ -362,8 +523,9 @@ def build_registry(
         ),
         "spawn_agent": Tool(
             "spawn_agent",
-            "spawn_agent(objective, source, max_steps?)",
-            "délègue un objectif à un sous-agent avec son propre budget",
+            "spawn_agent(objective, name?, max_steps?)",
+            "délègue une sous-tâche à un sous-agent qui a son propre budget, sa propre trace et "
+            "son dossier delegations/<nom>/ ; n'importe quel nom en mode réel",
             spawn_agent,
         ),
         "skill_list": Tool("skill_list", "skill_list()", "liste les procédures déjà apprises", skill_list),

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vigie · réglages d'exploitation</title>
+<style>
+  :root {
+    --bg: #0b0e14; --panel: #12161f; --panel-2: #171c27; --line: #232a38;
+    --text: #e6ebf5; --muted: #8a94a8; --accent: #5b8cff; --ok: #3ecf8e; --warn: #f5a524; --err: #ff6b6b;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; padding: 22px 28px 16px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 17px; margin: 0; letter-spacing: .14em; text-transform: uppercase; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  header nav { margin-left: auto; display: flex; gap: 8px; }
+  header nav a {
+    text-decoration: none; font: 11.5px/1 var(--mono); padding: 9px 13px; border-radius: 8px;
+    color: #cfdcff; background: #16203a; border: 1px solid #2f4a80;
+  }
+  header nav a:hover { border-color: var(--accent); background: #1d2b4d; }
+  main { padding: 22px 28px 60px; display: grid; gap: 22px; max-width: 1120px; }
+  section { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 16px 18px; }
+  h2 { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+  label { display: block; font: 10.5px/1.4 var(--mono); color: #8390a6; margin-bottom: 9px; }
+  input, select, textarea {
+    width: 100%; margin-top: 4px; background: #0d1119; color: var(--text); border: 1px solid var(--line);
+    border-radius: 7px; padding: 7px 8px; font: 12px/1.35 var(--mono);
+  }
+  input:focus, select:focus, textarea:focus { outline: 1px solid var(--accent); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: 2fr 90px 110px; gap: 12px; }
+  .check { display: flex; align-items: center; gap: 8px; font: 11.5px/1.4 var(--mono); color: #8390a6; }
+  .check input { width: auto; margin: 0; }
+  button { cursor: pointer; background: #16203a; color: #9dbcff; border: 1px solid #24314a; border-radius: 7px; padding: 8px 11px; font: 11px/1 var(--mono); }
+  button:hover { border-color: #2f3a4d; }
+  button.primary { background: var(--accent); color: #080b12; border: 0; font-weight: 650; }
+  button.mini { padding: 5px 7px; }
+  button.danger { background: #2a1620; color: #ff9c9c; border-color: #4a2530; }
+  .bar { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  .status { font: 11.5px/1.45 var(--mono); margin-top: 9px; }
+  .status.ok { color: var(--ok); } .status.err { color: var(--err); }
+  .hint { font: 10.5px/1.6 var(--mono); color: #6f7a90; margin: 8px 0 0; }
+  .hint.warn { color: var(--warn); }
+  table { width: 100%; border-collapse: collapse; font: 11.5px/1.6 var(--mono); }
+  th { text-align: left; color: #7f8ba1; font-weight: 500; border-bottom: 1px solid var(--line); padding: 0 6px 6px 0; }
+  td { border-bottom: 1px solid var(--panel-2); padding: 5px 6px 5px 0; color: #c3cbdb; vertical-align: middle; white-space: nowrap; }
+  td.scenario { min-width: 230px; } td.scenario select { width: 100%; }
+  td.when { font-size: 10.5px; }
+  td input, td select { padding: 5px 6px; font-size: 11px; }
+  .tag { font: 10px/1 var(--mono); padding: 3px 7px; border-radius: 999px; border: 1px solid #2f3a4d; color: #9dbcff; }
+  .tag.off { color: #7a838f; border-color: #2a2f39; }
+  .tag.err { color: #ff9c9c; border-color: #4a2530; }
+  .tag.ok { color: var(--ok); border-color: #1f4a3a; }
+  @media (max-width: 880px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Vigie · réglages</h1>
+  <p>d'où viennent les données, et qui déclenche le travail</p>
+  <nav>
+    <a href="/">démonstration</a>
+    <a href="/routing">routage</a>
+  </nav>
+</header>
+
+<main>
+  <section>
+    <h2>Entrées réelles</h2>
+    <div class="grid2">
+      <label>dossier de CSV à traiter <span class="hint">(chemin absolu, monté dans le conteneur)</span>
+        <input id="csvDir" placeholder="/data/inputs/csv" spellcheck="false">
+      </label>
+      <label>flux RSS, une URL par ligne
+        <textarea id="feeds" rows="3" placeholder="https://www.cert.ssi.gouv.fr/feed/"></textarea>
+      </label>
+    </div>
+    <p class="hint" id="csvInfo">—</p>
+  </section>
+
+  <section>
+    <h2>Boîte mail (IMAP)</h2>
+    <div class="grid3">
+      <label>serveur<input id="mailHost" placeholder="imap.example.com" spellcheck="false"></label>
+      <label>port<input id="mailPort" type="number" value="993"></label>
+      <label class="check" style="margin-top:16px"><input id="mailSsl" type="checkbox" checked>SSL</label>
+    </div>
+    <div class="grid2">
+      <label>utilisateur<input id="mailUser" placeholder="boite@example.com" spellcheck="false"></label>
+      <label>mot de passe <span class="hint">(stocké dans le volume, jamais renvoyé)</span>
+        <input id="mailPassword" type="password" placeholder="laisser vide pour conserver">
+      </label>
+    </div>
+    <div class="grid2">
+      <label>dossier lu<input id="mailMailbox" value="INBOX"></label>
+      <label>dossier d'archive<input id="mailArchive" placeholder="INBOX.Traite"></label>
+    </div>
+    <div class="bar">
+      <button id="testMail">tester la connexion</button>
+      <span class="status" id="mailStatus"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Tâches planifiées</h2>
+    <table>
+      <thead><tr>
+        <th>scénario</th><th>mode</th><th>planification</th><th>valeur</th><th>état</th>
+        <th>dernier passage</th><th>prochain passage</th><th></th>
+      </tr></thead>
+      <tbody id="jobRows"></tbody>
+    </table>
+    <div class="bar">
+      <button id="addJob">+ ajouter une tâche</button>
+      <span class="hint" style="margin:0">le planificateur tourne côté serveur : rien à installer, rien à redémarrer</span>
+    </div>
+  </section>
+
+  <div class="bar">
+    <button class="primary" id="save">Enregistrer</button>
+    <button id="reload">Recharger</button>
+    <span class="status" id="status"></span>
+  </div>
+
+  <p class="hint">
+    Un scénario planifié en mode réel utilise la politique de routage : la cible est choisie par
+    les règles de /routing, pas par cette page. Les tâches s'exécutent une fois par échéance,
+    l'historique des runs reste consultable depuis l'interface de démonstration.
+  </p>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let state = { settings: null, scenarios: [] };
+
+function esc(v) { return String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+function render() {
+  const s = state.settings;
+  $("csvDir").value = s.inputs.csv_dir || "";
+  $("feeds").value = (s.inputs.feeds || []).join("\n");
+  const count = s.inputs.csv_files.length;
+  $("csvInfo").className = "hint" + (s.inputs.csv_dir && !s.inputs.csv_dir_exists ? " warn" : "");
+  $("csvInfo").textContent = s.inputs.csv_dir
+    ? (s.inputs.csv_dir_exists
+        ? `${count} fichier${count > 1 ? "s" : ""} CSV détecté${count > 1 ? "s" : ""} : ${s.inputs.csv_files.join(", ") || "aucun"}`
+        : "dossier introuvable côté serveur")
+    : "aucun dossier configuré : les scénarios utilisent leurs fixtures d'exemple";
+
+  $("mailHost").value = s.mail.host || "";
+  $("mailPort").value = s.mail.port || 993;
+  $("mailUser").value = s.mail.user || "";
+  $("mailSsl").checked = s.mail.ssl !== false;
+  $("mailMailbox").value = s.mail.mailbox || "INBOX";
+  $("mailArchive").value = s.mail.archive_mailbox || "";
+  $("mailPassword").value = "";
+  $("mailPassword").placeholder = s.mail.has_key || s.mail.configured ? "•••••••• (inchangé)" : "laisser vide pour conserver";
+  $("mailStatus").textContent = s.mail.configured
+    ? `compte configuré : ${s.mail.user} sur ${s.mail.host}`
+    : "aucun compte configuré : renseigne serveur, utilisateur et mot de passe, puis enregistre";
+  $("mailStatus").className = "status " + (s.mail.configured ? "ok" : "");
+  $("mailPassword").placeholder = s.mail.has_key ? "•••••••• (inchangé)" : "mot de passe IMAP";
+
+  const options = state.scenarios.map((sc) => `<option value="${esc(sc.slug)}">${esc(sc.title)}</option>`).join("");
+  $("jobRows").innerHTML = (s.jobs || []).map((job, i) => `
+    <tr>
+      <td class="scenario"><select data-i="${i}" data-f="scenario">${options}</select></td>
+      <td><select data-i="${i}" data-f="mode">
+        <option value="live" ${job.mode === "live" ? "selected" : ""}>live</option>
+        <option value="replay" ${job.mode === "replay" ? "selected" : ""}>replay</option>
+      </select></td>
+      <td><select data-i="${i}" data-f="schedule">
+        <option value="daily_at" ${job.schedule === "daily_at" ? "selected" : ""}>chaque jour, heure fixe</option>
+        <option value="every_minutes" ${job.schedule === "every_minutes" ? "selected" : ""}>toutes les N minutes</option>
+      </select></td>
+      <td><input data-i="${i}" data-f="value" value="${esc(job.value)}" placeholder="${job.schedule === "daily_at" ? "08:00" : "60"}"
+            title="${job.schedule === "daily_at" ? "heure au format HH:MM" : "intervalle en minutes"}"></td>
+      <td><span class="tag ${job.enabled ? "ok" : "off"}">${job.enabled ? "actif" : "en pause"}</span></td>
+      <td class="when">${esc(job.last_run || "-")}<br><span class="tag ${String(job.last_status).startsWith("échec") ? "err" : "off"}">${esc(job.last_status || "jamais lancé")}</span></td>
+      <td class="when">${job.enabled ? esc(job.next_run || "-") : '<span class="tag off">en pause</span>'}</td>
+      <td>
+        <button class="mini" data-run="${i}" title="lancer maintenant">▶</button>
+        <button class="mini" data-toggle="${i}" title="activer ou mettre en pause">${job.enabled ? "❙❙" : "▶︎"}</button>
+        <button class="mini danger" data-del="${i}" title="supprimer">×</button>
+      </td>
+    </tr>`).join("") || '<tr><td colspan="8" class="hint">aucune tâche : la veille cyber de 8h se configure ici</td></tr>';
+
+  // la sélection du scénario ne se fait pas par data-f sur <select> vide
+  document.querySelectorAll("#jobRows select").forEach((select) => {
+    const index = Number(select.dataset.i);
+    if (select.dataset.f === "scenario") select.value = state.settings.jobs[index].scenario;
+  });
+}
+
+async function load() {
+  const res = await fetch("/api/settings");
+  const data = await res.json();
+  state = { settings: data.settings, scenarios: data.scenarios };
+  render();
+}
+
+function payload() {
+  return {
+    inputs: {
+      csv_dir: $("csvDir").value.trim(),
+      feeds: $("feeds").value.split("\n").map((l) => l.trim()).filter(Boolean),
+    },
+    mail: {
+      host: $("mailHost").value.trim(),
+      port: Number($("mailPort").value) || 993,
+      user: $("mailUser").value.trim(),
+      password: $("mailPassword").value,
+      mailbox: $("mailMailbox").value.trim() || "INBOX",
+      archive_mailbox: $("mailArchive").value.trim(),
+      ssl: $("mailSsl").checked,
+    },
+    jobs: state.settings.jobs,
+  };
+}
+
+document.addEventListener("input", (event) => {
+  const i = Number(event.target.dataset.i);
+  const f = event.target.dataset.f;
+  if (Number.isNaN(i)) return;
+  state.settings.jobs[i][f] = event.target.value;
+});
+
+document.addEventListener("click", async (event) => {
+  const el = event.target;
+  if (el.dataset.del !== undefined) {
+    state.settings.jobs.splice(Number(el.dataset.del), 1);
+    render();
+  }
+  if (el.dataset.toggle !== undefined) {
+    const i = Number(el.dataset.toggle);
+    state.settings.jobs[i].enabled = !state.settings.jobs[i].enabled;
+    await save(true);
+  }
+  if (el.dataset.run !== undefined) {
+    const job = state.settings.jobs[Number(el.dataset.run)];
+    const res = await fetch(`/api/jobs/${encodeURIComponent(job.id)}/run`, { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    setStatus(res.ok ? `lancé : ${data.settings ? "ok" : ""}` : (data.error || "échec"), res.ok ? "ok" : "err");
+    load();
+  }
+});
+
+$("addJob").onclick = () => {
+  state.settings.jobs.push({
+    id: "job-" + Date.now().toString(36),
+    scenario: state.scenarios[0] ? state.scenarios[0].slug : "cyber-brief",
+    schedule: "daily_at",
+    value: "08:00",
+    enabled: true,
+    mode: "live",
+    last_run: "",
+    last_status: "",
+  });
+  render();
+};
+
+$("testMail").onclick = async () => {
+  const box = $("mailStatus");
+  box.className = "status";
+  box.textContent = "connexion…";
+  const res = await fetch("/api/settings/test-mail", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload().mail),
+  });
+  const data = await res.json().catch(() => ({}));
+  box.className = "status " + (res.ok ? "ok" : "err");
+  box.textContent = res.ok ? data.message : (data.error || "échec");
+};
+
+async function save(quiet) {
+  const res = await fetch("/api/settings", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload()),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok) {
+    if (!quiet) setStatus("réglages enregistrés", "ok");
+    await load();
+  } else {
+    setStatus(data.error || "refusé : vérifie les heures et le chemin des CSV", "err");
+  }
+}
+
+function setStatus(text, kind = "") {
+  $("status").textContent = text;
+  $("status").className = "status " + kind;
+}
+
+$("save").onclick = () => save(false);
+$("reload").onclick = () => { load(); setStatus("rechargé"); };
+load();
+</script>
+</body>
+</html>

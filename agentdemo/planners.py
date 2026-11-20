@@ -50,6 +50,10 @@ class ReplayPlanner:
         self.cursor = 0
         self.label = "replay"
 
+    def child(self) -> "ReplayPlanner | None":
+        """Un replay n'a pas de successeur : le sous-agent doit avoir sa propre cassette."""
+        return None
+
     def next_action(self, objective: str, history: list[dict[str, Any]]) -> dict[str, Any]:
         if self.cursor >= len(self.trace):
             return {"thought": "Trace épuisée.", "final": "Scénario terminé."}
@@ -76,6 +80,15 @@ class OpenAICompatPlanner:
         self.timeout = timeout
         self.tools = tools or {}
         self.label = f"live:{self.model}"
+
+    def child(self) -> "OpenAICompatPlanner":
+        """Un sous-agent : même endpoint, même modèle, catalogue rempli par son propre run."""
+        return OpenAICompatPlanner(
+            base_url=self.base_url,
+            model=self.model,
+            api_key=self.api_key,
+            timeout=self.timeout,
+        )
 
     def next_action(self, objective: str, history: list[dict[str, Any]]) -> dict[str, Any]:
         messages = [{"role": "system", "content": self._system_prompt()}]

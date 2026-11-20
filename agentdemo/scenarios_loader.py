@@ -3,12 +3,26 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 SCENARIOS_DIR = Path(__file__).resolve().parent / "scenarios"
+SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,40}$")
+
+
+def user_scenarios_dir() -> Path:
+    """Scénarios créés par l'utilisateur : dans le volume de données, jamais dans l'image."""
+    return Path(os.environ.get("AGENTDEMO_DATA_DIR", "./data")) / "scenarios"
+
+
+def scenario_dirs() -> list[Path]:
+    """Les scénarios livrés d'abord, puis ceux de l'utilisateur."""
+    dirs = [Path(p) for p in (SCENARIOS_DIR, user_scenarios_dir())]
+    return [d for d in dirs if d.is_dir()]
 
 
 @dataclass
@@ -62,6 +76,11 @@ class Scenario:
             else:
                 shutil.copy2(item, destination)
 
+    def has_cassette(self) -> bool:
+        passes = self.passes or [{"label": "", "cassette": "cassette.json"}]
+        name = passes[0].get("cassette", "cassette.json")
+        return (self.root / name).exists() and bool(self.cassette())
+
     def as_summary(self) -> dict[str, Any]:
         return {
             "slug": self.slug,
@@ -71,19 +90,26 @@ class Scenario:
             "tags": self.tags,
             "steps": len(self.cassette()),
             "passes": self.pass_labels(),
+            "has_cassette": self.has_cassette(),
+            "user": str(self.root).startswith(str(user_scenarios_dir())),
         }
 
 
-def list_scenarios() -> list[Scenario]:
+def list_scenarios(dirs: list[Path] | None = None) -> list[Scenario]:
     scenarios: list[Scenario] = []
-    if not SCENARIOS_DIR.exists():
-        return scenarios
-    for folder in sorted(SCENARIOS_DIR.iterdir()):
-        meta_file = folder / "scenario.json"
-        if not (folder.is_dir() and meta_file.exists()):
+    seen: set[str] = set()
+    for base in (dirs or scenario_dirs()):
+        if not Path(base).is_dir():
             continue
-        meta = json.loads(meta_file.read_text(encoding="utf-8"))
-        scenarios.append(
+        for folder in sorted(Path(base).iterdir()):
+            meta_file = folder / "scenario.json"
+            if not (folder.is_dir() and meta_file.exists()):
+                continue
+            meta = json.loads(meta_file.read_text(encoding="utf-8"))
+            if meta.get("slug") in seen:
+                continue
+            seen.add(meta.get("slug"))
+            scenarios.append(
             Scenario(
                 slug=meta["slug"],
                 title=meta["title"],
@@ -98,8 +124,65 @@ def list_scenarios() -> list[Scenario]:
     return scenarios
 
 
-def get_scenario(slug: str) -> Scenario:
-    for scenario in list_scenarios():
+def get_scenario(slug: str, dirs: list[Path] | None = None) -> Scenario:
+    for scenario in list_scenarios(dirs):
         if scenario.slug == slug:
             return scenario
     raise KeyError(f"scénario inconnu : {slug}")
+
+
+def create_scenario(
+    slug: str,
+    title: str,
+    objective: str,
+    blurb: str = "",
+    tags: list[str] | None = None,
+    max_steps: int = 10,
+    passes: list[dict[str, Any]] | None = None,
+) -> Scenario:
+    """Crée un scénario utilisateur, sans cassette : il se lance en mode réel, puis s'enregistre."""
+    slug = str(slug or "").strip().lower()
+    if not SLUG_RE.match(slug):
+        raise ValueError("slug invalide : lettres minuscules, chiffres et tirets, 2 à 41 caractères")
+    if not str(title).strip() or not str(objective).strip():
+        raise ValueError("un titre et un objectif sont nécessaires")
+    folder = user_scenarios_dir() / slug
+    if folder.exists():
+        raise ValueError(f"le scénario « {slug} » existe déjà")
+    (folder / "fixtures").mkdir(parents=True, exist_ok=True)
+    meta = {
+        "slug": slug,
+        "title": str(title).strip(),
+        "blurb": str(blurb).strip() or "Scénario créé depuis l'interface.",
+        "objective": str(objective).strip(),
+        "max_steps": max(2, min(int(max_steps or 10), 20)),
+        "tags": [str(t) for t in (tags or [])],
+        "passes": passes or [{"label": "", "cassette": "cassette.json"}],
+    }
+    (folder / "scenario.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    scenario = get_scenario(slug)
+    return scenario
+
+
+def record_cassette(scenario: Scenario, steps: list[dict[str, Any]], summary: str = "") -> Path:
+    """Transforme la trace réelle d'un run en cassette rejouable.
+
+    On ne garde que les décisions (pensée, outil, arguments) : les observations seront
+    reproduites à l'exécution par les vrais outils, ce qui garde le replay honnête.
+    """
+    tape: list[dict[str, Any]] = []
+    for step in steps:
+        tool = step.get("tool")
+        if not tool:
+            continue
+        tape.append(
+            {
+                "thought": str(step.get("thought", ""))[:400],
+                "tool": tool,
+                "args": step.get("args") or {},
+            }
+        )
+    tape.append({"thought": "Livrable écrit et vérifié.", "final": str(summary or "Scénario terminé.")[:600]})
+    target = scenario.root / (scenario.passes[0].get("cassette", "cassette.json") if scenario.passes else "cassette.json")
+    target.write_text(json.dumps(tape, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return target

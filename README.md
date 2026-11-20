@@ -5,7 +5,7 @@
 [![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dépendances](https://img.shields.io/badge/d%C3%A9pendances-0-2ea043)
-![tests](https://img.shields.io/badge/tests-23%20passent-2ea043)
+![tests](https://img.shields.io/badge/tests-29%20passent-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **Français** · [English](README.en.md)
@@ -25,7 +25,7 @@ Trois commandes, aucune clé, aucun réseau, aucune dépendance :
 ```bash
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
 python3 -m agentdemo run --scenario self-repair     # la démo en terminal
-python3 -m unittest discover -s tests               # 23 tests, 90 ms
+python3 -m unittest discover -s tests               # 29 tests, 190 ms
 ```
 
 Puis, dans l'interface : **Auto-réparation**, qui montre l'apprentissage en trois passes.
@@ -188,6 +188,19 @@ même mécanisme que mon agent de production utilise pour paralléliser des tâc
 
 ---
 
+## Orchestration de sous-agents
+
+Un sous-agent n'est pas un appel de fonction : il a son propre budget, son propre journal, son
+propre bac à sable dans `delegations/<nom>/`, et le parent ne partage rien avec lui. Le parent lui
+transmet l'inventaire des fichiers, sinon le sous-agent cherche des chemins qui n'existent pas.
+
+Deux modes : si une cassette existe pour ce nom, le sous-agent la rejoue, déterministe ; sinon il
+hérite de l'endpoint et du modèle du parent et travaille pour de bon. Mesuré sur ce dépôt, mode
+réel contre une API compatible OpenAI : trois zones, trois sous-agents, trois livrables, parent qui
+les relit et écrit `comparatif.md`. La profondeur est bornée à trois niveaux, un sous-agent déjà
+lancé ne se relance pas, et trois appels identiques en échec arrêtent le run au lieu de consommer
+le budget en boucle.
+
 ## Quel modèle pour quelle tâche
 
 Un agent qui parle à un seul modèle est un agent qui prend le mauvais outil pour chaque tâche. La
@@ -207,7 +220,45 @@ python3 -m agentdemo route --override lm-32b                          # force un
 ```
 
 Dans l'interface de démonstration, un bouton mène à cette page, et la barre de statut d'un run
-affiche la cible retenue avec sa raison. Détail complet : [`docs/ROUTAGE.md`](docs/ROUTAGE.md).
+affiche la cible retenue avec sa raison. Détail complet : [`docs/ROUTAGE.md`](docs/ROUTAGE.md). Exploitation et planning : [`docs/EXPLOITATION.md`](docs/EXPLOITATION.md).
+
+---
+
+## Des entrées réelles, et un planning
+
+Une démonstration se juge aussi sur ce qu'elle sait brancher. La page **`/settings`** déclare les
+vraies entrées : un dossier de CSV à traiter, des flux RSS, un compte IMAP avec son dossier
+d'archive. Le mot de passe est stocké dans le volume en 0600 et n'est jamais renvoyé par l'API.
+
+![Réglages d'exploitation](docs/screenshot-settings.png)
+
+Les CSV configurés sont copiés dans `inputs/` au début de chaque run, et deux outils les
+exploitent : `inputs_list` et `csv_dir_profile` (profil de chaque fichier et totaux par colonne).
+Côté courrier, `mail_list` et `mail_move` parlent à la boîte IMAP pour de vrai, avec `imaplib` de
+la bibliothèque standard. Sans compte configuré, l'outil refuse proprement et dit où le renseigner.
+
+La même page planifie les scénarios : **chaque jour à heure fixe** ou **toutes les N minutes**,
+en mode réel ou replay. Le planificateur tourne dans le processus du serveur, relit le fichier de
+réglages à chaque tour et consomme chaque échéance une seule fois. Une tâche créée après son heure
+se déclenche une fois, puis reprend son rythme : c'est le rattrapage voulu après une coupure.
+
+```
+08:00  veille cyber    → briefing daté          (chaque jour, heure fixe)
+02:00  rapport CSV     → analyse + graphique    (toutes les 1440 minutes)
+```
+
+Une tâche planifiée en mode réel ne choisit pas son modèle : c'est la politique de `/routing` qui
+décide, et la décision est journalisée dans le run comme pour un lancement manuel.
+
+---
+
+## Créer un scénario sans toucher au code
+
+Le bouton **＋ nouveau scénario** de l'interface crée un scénario en trois champs : slug, objectif,
+description. Un scénario neuf n'a pas de cassette, donc il se lance en mode réel une première fois,
+puis le bouton **enregistrer cette trace comme cassette** transforme le run en trace rejouable.
+Le contrat reste honnête : la cassette ne contient que les décisions, les observations sont
+reproduites à l'exécution par les vrais outils.
 
 ---
 
@@ -402,6 +453,8 @@ agentdemo/
 ├── maintenance.py        # entretien automatique : réparer, arbitrer, retirer
 ├── fit.py                # dimensionnement mémoire : ce qui tient dans une carte
 ├── routing.py            # politique de routage : cibles, règles, forçage, historique
+├── settings_store.py     # entrées réelles et tâches planifiées (mot de passe jamais renvoyé)
+├── mailbox.py            # lecture et tri d'une vraie boîte IMAP (imaplib)
 ├── doctor.py             # diagnostic d'installation
 ├── export.py             # archive d'un run : journal, livrables, synthèse
 ├── scenarios_loader.py   # chargement des scénarios, cassettes et fixtures
@@ -409,8 +462,9 @@ agentdemo/
 ├── server.py             # API HTTP et interface web (http.server, stdlib)
 ├── web/index.html        # interface d'une page, aucune dépendance
 ├── web/routing.html      # page de configuration du routage
+├── web/settings.html     # page d'exploitation : entrées, IMAP, planning
 └── scenarios/            # cyber-brief, inbox-triage, dataset-report, delegation, self-repair
-tests/test_demo.py        # 23 tests : scénarios, procédures, délégation, bac à sable
+tests/test_demo.py        # 29 tests : scénarios, procédures, délégation, bac à sable
 bench/                    # banc de mesure : tâches, prix, endpoint simulé
 video/                    # cartons, capture d'interface et script de narration
 docs/                     # captures, architecture, comparatif, scénarios, parcours 3 min
@@ -432,6 +486,12 @@ docs/                     # captures, architecture, comparatif, scénarios, parc
 | `/api/routing` | GET, POST | politique de routage : cibles, règles, forçage |
 | `/api/routing/decide` | POST | décision pour un objectif, avec la version sans forçage |
 | `/routing` | GET | page de configuration du routage |
+| `/settings` | GET | page d'exploitation : entrées, IMAP, planning |
+| `/api/settings` | GET, POST | entrées réelles et tâches planifiées |
+| `/api/settings/test-mail` | POST | teste la connexion IMAP |
+| `/api/jobs/<id>/run` | POST | lance une tâche planifiée maintenant |
+| `/api/scenarios` | POST | crée un scénario utilisateur |
+| `/api/scenarios/<slug>/record` | POST | enregistre la trace d'un run comme cassette |
 | `/api/llm/models` | GET | sonde un endpoint compatible OpenAI |
 | `/healthz` | GET | sonde de santé |
 
@@ -440,7 +500,7 @@ docs/                     # captures, architecture, comparatif, scénarios, parc
 ## Vérifier par soi-même
 
 ```bash
-python3 -m unittest discover -s tests -v   # 23 tests, aucun framework
+python3 -m unittest discover -s tests -v   # 29 tests, aucun framework
 python3 -m agentdemo validate              # cohérence des cassettes avec les outils
 python3 -m agentdemo skills                # registre des procédures et leur confiance
 python3 -m agentdemo maintain --once       # entretien : réparer, arbitrer, retirer

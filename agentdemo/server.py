@@ -7,12 +7,14 @@ thread; the page polls ``/api/runs/<id>`` and renders steps as they land.
 from __future__ import annotations
 
 import json
+import shutil
 import mimetypes
 import threading
 import time
 import traceback
 import urllib.request
 import uuid
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -21,6 +23,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from .agent import Agent, Step
 from .planners import OpenAICompatPlanner, ReplayPlanner, normalize_base_url
 from .routing import RoutingError, RoutingTable, Target
+from .settings_store import Settings
 from .scenarios_loader import get_scenario, list_scenarios
 from .skills import SkillStore
 from .tools import build_registry
@@ -36,14 +39,35 @@ class RunStore:
         self.runs: dict[str, dict[str, Any]] = {}
         self.lock = threading.Lock()
 
+    def _stage_inputs(self, workspace: Path) -> list[str]:
+        """Copie les données d'entrée configurées dans le run : dossier CSV et rien d'autre."""
+        settings = Settings.load(self.data_dir / "settings.json")
+        source = Path(settings.inputs.csv_dir) if settings.inputs.csv_dir else None
+        if source is None or not source.is_dir():
+            return []
+        target = workspace / "inputs"
+        target.mkdir(parents=True, exist_ok=True)
+        copied = []
+        for item in sorted(source.glob("*.csv"))[:50]:
+            shutil.copy2(item, target / item.name)
+            copied.append(f"inputs/{item.name}")
+        return copied
+
     def start(self, slug: str, mode: str, objective: str | None, llm: dict[str, Any] | None = None) -> str:
         scenario = get_scenario(slug)
+        if mode == "replay" and not scenario.has_cassette():
+            raise ValueError(
+                "ce scénario n'a pas encore de cassette : lance-le une fois en mode réel, "
+                "puis enregistre la trace depuis l'interface (ou la CLI)"
+            )
         run_id = uuid.uuid4().hex[:10]
         workspace = self.data_dir / "runs" / run_id / "workspace"
         workspace.mkdir(parents=True, exist_ok=True)
         scenario.stage(workspace)
+        staged = self._stage_inputs(workspace)
         # Store global : une procédure apprise au run N est disponible au run N+1.
         skills = SkillStore(self.data_dir / "skills")
+        settings = Settings.load(self.data_dir / "settings.json")
         labels = scenario.pass_labels()
         llm = llm or {}
         routing_decision = None
@@ -83,6 +107,7 @@ class RunStore:
             "started_at": time.time(),
             "workspace": str(workspace),
             "routing": routing_decision,
+            "inputs_staged": staged,
         }
         with self.lock:
             self.runs[run_id] = state
@@ -184,6 +209,96 @@ def make_handler(store: RunStore):
                 return self._send_file(WEB_DIR / "index.html")
             if path == "/routing":
                 return self._send_file(WEB_DIR / "routing.html")
+            if path == "/api/settings/test-mail":
+                from .mailbox import MailError, test_connection
+
+                settings = Settings.load(store.data_dir / "settings.json")
+                if payload and payload.get("host"):
+                    settings.mail.host = str(payload.get("host"))
+                    settings.mail.port = int(payload.get("port") or 993)
+                    settings.mail.user = str(payload.get("user") or "")
+                    settings.mail.ssl = bool(payload.get("ssl", True))
+                    password = str(payload.get("password") or "")
+                    if password and password != "********":
+                        settings.mail.password = password
+                try:
+                    return self._send_json({"ok": True, "message": test_connection(settings.mail)})
+                except MailError as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+            if path.startswith("/api/jobs/"):
+                parts = path.split("/")
+                job_id, action = parts[3], parts[4] if len(parts) > 4 else ""
+                settings = Settings.load(store.data_dir / "settings.json")
+                job = next((j for j in settings.jobs if j.id == job_id), None)
+                if job is None:
+                    return self._send_json({"error": f"tâche inconnue : {job_id}"}, status=404)
+                if action == "toggle":
+                    job.enabled = not job.enabled
+                elif action == "delete":
+                    settings.jobs = [j for j in settings.jobs if j.id != job_id]
+                elif action == "run":
+                    try:
+                        run_id = store.start(job.scenario, job.mode, None)
+                    except (KeyError, ValueError) as exc:
+                        return self._send_json({"error": str(exc)}, status=400)
+                    job.last_run_id = run_id
+                    job.last_run = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    job.last_status = "lancé à la main"
+                else:
+                    return self._send_json({"error": f"action inconnue : {action}"}, status=400)
+                settings.save(store.data_dir / "settings.json")
+                return self._send_json({"ok": True, "settings": settings.as_public()})
+            if path == "/api/scenarios":
+                try:
+                    from .scenarios_loader import create_scenario
+
+                    s_created = create_scenario(
+                        slug=str((payload or {}).get("slug", "")),
+                        title=str((payload or {}).get("title", "")),
+                        objective=str((payload or {}).get("objective", "")),
+                        blurb=str((payload or {}).get("blurb", "")),
+                        tags=list((payload or {}).get("tags") or []),
+                        max_steps=int((payload or {}).get("max_steps") or 10),
+                    )
+                except (ValueError, KeyError, OSError) as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"ok": True, "scenario": s_created.as_summary()}, status=201)
+            if path.startswith("/api/scenarios/") and path.endswith("/record"):
+                slug = path.split("/")[3]
+                run_id = str((payload or {}).get("run_id", ""))
+                try:
+                    from .scenarios_loader import record_cassette
+
+                    scenario = get_scenario(slug)
+                except KeyError:
+                    return self._send_json({"error": f"scénario inconnu : {slug}"}, status=404)
+                journals = sorted((store.data_dir / "runs").glob(f"{run_id}*.json"))
+                if not journals:
+                    return self._send_json({"error": f"run introuvable : {run_id}"}, status=404)
+                journal = json.loads(journals[-1].read_text(encoding="utf-8"))
+                if journal.get("status") not in ("done", "budget"):
+                    return self._send_json(
+                        {"error": f"run {run_id} en statut {journal.get('status')}, rien à enregistrer"},
+                        status=400,
+                    )
+                target = record_cassette(scenario, journal.get("steps", []), journal.get("summary", ""))
+                return self._send_json(
+                    {
+                        "ok": True,
+                        "cassette": str(target.name),
+                        "steps": len(scenario.cassette()),
+                    }
+                )
+            if path == "/settings":
+                return self._send_file(WEB_DIR / "settings.html")
+            if path == "/api/settings":
+                settings = Settings.load(store.data_dir / "settings.json")
+                return self._send_json(
+                    {
+                        "settings": settings.as_public(),
+                        "scenarios": [sc.as_summary() for sc in list_scenarios()],
+                    }
+                )
             if path == "/api/routing":
                 table = RoutingTable.load(store.data_dir / "routing.json")
                 return self._send_json(
@@ -203,6 +318,45 @@ def make_handler(store: RunStore):
             if path == "/api/skills":
                 store_skills = SkillStore(store.data_dir / "skills")
                 return self._send_json({"skills": store_skills.ledger()})
+            if path == "/api/settings/test-mail":
+                from .mailbox import MailError, test_connection
+
+                settings = Settings.load(store.data_dir / "settings.json")
+                if payload and payload.get("host"):
+                    settings.mail.host = str(payload.get("host"))
+                    settings.mail.port = int(payload.get("port") or 993)
+                    settings.mail.user = str(payload.get("user") or "")
+                    settings.mail.ssl = bool(payload.get("ssl", True))
+                    password = str(payload.get("password") or "")
+                    if password and password != "********":
+                        settings.mail.password = password
+                try:
+                    return self._send_json({"ok": True, "message": test_connection(settings.mail)})
+                except MailError as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+            if path.startswith("/api/jobs/"):
+                parts = path.split("/")
+                job_id, action = parts[3], parts[4] if len(parts) > 4 else ""
+                settings = Settings.load(store.data_dir / "settings.json")
+                job = next((j for j in settings.jobs if j.id == job_id), None)
+                if job is None:
+                    return self._send_json({"error": f"tâche inconnue : {job_id}"}, status=404)
+                if action == "toggle":
+                    job.enabled = not job.enabled
+                elif action == "delete":
+                    settings.jobs = [j for j in settings.jobs if j.id != job_id]
+                elif action == "run":
+                    try:
+                        run_id = store.start(job.scenario, job.mode, None)
+                    except (KeyError, ValueError) as exc:
+                        return self._send_json({"error": str(exc)}, status=400)
+                    job.last_run_id = run_id
+                    job.last_run = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    job.last_status = "lancé à la main"
+                else:
+                    return self._send_json({"error": f"action inconnue : {action}"}, status=400)
+                settings.save(store.data_dir / "settings.json")
+                return self._send_json({"ok": True, "settings": settings.as_public()})
             if path == "/api/scenarios":
                 return self._send_json({"scenarios": [s.as_summary() for s in list_scenarios()]})
             if path == "/healthz":
@@ -247,6 +401,151 @@ def make_handler(store: RunStore):
                 payload = json.loads(self.rfile.read(length) or b"{}")
             except json.JSONDecodeError:
                 return self._send_json({"error": "json invalide"}, status=400)
+            if path == "/api/settings":
+                try:
+                    settings = Settings.load(store.data_dir / "settings.json")
+                    settings.update(payload or {})
+                    settings.save(store.data_dir / "settings.json")
+                except (ValueError, TypeError) as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"ok": True, "settings": settings.as_public()})
+            if path == "/api/settings/test-mail":
+                from .mailbox import MailError, test_connection
+
+                settings = Settings.load(store.data_dir / "settings.json")
+                if payload and payload.get("host"):
+                    settings.mail.host = str(payload.get("host"))
+                    settings.mail.port = int(payload.get("port") or 993)
+                    settings.mail.user = str(payload.get("user") or "")
+                    settings.mail.ssl = bool(payload.get("ssl", True))
+                    password = str(payload.get("password") or "")
+                    if password and password != "********":
+                        settings.mail.password = password
+                try:
+                    return self._send_json({"ok": True, "message": test_connection(settings.mail)})
+                except MailError as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+            if path.startswith("/api/jobs/"):
+                parts = path.split("/")
+                job_id, action = parts[3], parts[4] if len(parts) > 4 else ""
+                settings = Settings.load(store.data_dir / "settings.json")
+                job = next((j for j in settings.jobs if j.id == job_id), None)
+                if job is None:
+                    return self._send_json({"error": f"tâche inconnue : {job_id}"}, status=404)
+                if action == "toggle":
+                    job.enabled = not job.enabled
+                elif action == "delete":
+                    settings.jobs = [j for j in settings.jobs if j.id != job_id]
+                elif action == "run":
+                    try:
+                        run_id = store.start(job.scenario, job.mode, None)
+                    except (KeyError, ValueError) as exc:
+                        return self._send_json({"error": str(exc)}, status=400)
+                    job.last_run_id = run_id
+                    job.last_run = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    job.last_status = "lancé à la main"
+                else:
+                    return self._send_json({"error": f"action inconnue : {action}"}, status=400)
+                settings.save(store.data_dir / "settings.json")
+                return self._send_json({"ok": True, "settings": settings.as_public()})
+            if path == "/api/settings":
+                try:
+                    settings = Settings.load(store.data_dir / "settings.json")
+                    settings.update(payload or {})
+                    settings.save(store.data_dir / "settings.json")
+                except (ValueError, TypeError) as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"ok": True, "settings": settings.as_public()})
+            if path == "/api/settings/test-mail":
+                from .mailbox import MailError, test_connection
+
+                settings = Settings.load(store.data_dir / "settings.json")
+                if payload and payload.get("host"):
+                    settings.mail.host = str(payload.get("host"))
+                    settings.mail.port = int(payload.get("port") or 993)
+                    settings.mail.user = str(payload.get("user") or "")
+                    settings.mail.ssl = bool(payload.get("ssl", True))
+                    password = str(payload.get("password") or "")
+                    if password and password != "********":
+                        settings.mail.password = password
+                try:
+                    return self._send_json({"ok": True, "message": test_connection(settings.mail)})
+                except MailError as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+            if path.startswith("/api/jobs/"):
+                parts = path.split("/")
+                job_id, action = parts[3], parts[4] if len(parts) > 4 else ""
+                settings = Settings.load(store.data_dir / "settings.json")
+                job = next((j for j in settings.jobs if j.id == job_id), None)
+                if job is None:
+                    return self._send_json({"error": f"tâche inconnue : {job_id}"}, status=404)
+                if action == "toggle":
+                    job.enabled = not job.enabled
+                elif action == "delete":
+                    settings.jobs = [j for j in settings.jobs if j.id != job_id]
+                elif action == "run":
+                    try:
+                        run_id = store.start(job.scenario, job.mode, None)
+                    except (KeyError, ValueError) as exc:
+                        return self._send_json({"error": str(exc)}, status=400)
+                    job.last_run_id = run_id
+                    job.last_run = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                    job.last_status = "lancé à la main"
+                else:
+                    return self._send_json({"error": f"action inconnue : {action}"}, status=400)
+                settings.save(store.data_dir / "settings.json")
+                return self._send_json({"ok": True, "settings": settings.as_public()})
+            if path == "/api/scenarios":
+                try:
+                    from .scenarios_loader import create_scenario
+
+                    s_created = create_scenario(
+                        slug=str((payload or {}).get("slug", "")),
+                        title=str((payload or {}).get("title", "")),
+                        objective=str((payload or {}).get("objective", "")),
+                        blurb=str((payload or {}).get("blurb", "")),
+                        tags=list((payload or {}).get("tags") or []),
+                        max_steps=int((payload or {}).get("max_steps") or 10),
+                    )
+                except (ValueError, KeyError, OSError) as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"ok": True, "scenario": s_created.as_summary()}, status=201)
+            if path.startswith("/api/scenarios/") and path.endswith("/record"):
+                slug = path.split("/")[3]
+                run_id = str((payload or {}).get("run_id", ""))
+                try:
+                    from .scenarios_loader import record_cassette
+
+                    scenario = get_scenario(slug)
+                except KeyError:
+                    return self._send_json({"error": f"scénario inconnu : {slug}"}, status=404)
+                journals = sorted((store.data_dir / "runs").glob(f"{run_id}*.json"))
+                if not journals:
+                    return self._send_json({"error": f"run introuvable : {run_id}"}, status=404)
+                journal = json.loads(journals[-1].read_text(encoding="utf-8"))
+                if journal.get("status") not in ("done", "budget"):
+                    return self._send_json(
+                        {"error": f"run {run_id} en statut {journal.get('status')}, rien à enregistrer"},
+                        status=400,
+                    )
+                target = record_cassette(scenario, journal.get("steps", []), journal.get("summary", ""))
+                return self._send_json(
+                    {
+                        "ok": True,
+                        "cassette": str(target.name),
+                        "steps": len(scenario.cassette()),
+                    }
+                )
+            if path == "/settings":
+                return self._send_file(WEB_DIR / "settings.html")
+            if path == "/api/settings":
+                settings = Settings.load(store.data_dir / "settings.json")
+                return self._send_json(
+                    {
+                        "settings": settings.as_public(),
+                        "scenarios": [sc.as_summary() for sc in list_scenarios()],
+                    }
+                )
             if path == "/api/routing":
                 raw = payload or {}
                 try:
@@ -383,8 +682,42 @@ def make_handler(store: RunStore):
     return Handler
 
 
+def scheduler_loop(store: "RunStore", interval: float = 20.0) -> None:
+    """Boucle de planification : lance les tâches arrivées à échéance, une fois chacune.
+
+    Volontairement simple : pas de file de messages, aucune dépendance. Le fichier de réglages
+    est relu à chaque tour, donc une tâche ajoutée depuis l'interface est prise en compte sans
+    redémarrer le serveur.
+    """
+    while True:
+        try:
+            path = store.data_dir / "settings.json"
+            settings = Settings.load(path)
+            changed = False
+            for job in settings.jobs:
+                if not job.is_due():
+                    continue
+                now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                try:
+                    run_id = store.start(job.scenario, job.mode, None)
+                    job.last_status = "ok"
+                    job.last_run_id = run_id
+                except Exception as exc:  # noqa: BLE001 - une tâche qui casse ne doit pas arrêter la boucle
+                    job.last_status = f"échec : {str(exc)[:160]}"
+                job.last_run = now
+                changed = True
+                print(f"[planificateur] {job.scenario} lancé ({job.last_status})", flush=True)
+            if changed:
+                settings.save(path)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[planificateur] tour ignoré : {exc}", flush=True)
+        time.sleep(interval)
+
+
 def serve(host: str = "0.0.0.0", port: int = 8080, data_dir: Path | None = None) -> None:
     store = RunStore(data_dir or Path("data"))
     httpd = ThreadingHTTPServer((host, port), make_handler(store))
+    threading.Thread(target=scheduler_loop, args=(store,), daemon=True).start()
     print(f"Agent Computer, demo sur http://localhost:{port}  (données dans {store.data_dir})")
+    print("planificateur actif : les tâches de /settings tournent toutes seules", flush=True)
     httpd.serve_forever()
