@@ -275,6 +275,21 @@ second household user, publish the measured comparison.
 
 ---
 
-## 11. Licence and author
+## 11. Measure, don't claim
+
+`bench/` answers the only question that matters for an Agent Computer: **what does it cost and
+what do you get** from running the agent locally.
+
+```bash
+python3 bench/bench.py --target "ollama-local=http://localhost:11434/v1|qwen2.5-coder:7b" \
+                       --target "cloud=https://api.provider.tld/v1|gpt-4o-mini|$API_KEY"
+```
+
+Three figures per target: **success rate** on 10 real agent tasks graded by exact match,
+**p50/p95 latency**, **cost per 1 000 runs** computed from the tokens actually consumed. The
+bench writes a markdown report, raw JSON and an SVG chart. See [`bench/README.md`](bench/README.md).
+A simulated endpoint lets CI test the plumbing without a GPU or a key.
+
+## 12. Licence and author
 
 MIT — see `LICENSE`. Author: Loïc Huon.

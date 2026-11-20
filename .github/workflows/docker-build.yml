@@ -35,6 +35,33 @@ jobs:
             python -m agentdemo run --scenario "$scenario"
           done
 
+  bench:
+    name: banc de mesure (endpoint simulé)
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Démarrer l'endpoint simulé
+        run: |
+          python bench/fake_endpoint.py --port 8077 --delay 0.01 &
+          for i in $(seq 1 20); do
+            curl -fsS http://127.0.0.1:8077/healthz && break
+            sleep 1
+          done
+      - name: Mesurer et produire le rapport
+        run: |
+          python bench/bench.py --quiet \
+            --target "simule-local=http://127.0.0.1:8077/v1|qwen2.5-coder:7b" \
+            --target "simule-cloud=http://127.0.0.1:8077/v1|gpt-4o-mini"
+      - name: Publier le rapport
+        uses: actions/upload-artifact@v4
+        with:
+          name: bench-report
+          path: bench/reports/
+
   build-and-push:
     name: image Docker
     runs-on: ubuntu-latest

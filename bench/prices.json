@@ -1,0 +1,23 @@
+{
+  "_comment": "Prix indicatifs en EUR par million de tokens. A ajuster : ce ne sont pas des tarifs contractuels.",
+  "qwen2.5-coder:7b": {
+    "in": 0.0,
+    "out": 0.0
+  },
+  "llama3.1:8b": {
+    "in": 0.0,
+    "out": 0.0
+  },
+  "mistral-small": {
+    "in": 0.2,
+    "out": 0.6
+  },
+  "gpt-4o-mini": {
+    "in": 0.14,
+    "out": 0.55
+  },
+  "deepseek-chat": {
+    "in": 0.25,
+    "out": 1.0
+  }
+}

@@ -6,3 +6,5 @@ data/
 venv/
 .DS_Store
 *.log
+bench/reports/
+bench/targets.json

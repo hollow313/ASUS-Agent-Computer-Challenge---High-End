@@ -313,7 +313,24 @@ mes archives, ouvrir l'agent à un second utilisateur, publier le comparatif chi
 
 ---
 
-## 11. Licence et auteur
+## 11. Mesurer plutôt qu'affirmer
+
+`bench/` contient un banc de mesure qui répond à la seule question qui compte pour un Agent
+Computer : **combien ça coûte et qu'est-ce que ça donne** de faire tourner l'agent en local.
+
+```bash
+python3 bench/bench.py --target "ollama-local=http://localhost:11434/v1|qwen2.5-coder:7b" \
+                       --target "cloud=https://api.fournisseur.tld/v1|gpt-4o-mini|$CLE"
+```
+
+Trois chiffres par cible : **taux de réussite** sur 10 tâches réelles notées par correspondance
+exacte, **latence p50/p95**, et **coût pour 1 000 exécutions** calculé sur les tokens réellement
+consommés. Le banc produit un rapport markdown, les données brutes en JSON et un graphique SVG.
+
+Détail dans [`bench/README.md`](bench/README.md). Un endpoint simulé (`bench/fake_endpoint.py`)
+permet de tester le banc sans GPU ni clé : c'est ce que fait le job CI `bench`.
+
+## 12. Licence et auteur
 
 MIT — voir `LICENSE`. Auteur : Loïc Huon.
 

@@ -1,0 +1,10 @@
+{"id": "mail-urgence", "prompt": "Message : « La ligne de production est arretée depuis 06h40, chaque heure coute 4000 EUR, rappelez avant 9h. » Classe ce message en un seul mot parmi : urgent, administratif, info, indesirable.", "expect": ["urgent"]}
+{"id": "facture-montant", "prompt": "Extrais le montant TTC en euros. Texte : « Facture F-2026-8842 d'un montant de 342,00 EUR TTC, echeance le 05/12/2026. » Reponds par le nombre seul.", "expect": ["342"]}
+{"id": "facture-echeance", "prompt": "Extrais la date d'echeance au format JJ/MM/AAAA. Texte : « Facture F-2026-8842, echeance le 05/12/2026. »", "expect": ["05/12/2026"]}
+{"id": "ca-total", "prompt": "Additionne ces six valeurs : 148200, 241750, 163400, 121900, 98200, 87450. Reponds par le nombre seul, sans separateur.", "expect": ["860900"]}
+{"id": "part-ile-de-france", "prompt": "241750 sur un total de 860900 represente quel pourcentage, arrondi a l'unite ? Reponds par le nombre seul.", "expect": ["28"]}
+{"id": "avis-identifiant", "prompt": "Extrais l'identifiant de l'avis. Texte : « Avis 2026-041 : execution de code a distance non authentifiee. »", "expect": ["2026-041"]}
+{"id": "panier-moyen", "prompt": "860900 de chiffre d'affaires pour 1837 commandes : quel panier moyen, arrondi a l'unite ? Reponds par le nombre seul.", "expect": ["469"]}
+{"id": "tri-indesirable", "prompt": "Message : « FELICITATIONS vous avez gagne un smartphone, confirmez vos coordonnees et reglez 4,90 EUR de frais. » Classe en un seul mot parmi : urgent, administratif, info, indesirable.", "expect": ["indesirable"]}
+{"id": "phishing-oui-non", "prompt": "Ce message est-il une tentative d'hameconnage ? Reponds uniquement oui ou non. Texte : « Vous avez gagne, confirmez vos coordonnees et payez 4,90 EUR. »", "expect": ["oui"]}
+{"id": "date-la-plus-recente", "prompt": "Quelle est la date la plus recente parmi 2026-11-17, 2026-11-20 et 2026-11-19 ? Reponds au format AAAA-MM-JJ.", "expect": ["2026-11-20"]}
