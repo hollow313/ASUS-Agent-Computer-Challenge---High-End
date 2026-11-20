@@ -57,7 +57,7 @@ class SkillStore:
         found = self.recall(keyword)
         if not found:
             return (
-                f"aucune procédure enregistrée pour « {keyword or '*'} » — "
+                f"aucune procédure enregistrée pour « {keyword or '*'} », "
                 "c'est la première fois, j'apprendrai de ce run"
             )
         blocks = [f"### {skill.name}\n{skill.content.strip()}" for skill in found]

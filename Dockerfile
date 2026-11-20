@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM python:3.12-slim
 
-LABEL org.opencontainers.image.title="Vigie — agentic demo" \
+LABEL org.opencontainers.image.title="Vigie, agentic demo" \
       org.opencontainers.image.description="Minimal agentic loop: objective, tools, verification, deliverable" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.url="https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End"

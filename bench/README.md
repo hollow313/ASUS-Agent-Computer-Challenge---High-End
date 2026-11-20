@@ -1,4 +1,4 @@
-# Banc de mesure — agent local vs cloud
+# Banc de mesure, agent local vs cloud
 
 Le but n'est pas de savoir « quel modèle est le meilleur », mais **ce que ça coûte et ce que ça
 donne** de faire tourner l'agent sur ta machine plutôt que sur une API. Trois chiffres, tous
@@ -6,7 +6,7 @@ vérifiables :
 
 | Chiffre | Comment il est obtenu |
 | --- | --- |
-| **réussite** | 10 tâches réelles de l'agent (extraction, classement, calcul), notées par **correspondance exacte** — pas d'appréciation |
+| **réussite** | 10 tâches réelles de l'agent (extraction, classement, calcul), notées par **correspondance exacte**, pas d'appréciation |
 | **latence** | mesure client aller-retour, p50 et p95 par tâche |
 | **coût** | tokens réellement rapportés par l'endpoint × prix au million (`prices.json`), ramené à 1 000 exécutions |
 
@@ -32,7 +32,7 @@ python3 bench/bench.py \
   --target "cloud=https://api.fournisseur.tld/v1|gpt-4o-mini|$CLE_API"
 ```
 
-Le troisième champ de la cible est la clé API — préfère une variable d'environnement, jamais une
+Le troisième champ de la cible est la clé API, préfère une variable d'environnement, jamais une
 clé en dur dans la commande ou dans un fichier versionné.
 
 ### 3. Ou via un fichier de cibles

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Agent Computer — démo agentique</title>
+<title>Agent Computer, démo agentique</title>
 <style>
   :root {
     --bg: #0b0e14;
@@ -160,7 +160,7 @@
         <datalist id="modelList"></datalist>
       </label>
       <label>clé API <span class="opt">(optionnel, local = vide)</span>
-        <input id="llmKey" type="password" placeholder="—" autocomplete="off">
+        <input id="llmKey" type="password" placeholder="optionnel" autocomplete="off">
       </label>
       <div class="presets">
         <button type="button" data-base="http://IP-DE-LA-MACHINE:1234/v1" data-model="llama-3.1-8b">LM Studio</button>
@@ -183,9 +183,9 @@
   <section class="console">
     <div class="status">
       <span class="dot" id="dot"></span>
-      <span id="statusText">prêt — choisis un scénario</span>
+      <span id="statusText">prêt, choisis un scénario</span>
     </div>
-    <div class="objective" id="objectiveView">—</div>
+    <div class="objective" id="objectiveView">, </div>
     <div id="steps"><p class="empty">Lance un scénario pour voir la trace d'exécution.</p></div>
     <div id="result"></div>
     <div class="artifacts" id="artifacts"></div>
@@ -330,7 +330,7 @@ async function refreshSkills() {
     const data = await res.json();
     const box = $("skills");
     if (!data.skills.length) {
-      box.innerHTML = '<p class="empty">aucune — lance self-repair ou une tâche qui échoue</p>';
+      box.innerHTML = '<p class="empty">aucune, lance self-repair ou une tâche qui échoue</p>';
       return;
     }
     box.innerHTML = data.skills.map((skill) =>
@@ -396,7 +396,7 @@ document.querySelectorAll(".presets button").forEach((button) => {
     $("llmModel").value = button.dataset.model || "";
     saveLlm();
     $("llmStatus").className = "llmstatus";
-    $("llmStatus").textContent = "preset « " + button.textContent + " » — clique vérifier l'endpoint";
+    $("llmStatus").textContent = "preset « " + button.textContent + " », clique vérifier l'endpoint";
   };
 });
 ["llmBase", "llmModel"].forEach((id) => $(id).addEventListener("change", saveLlm));

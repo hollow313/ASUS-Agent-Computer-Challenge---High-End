@@ -81,7 +81,7 @@ def build_registry(sandbox: Sandbox, artifacts: list[str], skills: "SkillStore |
         if skills is None:
             raise ToolError("mémoire procédurale désactivée dans ce run")
         path = skills.write(name, content)
-        return f"procédure « {path.stem} » enregistrée ({len(content)} caractères) — réutilisable aux runs suivants"
+        return f"procédure « {path.stem} » enregistrée ({len(content)} caractères), réutilisable aux runs suivants"
 
     def fs_list(path: str = ".") -> str:
         target = sandbox.resolve(path)
@@ -111,7 +111,7 @@ def build_registry(sandbox: Sandbox, artifacts: list[str], skills: "SkillStore |
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(str(content), encoding="utf-8")
         note(target)
-        return f"écrit {path} — {target.stat().st_size} octets"
+        return f"écrit {path}, {target.stat().st_size} octets"
 
     def fs_move(src: str, dst: str) -> str:
         source, dest = sandbox.resolve(src), sandbox.resolve(dst)
@@ -178,7 +178,7 @@ def build_registry(sandbox: Sandbox, artifacts: list[str], skills: "SkillStore |
     def http_get(url: str, max_chars: int = 2000) -> str:
         if not NETWORK_ENABLED:
             raise ToolError(
-                "réseau désactivé dans cette démo (AGENTDEMO_ALLOW_NETWORK=0) — "
+                "réseau désactivé dans cette démo (AGENTDEMO_ALLOW_NETWORK=0), "
                 "les scénarios hors-ligne utilisent les fichiers de fixtures"
             )
         if not url.startswith(("http://", "https://")):

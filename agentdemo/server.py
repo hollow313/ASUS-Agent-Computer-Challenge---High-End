@@ -231,7 +231,7 @@ def make_handler(store: RunStore):
                     {"error": f"endpoint injoignable : {str(exc)[:160]}"}, status=502
                 )
             models = [m.get("id", "?") for m in payload.get("data", [])][:40]
-            hint = "" if models else " — charge un modèle dans LM Studio, ou vérifie le suffixe /v1"
+            hint = "" if models else ", charge un modèle dans LM Studio, ou vérifie le suffixe /v1"
             return self._send_json({"ok": True, "base_url": base_url, "models": models, "hint": hint})
 
         # ---------- helpers ----------
@@ -268,5 +268,5 @@ def make_handler(store: RunStore):
 def serve(host: str = "0.0.0.0", port: int = 8080, data_dir: Path | None = None) -> None:
     store = RunStore(data_dir or Path("data"))
     httpd = ThreadingHTTPServer((host, port), make_handler(store))
-    print(f"Agent Computer — demo sur http://localhost:{port}  (données dans {store.data_dir})")
+    print(f"Agent Computer, demo sur http://localhost:{port}  (données dans {store.data_dir})")
     httpd.serve_forever()

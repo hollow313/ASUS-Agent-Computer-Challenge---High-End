@@ -3,10 +3,10 @@
 Trois chiffres que le jury peut vérifier, et qui décident de l'intérêt d'un Agent
 Computer plutôt que d'une API :
 
-1. **qualité** — le modèle réussit-il les tâches réelles de l'agent (extraction,
+1. **qualité**, le modèle réussit-il les tâches réelles de l'agent (extraction,
    classement, calcul) ? Noté par comparaison exacte, pas à l'appréciation ;
-2. **latence** — p50 / p95 par tâche, en secondes ;
-3. **coût** — € pour 1 000 exécutions de la tâche, calculé sur les tokens réellement
+2. **latence**, p50 / p95 par tâche, en secondes ;
+3. **coût**, € pour 1 000 exécutions de la tâche, calculé sur les tokens réellement
    consommés et un prix au million de tokens.
 
 Aucune dépendance, aucun framework. Tout endpoint compatible OpenAI convient :
@@ -270,7 +270,7 @@ def markdown_report(results: list[TargetResult], tasks: list[dict[str, Any]], re
                 f"| {r.target.name} | {sample.task_id} | {'ok' if sample.ok else 'ko'} | "
                 f"{sample.latency_s:.2f} | {sample.prompt_tokens} | {sample.completion_tokens} |"
             )
-    return f"""# Mesures — agent local vs cloud
+    return f"""# Mesures, agent local vs cloud
 
 Généré le {stamp} · {len(tasks)} tâches · {repeat} passe(s) · notation par correspondance exacte.
 
@@ -359,7 +359,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"▸ {len(tasks)} tâches · {args.repeat} passe(s) · {len(targets)} cible(s)")
     results = []
     for target in targets:
-        print(f"\n— {target.name} ({target.label}, {target.model}) → {target.base_url}")
+        print(f"\n, {target.name} ({target.label}, {target.model}) → {target.base_url}")
         results.append(run_target(target, tasks, args.repeat, args.timeout, args.quiet))
 
     print("\n" + table(results))

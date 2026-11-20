@@ -1,4 +1,4 @@
-"""Endpoint compatible OpenAI, simulé — pour tester le banc de mesure sans modèle.
+"""Endpoint compatible OpenAI, simulé, pour tester le banc de mesure sans modèle.
 
 Ce n'est **pas** un modèle : il renvoie une réponse construite à partir de la question
 (en écho), avec une latence et un nombre de tokens de sortie configurables. Il sert à :

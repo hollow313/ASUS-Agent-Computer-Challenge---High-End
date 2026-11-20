@@ -11,11 +11,11 @@
   ],
   "passes": [
     {
-      "label": "passe 1 — sans procédure",
+      "label": "passe 1, sans procédure",
       "cassette": "cassette.json"
     },
     {
-      "label": "passe 2 — avec la procédure apprise",
+      "label": "passe 2, avec la procédure apprise",
       "cassette": "cassette2.json"
     }
   ]

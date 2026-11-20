@@ -1,4 +1,4 @@
-# Mesures — modèles locaux sur la machine actuelle
+# Mesures, modèles locaux sur la machine actuelle
 
 Mesures réelles, exécutées le 20/11/2026 sur mon poste, GPU **3 Go de VRAM**, via LM Studio.
 Aucun appel sortant : les deux modèles tournent en local, en Q4.
@@ -32,4 +32,4 @@ et surtout de traiter en local ce qui ne doit pas sortir du boîtier.
 - coût local = 0 € par token, hors électricité et amortissement du GPU ;
 - mesure unique : refaire une passe (`--repeat 3`) pour un chiffre défendable en soutenance.
 
-Reproductible avec `bench/bench.py` — voir [`bench/README.md`](../bench/README.md).
+Reproductible avec `bench/bench.py`, voir [`bench/README.md`](../bench/README.md).

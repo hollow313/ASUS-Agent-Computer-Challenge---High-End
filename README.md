@@ -1,17 +1,17 @@
-# Vigie — démo agentique exécutable
+# Vigie, démo agentique exécutable
 
 **Français** · [English](README.en.md)
 
-**Candidature ASUS Agent Computer Challenge — catégorie High-End**
+**Candidature ASUS Agent Computer Challenge, catégorie High-End**
 
-**Vigie** — l'agent qui prend le quart : il reçoit un objectif, choisit ses outils, enchaîne les
+**Vigie**, l'agent qui prend le quart : il reçoit un objectif, choisit ses outils, enchaîne les
 étapes, **vérifie ce qu'il a produit** et rend un livrable sur le disque.
 
 Une démo volontairement petite, mais honnête.
 Aucune clé API, aucun réseau, aucune dépendance : deux commandes et ça tourne.
 
-**Vidéo de présentation (64 s)** : [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4)
-— boucle agentique, mémoire procédurale, mesures locales.
+**Vidéo de présentation (64 s)** : [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4),
+qui montre la boucle agentique, la mémoire procédurale et les mesures locales.
 
 ![Interface de la démo](docs/screenshot-run.png)
 
@@ -20,8 +20,8 @@ Aucune clé API, aucun réseau, aucune dépendance : deux commandes et ça tourn
 ```bash
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
 # sans image publiée : docker build -t vigie . && docker run --rm -p 8080:8080 vigie
-# ou, sans Docker :  python3 -m agentdemo serve --port 8080
-python3 -m unittest discover -s tests -v     # 9 tests, aucune dépendance
+# ou, sans Docker : python3 -m agentdemo serve --port 8080
+python3 -m unittest discover -s tests -v # 9 tests, aucune dépendance
 ```
 
 Puis, dans l'interface : **Auto-réparation**, qui montre l'apprentissage en deux passes.
@@ -64,9 +64,9 @@ n'embarque pas mon instance de production (elle contient des données personnell
 identifiants), il embarque **la boucle** :
 
 ```
-objectif  →  planification  →  appel d'outil  →  observation  →  …  →  vérification  →  livrable
-                    ↑                                                      │
-                    └──────────────────  journal du run  ──────────────────┘
+objectif → planification → appel d'outil → observation → … → vérification → livrable
+                    ↑ │
+                    └────────────────── journal du run ──────────────────┘
 ```
 
 Trois choses sont réelles ici, et c'est ce qui distingue un agent d'un chatbot :
@@ -77,7 +77,7 @@ Trois choses sont réelles ici, et c'est ce qui distingue un agent d'un chatbot 
 2. **Les outils ont des effets réels.** Les fichiers écrits existent, les messages déplacés le
    sont vraiment, le graphique SVG est généré à partir des données. Rien n'est une capture.
 3. **La vérification fait partie de la boucle.** Dans chaque scénario, l'agent relit le fichier
-   qu'il vient d'écrire avant de conclure — un livrable annoncé n'est pas un livrable.
+   qu'il vient d'écrire avant de conclure, un livrable annoncé n'est pas un livrable.
 
 Un journal JSON est écrit pour chaque run (`data/runs/<run_id>.json`) : objectif, chaque
 pensée, chaque appel d'outil, chaque observation, la durée, le bilan. Tout est auditable.
@@ -86,7 +86,7 @@ pensée, chaque appel d'outil, chaque observation, la durée, le bilan. Tout est
 
 ## 2. Démarrage rapide
 
-### Option A — Docker (recommandé)
+### Option A, Docker (recommandé)
 
 ```bash
 # 1. image publiée par la CI (Docker Hub)
@@ -107,14 +107,14 @@ docker build -t agent-computer-demo .
 docker run --rm -p 8080:8080 agent-computer-demo
 ```
 
-### Option B — sans Docker, Python 3.10+ uniquement
+### Option B, sans Docker, Python 3.10+ uniquement
 
 ```bash
 python3 -m agentdemo serve --port 8080
 # → http://localhost:8080
 ```
 
-### Option C — en ligne de commande (sans interface web)
+### Option C, en ligne de commande (sans interface web)
 
 ```bash
 python3 -m agentdemo scenarios
@@ -130,7 +130,7 @@ trouvent les livrables.
 
 Le conteneur tourne en **UID/GID 568**, l'identifiant des applications sur TrueNAS SCALE : les
 fichiers écrits restent lisibles depuis l'hôte sans se battre avec les permissions. Si vous
-forcez un autre utilisateur, passez `-u $(id -u):$(id -g)` — la seule contrainte est que `/data`
+forcez un autre utilisateur, passez `-u $(id -u):$(id -g)`, la seule contrainte est que `/data`
 soit inscriptible par cet UID.
 
 **Un seul dossier est à monter : `/data`.** Il contient les runs, les livrables, les journaux
@@ -158,7 +158,7 @@ replay : `8080` en local suffit.
 
 ---
 
-## 3. Les trois scénarios
+## 3. Les quatre scénarios
 
 | Scénario | Objectif donné à l'agent | Livrables produits |
 | --- | --- | --- |
@@ -188,11 +188,11 @@ c'est de la mémoire procédurale, et c'est ce que fait mon agent de production 
 Le cœur de l'agent (`agentdemo/agent.py`) ne sait pas d'où viennent les décisions. Deux
 backends implémentent la même interface :
 
-- **`ReplayPlanner`** (défaut) — rejoue une trace de décisions enregistrée
+- **`ReplayPlanner`** (défaut), rejoue une trace de décisions enregistrée
   (`scenarios/<slug>/cassette.json`). Déterministe, hors ligne, sans clé, sans modèle. **Les
   outils, eux, s'exécutent pour de vrai** : le bac à sable est réel, les fichiers sont réels.
   C'est le mode que le jury peut lancer en 30 secondes, sans rien installer d'autre.
-- **`OpenAICompatPlanner`** — parle à n'importe quel endpoint `/chat/completions` compatible
+- **`OpenAICompatPlanner`**, parle à n'importe quel endpoint `/chat/completions` compatible
   OpenAI : **Ollama**, **LM Studio**, vLLM, ou une API distante. Le modèle reçoit le catalogue
   d'outils dans son prompt système et doit répondre par une action JSON unique.
 
@@ -208,7 +208,7 @@ AGENTDEMO_LLM_MODEL=qwen2.5-coder:7b \
 python3 -m agentdemo run --scenario cyber-brief --live
 ```
 
-Ou dans l'interface web : bouton **live (modèle)** — trois champs apparaissent (endpoint,
+Ou dans l'interface web : bouton **live (modèle)**, trois champs apparaissent (endpoint,
 modèle, clé optionnelle) avec un bouton **vérifier l'endpoint** qui interroge `/models` et
 remplit la liste des modèles disponibles. Ces champs priment sur les variables d'environnement
 `AGENTDEMO_LLM_BASE_URL`, `AGENTDEMO_LLM_MODEL`, `AGENTDEMO_LLM_API_KEY`.
@@ -238,7 +238,7 @@ remontée `../` est refusé, pas « corrigé ».
 | `csv_profile` | `csv_profile(path)` | agrégats d'un CSV (min/max/total/moyenne) |
 | `chart_bar` | `chart_bar(path, label_column, value_column, output, title?)` | graphique SVG |
 | `rss_rank` | `rss_rank(paths[], top_n?)` | parsing de flux RSS + classement |
-| `http_get` | `http_get(url, max_chars?)` | GET HTTP — **désactivé par défaut** |
+| `http_get` | `http_get(url, max_chars?)` | GET HTTP, **désactivé par défaut** |
 | `skill_recall` | `skill_recall(keyword?)` | relit une procédure apprise avant d'agir |
 | `skill_write` | `skill_write(name, content)` | enregistre une procédure réutilisable |
 | `skill_list` | `skill_list()` | inventaire des procédures connues |
@@ -265,7 +265,7 @@ Oui, au sens précis de **mémoire procédurale**, et non au sens d'un modèle q
   sans erreur, contre 6 étapes et une erreur en passe 1 ;
 - **ce qui n'est pas fait ici** : pas d'affinage de modèle, pas de suppression des procédures
   obsolètes, pas de score de confiance, pas de détection de procédure fausse. Une mauvaise leçon
-  persiste et pollue les runs suivants — c'est le vrai travail de production, et il n'est pas
+  persiste et pollue les runs suivants, c'est le vrai travail de production, et il n'est pas
   dans cette démo ;
 - **dans mon agent de production** : ~90 procédures de ce type, écrites et corrigées au fil des
   échecs, avec relecture manuelle quand un résultat surprend.
@@ -295,23 +295,23 @@ des scénarios sont synthétiques et vivent dans `agentdemo/scenarios/*/fixtures
 
 ```
 agentdemo/
-├── agent.py              # la boucle : planification, outil, observation, bilan
-├── planners.py           # ReplayPlanner (hors ligne) + OpenAICompatPlanner (modèle live)
-├── tools.py              # 11 outils, bac à sable, génération SVG
-├── skills.py             # mémoire procédurale persistante
-├── scenarios_loader.py   # chargement des scénarios, cassettes et fixtures
-├── cli.py                # CLI : scenarios, run, serve, validate, new
-├── server.py             # API HTTP + interface web (http.server, stdlib)
-├── web/index.html        # interface d'une page, aucune dépendance
+├── agent.py # la boucle : planification, outil, observation, bilan
+├── planners.py # ReplayPlanner (hors ligne) + OpenAICompatPlanner (modèle live)
+├── tools.py # 11 outils, bac à sable, génération SVG
+├── skills.py # mémoire procédurale persistante
+├── scenarios_loader.py # chargement des scénarios, cassettes et fixtures
+├── cli.py # CLI : scenarios, run, serve, validate, new
+├── server.py # API HTTP + interface web (http.server, stdlib)
+├── web/index.html # interface d'une page, aucune dépendance
 └── scenarios/
-    ├── cyber-brief/      # scenario.json + cassette.json + fixtures/
+    ├── cyber-brief/ # scenario.json + cassette.json + fixtures/
     ├── inbox-triage/
     ├── dataset-report/
-    └── self-repair/      # deux passes : cassette.json + cassette2.json
-tests/test_demo.py        # 9 tests : scénarios, apprentissage, bac à sable, budget
-bench/                    # banc de mesure : bench.py, tâches, prix, endpoint simulé
-video/                    # cartons et capture d'interface pour la vidéo (slides.py, record.py)
-docs/                     # captures, architecture, mesures locales, scénarios, parcours 3 min
+    └── self-repair/ # deux passes : cassette.json + cassette2.json
+tests/test_demo.py # 9 tests : scénarios, apprentissage, bac à sable, budget
+bench/ # banc de mesure : bench.py, tâches, prix, endpoint simulé
+video/ # cartons et capture d'interface pour la vidéo (slides.py, record.py)
+docs/ # captures, architecture, mesures locales, scénarios, parcours 3 min
 Dockerfile, docker-compose.yml, Makefile, .github/workflows/docker-build.yml
 ```
 
@@ -405,7 +405,7 @@ Détail dans [`bench/README.md`](bench/README.md). Un endpoint simulé (`bench/f
 permet de tester le banc sans GPU ni clé : c'est ce que fait le job CI `bench`.
 
 **Résultats réels sur ma machine** (GPU 3 Go de VRAM, LM Studio, Q4, 10 tâches vérifiables) :
-[`docs/mesures-locales.md`](docs/mesures-locales.md) — le 7B répond en 0,48 s mais réussit 60 %,
+[`docs/mesures-locales.md`](docs/mesures-locales.md), le 7B répond en 0,48 s mais réussit 60 %,
 le 8B VL réussit 90 % mais coûte 39× plus de temps par réponse.
 
 ## 12. Ajouter un scénario
@@ -425,7 +425,7 @@ argument manquant ou superflu, absence de conclusion. Format complet et pièges 
 
 ## 13. Licence et auteur
 
-MIT — voir `LICENSE`. Auteur : Loïc Huon.
+MIT, voir `LICENSE`. Auteur : Loïc Huon.
 
 ---
 
@@ -433,15 +433,15 @@ MIT — voir `LICENSE`. Auteur : Loïc Huon.
 
 A minimal, runnable agentic loop submitted to the ASUS Agent Computer Challenge (High-End
 category): an agent receives an objective, picks tools, chains steps, verifies its own output
-and writes real deliverables to disk. Two planners share one loop — a deterministic offline
+and writes real deliverables to disk. Two planners share one loop, a deterministic offline
 replay (no API key, no network, but real tool execution in a per-run sandbox) and an
 OpenAI-compatible live planner for a local model (Ollama, LM Studio, vLLM). Four scenarios,
 including `self-repair` where a second pass goes from 6 steps / 1 error to 4 steps / 0 errors.
 
 ```bash
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
-python3 -m agentdemo run --scenario cyber-brief   # no dependency, no key
-python3 -m unittest discover -s tests -v          # 9 tests
+python3 -m agentdemo run --scenario cyber-brief # no dependency, no key
+python3 -m unittest discover -s tests -v # 9 tests
 ```
 
 → Full documentation in English: [README.en.md](README.en.md)

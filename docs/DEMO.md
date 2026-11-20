@@ -1,4 +1,4 @@
-# Vigie — parcours de 3 minutes pour l'évaluateur
+# Vigie, parcours de 3 minutes pour l'évaluateur
 
 Aucune installation n'est nécessaire pour les deux premières étapes si vous partez de l'image
 publiée. Tout est en français, aucune clé n'est demandée.
@@ -28,7 +28,7 @@ Ouvrir `http://localhost:8080`, choisir **Veille cyber → briefing daté**, cli
 fichier écrit**, conclusion. Le lien `briefing.md` en bas ouvre le livrable réel.
 
 Ce qu'il faut regarder : l'agent se relit avant de conclure, et chaque étape est dépliable
-(`arguments`, `observation`) — c'est le journal du run, pas une animation.
+(`arguments`, `observation`), c'est le journal du run, pas une animation.
 
 ## 3. Voir l'agent apprendre (45 s)
 
@@ -36,7 +36,7 @@ Choisir **Auto-réparation → procédure apprise**, relancer. Le run se déroul
 affichées l'une sous l'autre** :
 
 - passe 1 : 6 étapes, **1 erreur** (nom de fichier deviné), l'agent écrit la leçon ;
-- passe 2 : 4 étapes, **0 erreur** — il relit sa procédure avant d'agir.
+- passe 2 : 4 étapes, **0 erreur**, il relit sa procédure avant d'agir.
 
 Le bloc « bilan » affiche le comparatif. C'est le cœur de la candidature : la mémoire
 procédurale, pas un prompt plus long.
@@ -44,10 +44,10 @@ procédurale, pas un prompt plus long.
 ## 4. Vérifier que ce n'est pas du théâtre (60 s)
 
 ```bash
-python3 -m unittest discover -s tests -v     # 9 tests
+python3 -m unittest discover -s tests -v # 9 tests
 python3 -m agentdemo run --scenario self-repair
 python3 -m agentdemo run --scenario dataset-report --live \
-  --model qwen2.5-coder:7b                   # avec un Ollama local
+  --model qwen2.5-coder:7b # avec un Ollama local
 ```
 
 Les livrables sont écrits sur disque dans `data/runs/<run_id>/workspace/`, et le journal complet

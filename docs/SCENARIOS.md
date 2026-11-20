@@ -4,10 +4,10 @@ Un scénario = un dossier dans `agentdemo/scenarios/`, quatre choses et rien d'a
 
 ```
 agentdemo/scenarios/<slug>/
-├── scenario.json     # métadonnées : titre, objectif, budget d'étapes, tags
-├── cassette.json     # la trace de décisions (passe 1)
-├── cassette2.json    # optionnel : passe 2, si le scénario doit montrer un apprentissage
-└── fixtures/         # les données d'entrée, copiées dans le bac à sable à chaque run
+├── scenario.json # métadonnées : titre, objectif, budget d'étapes, tags
+├── cassette.json # la trace de décisions (passe 1)
+├── cassette2.json # optionnel : passe 2, si le scénario doit montrer un apprentissage
+└── fixtures/ # les données d'entrée, copiées dans le bac à sable à chaque run
 ```
 
 ## 1. Échafauder
@@ -30,10 +30,10 @@ Le générateur crée le dossier, un `scenario.json` pré-rempli, une cassette a
 | `slug` | identifiant, = nom du dossier |
 | `title` | titre affiché dans l'interface |
 | `blurb` | une phrase, visible sur la carte du scénario |
-| `objective` | la consigne complète envoyée à l'agent — nomme le livrable attendu |
+| `objective` | la consigne complète envoyée à l'agent, nomme le livrable attendu |
 | `max_steps` | budget d'étapes ; dépassement → statut `budget`, jamais de boucle infinie |
 | `tags` | 2-3 étiquettes techniques affichées sous le titre |
-| `passes` | optionnel : liste `{"label": ..., "cassette": ...}` pour un scénario en deux passes |
+| `passes` | optionnel : liste `{"label": ... "cassette": ...}` pour un scénario en deux passes |
 
 ## 3. Écrire la cassette
 
@@ -47,7 +47,7 @@ Une liste JSON, **une action par entrée**, terminée par une conclusion :
 
 Règles qui évitent les mauvaises surprises :
 
-- **les clés d'`args` doivent correspondre exactement à la signature de l'outil** —
+- **les clés d'`args` doivent correspondre exactement à la signature de l'outil** :
   `fs_move(src, dst)` et non `fs_move(path, dst)`. Une clé fausse produit une étape en erreur,
   donc une démo qui ressemble à un journal de pannes ;
 - `thought` n'est pas décoratif : c'est ce que lit le jury. Écris pourquoi tu choisis l'outil,
@@ -59,7 +59,7 @@ Règles qui évitent les mauvaises surprises :
 ## 4. Vérifier avant de pousser
 
 ```bash
-python3 -m agentdemo validate            # toutes les cassettes
+python3 -m agentdemo validate # toutes les cassettes
 python3 -m agentdemo validate --slug tri-factures
 python3 -m agentdemo run --scenario tri-factures
 ```
@@ -79,8 +79,8 @@ plus vite. Dans `scenario.json` :
 
 ```json
 "passes": [
-  {"label": "passe 1 — sans procédure", "cassette": "cassette.json"},
-  {"label": "passe 2 — avec la procédure apprise", "cassette": "cassette2.json"}
+  {"label": "passe 1, sans procédure", "cassette": "cassette.json"},
+  {"label": "passe 2, avec la procédure apprise", "cassette": "cassette2.json"}
 ]
 ```
 

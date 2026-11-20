@@ -71,7 +71,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     recap = []
     for index, label in enumerate(scenario.pass_labels()):
         planner = _make_planner(scenario, args.live, args.model, args.base_url, index)
-        print(f"— {label or f'passe {index + 1}'} · planificateur {getattr(planner, 'label', '?')}")
+        print(f", {label or f'passe {index + 1}'} · planificateur {getattr(planner, 'label', '?')}")
 
         def on_step(step) -> None:
             tool = step.tool or "final"
@@ -153,7 +153,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
                 if extra:
                     errors.append(
                         f"passe {index + 1} étape {number} : argument(s) inconnu(s) {extra} "
-                        f"pour {tool_name} — attendu : {tools[tool_name].signature}"
+                        f"pour {tool_name}, attendu : {tools[tool_name].signature}"
                     )
         status = "ok" if not errors else "ko"
         print(f"[{status}] {scenario.slug} ({len(labels)} passe(s))")
@@ -233,7 +233,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="agentdemo", description="Agent Computer — demo agentique")
+    parser = argparse.ArgumentParser(prog="agentdemo", description="Agent Computer, demo agentique")
     parser.add_argument("--out", help="répertoire de travail (défaut : ./data)")
     sub = parser.add_subparsers(dest="command", required=True)
 

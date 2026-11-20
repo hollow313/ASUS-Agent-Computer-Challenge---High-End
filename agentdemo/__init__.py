@@ -1,4 +1,4 @@
-"""Agent Computer Demo — a small, self-contained agentic loop.
+"""Agent Computer Demo, a small, self-contained agentic loop.
 
 Public entry points:
 

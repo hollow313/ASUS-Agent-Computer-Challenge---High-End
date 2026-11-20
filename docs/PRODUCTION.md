@@ -19,7 +19,7 @@ Le dépôt ne contient volontairement ni l'instance, ni ses données, ni ses ide
 ## Trois résultats mesurés sur les 30 derniers jours
 
 1. **Veille cyber quotidienne** : trois sources agrégées, hiérarchisées, briefing daté de 6 à 8
-   entrées publié à 8h et envoyé sur messagerie — zéro intervention humaine, avec mode
+   entrées publié à 8h et envoyé sur messagerie, zéro intervention humaine, avec mode
    « vacances » et rattrapage au retour.
 2. **Automatisation de formulaires web** : un moteur piloté par l'agent a ouvert et traité 429
    adresses en six semaines, avec classification automatique des murs (captcha, compte requis,

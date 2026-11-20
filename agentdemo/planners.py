@@ -2,9 +2,9 @@
 
 Two backends are provided:
 
-* ``ReplayPlanner`` — replays a recorded decision trace. Deterministic, no model,
+* ``ReplayPlanner``, replays a recorded decision trace. Deterministic, no model,
   no API key, no network. Tool calls are still executed for real.
-* ``OpenAICompatPlanner`` — calls any OpenAI-compatible ``/chat/completions``
+* ``OpenAICompatPlanner``, calls any OpenAI-compatible ``/chat/completions``
   endpoint (Ollama, LM Studio, vLLM, or a hosted API) with the tool catalogue in
   the system prompt, and expects a single JSON action back.
 """
@@ -123,7 +123,7 @@ class OpenAICompatPlanner:
         if "choices" not in body:
             excerpt = json.dumps(body, ensure_ascii=False)[:300]
             raise RuntimeError(
-                f"réponse inattendue de {self.base_url} (pas de 'choices') : {excerpt} — "
+                f"réponse inattendue de {self.base_url} (pas de 'choices') : {excerpt}, "
                 "vérifie que l'endpoint est bien l'API compatible OpenAI, en général …/v1"
             )
         text = body["choices"][0]["message"]["content"]
@@ -144,7 +144,7 @@ class OpenAICompatPlanner:
             "Outils disponibles :",
         ]
         for tool in self.tools.values():
-            lines.append(f"- {tool.signature} — {tool.description}")
+            lines.append(f"- {tool.signature}, {tool.description}")
         lines += [
             "",
             "Règles :",

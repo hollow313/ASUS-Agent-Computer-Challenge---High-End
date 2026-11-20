@@ -1,14 +1,14 @@
-# Vigie — runnable agentic demo
+# Vigie, runnable agentic demo
 
 [Français](README.md) · **English**
 
-**ASUS Agent Computer Challenge submission — High-End category**
+**ASUS Agent Computer Challenge submission, High-End category**
 
-**Vigie** — the agent that takes the watch: it receives an objective, picks tools, chains steps,
+**Vigie**, the agent that takes the watch: it receives an objective, picks tools, chains steps,
 **verifies what it produced** and leaves a deliverable on disk.
 
 A deliberately small but honest demo. No API key, no network, no
-dependency — two commands and it runs.
+dependency, two commands and it runs.
 
 **Presentation video (64 s)**: [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4).
 
@@ -19,8 +19,8 @@ dependency — two commands and it runs.
 ```bash
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
 # without a published image: docker build -t vigie . && docker run --rm -p 8080:8080 vigie
-# or, without Docker:  python3 -m agentdemo serve --port 8080
-python3 -m unittest discover -s tests -v     # 9 tests, no dependency
+# or, without Docker: python3 -m agentdemo serve --port 8080
+python3 -m unittest discover -s tests -v # 9 tests, no dependency
 ```
 
 Then, in the UI: **self-repair**, which shows learning across two passes.
@@ -57,7 +57,7 @@ Three things are real here, and that is what separates an agent from a chatbot:
 2. **Tools have real side effects.** Files written exist, messages moved really moved, the SVG
    chart is computed from the data. Nothing here is a screenshot.
 3. **Verification is part of the loop.** In every scenario the agent re-reads the file it just
-   wrote before concluding — an announced deliverable is not a deliverable.
+   wrote before concluding, an announced deliverable is not a deliverable.
 
 A JSON journal is written per run (`data/runs/<run_id>.json`): objective, every thought, every
 tool call, every observation, duration, summary. Everything is auditable.
@@ -66,7 +66,7 @@ tool call, every observation, duration, summary. Everything is auditable.
 
 ## 2. Quick start
 
-### Option A — Docker (recommended)
+### Option A, Docker (recommended)
 
 ```bash
 # 1. image published by CI (Docker Hub)
@@ -80,14 +80,14 @@ docker compose up --build
 # → http://localhost:8080
 ```
 
-### Option B — no Docker, Python 3.10+ only
+### Option B, no Docker, Python 3.10+ only
 
 ```bash
 python3 -m agentdemo serve --port 8080
 # → http://localhost:8080
 ```
 
-### Option C — command line (no web UI)
+### Option C, command line (no web UI)
 
 ```bash
 python3 -m agentdemo scenarios
@@ -97,7 +97,7 @@ python3 -m agentdemo run --scenario dataset-report
 python3 -m agentdemo run --scenario self-repair
 ```
 
-Each run writes its workspace under `data/runs/<run_id>/workspace/` — that is where the
+Each run writes its workspace under `data/runs/<run_id>/workspace/`, that is where the
 deliverables are.
 
 > Nothing to install, no `pip install`. The package only uses the standard library (see
@@ -107,7 +107,7 @@ deliverables are.
 
 The container runs as **UID/GID 568**, the applications user on TrueNAS SCALE, so written files
 stay readable from the host without fighting permissions. If you force another user, pass
-`-u $(id -u):$(id -g)` — the only requirement is that `/data` is writable by that UID.
+`-u $(id -u):$(id -g)`, the only requirement is that `/data` is writable by that UID.
 
 **Only one directory has to be mounted: `/data`.** It holds runs, deliverables, JSON journals
 and learned procedures. Nothing else is needed: no config file, no secret, no access to the
@@ -140,7 +140,7 @@ docker run --rm -p 8080:8080 -v /mnt/tank/apps/agent-computer-demo:/data \
 
 Pass 1: 6 steps, 1 error (wrong filename guessed), and the agent **writes the lesson** into a
 procedure file. Pass 2, same objective: it **reads the procedure first**, then 4 steps and zero
-errors. This is the one thing a better model cannot buy — it is procedural memory, and it is what
+errors. This is the one thing a better model cannot buy, it is procedural memory, and it is what
 my production agent does at the scale of ~90 procedures.
 
 ---
@@ -150,11 +150,11 @@ my production agent does at the scale of ~90 procedures.
 The core (`agentdemo/agent.py`) does not know where decisions come from. Two backends implement
 the same interface:
 
-- **`ReplayPlanner`** (default) — replays a recorded decision trace
+- **`ReplayPlanner`** (default), replays a recorded decision trace
   (`scenarios/<slug>/cassette.json`). Deterministic, offline, no key, no model. **Tools still
   execute for real**: the sandbox is real, the files are real. This is what a reviewer can run in
   30 seconds without installing anything else.
-- **`OpenAICompatPlanner`** — talks to any OpenAI-compatible `/chat/completions` endpoint:
+- **`OpenAICompatPlanner`**, talks to any OpenAI-compatible `/chat/completions` endpoint:
   **Ollama**, **LM Studio**, vLLM, or a remote API. The model receives the tool catalogue in its
   system prompt and must answer with a single JSON action.
 
@@ -188,7 +188,7 @@ Every tool operates inside the run sandbox. An absolute path or a `../` escape i
 | `csv_profile` | `csv_profile(path)` | CSV aggregates |
 | `chart_bar` | `chart_bar(path, label, value, output, title?)` | SVG bar chart |
 | `rss_rank` | `rss_rank(paths[], top_n?)` | RSS parsing + ranking |
-| `http_get` | `http_get(url, max_chars?)` | HTTP GET — **disabled by default** |
+| `http_get` | `http_get(url, max_chars?)` | HTTP GET, **disabled by default** |
 | `skill_recall` | `skill_recall(keyword?)` | re-read a learned procedure before acting |
 | `skill_write` | `skill_write(name, content)` | record a reusable procedure |
 | `skill_list` | `skill_list()` | inventory of known procedures |
@@ -200,7 +200,7 @@ the next run re-reads them. The UI lists known procedures and `GET /api/skills` 
 
 ### Does the agent really improve itself?
 
-Yes, in the precise sense of **procedural memory** — not in the sense of a model that retrains:
+Yes, in the precise sense of **procedural memory**, not in the sense of a model that retrains:
 
 - **what is real**: `skill_write` / `skill_recall` write and re-read files on disk; a procedure
   written during run N is available to run N+1; in live mode the model is instructed to consult
@@ -208,7 +208,7 @@ Yes, in the precise sense of **procedural memory** — not in the sense of a mod
 - **what the demo shows**: in `self-repair`, pass 2 reads the procedure and finishes in 4 steps
   with zero errors, against 6 steps and one error in pass 1;
 - **what is not here**: no model fine-tuning, no pruning of stale procedures, no confidence
-  score, no detection of a wrong lesson. A bad lesson persists and pollutes later runs — that is
+  score, no detection of a wrong lesson. A bad lesson persists and pollutes later runs, that is
   the real production problem, and it is out of scope here;
 - **in my production agent**: ~90 such procedures, written and corrected over failures, with a
   manual read whenever a result looks off.
@@ -235,19 +235,19 @@ lives in `agentdemo/scenarios/*/fixtures`.
 
 ```
 agentdemo/
-├── agent.py              # the loop: planning → tool → observation → summary
-├── planners.py           # ReplayPlanner (offline) + OpenAICompatPlanner (live model)
-├── tools.py              # tools + sandbox + SVG chart
-├── skills.py             # persistent procedural memory
-├── scenarios_loader.py   # scenarios and fixtures loading
-├── cli.py                # CLI: scenarios / run / serve
-├── server.py             # HTTP API + web UI (http.server, stdlib)
-├── web/index.html        # single page, no dependency
-└── scenarios/            # 4 scenarios: cassette + scenario.json + fixtures
-tests/test_demo.py        # 9 tests: scenarios, learning, sandbox, budget
-bench/                    # measurement bench: bench.py, tasks, prices, simulated endpoint
-video/                    # title cards and UI capture for the video (slides.py, record.py)
-docs/                     # screenshots, architecture, local measurements, scenarios, 3-min path
+├── agent.py # the loop: planning → tool → observation → summary
+├── planners.py # ReplayPlanner (offline) + OpenAICompatPlanner (live model)
+├── tools.py # tools + sandbox + SVG chart
+├── skills.py # persistent procedural memory
+├── scenarios_loader.py # scenarios and fixtures loading
+├── cli.py # CLI: scenarios / run / serve
+├── server.py # HTTP API + web UI (http.server, stdlib)
+├── web/index.html # single page, no dependency
+└── scenarios/ # 4 scenarios: cassette + scenario.json + fixtures
+tests/test_demo.py # 9 tests: scenarios, learning, sandbox, budget
+bench/ # measurement bench: bench.py, tasks, prices, simulated endpoint
+video/ # title cards and UI capture for the video (slides.py, record.py)
+docs/ # screenshots, architecture, local measurements, scenarios, 3-min path
 Dockerfile, docker-compose.yml, Makefile, .github/workflows/docker-build.yml
 ```
 
@@ -267,7 +267,7 @@ Dockerfile, docker-compose.yml, Makefile, .github/workflows/docker-build.yml
 ## 8. Tests and CI
 
 ```bash
-python3 -m unittest discover -s tests -v   # 9 tests, no framework
+python3 -m unittest discover -s tests -v # 9 tests, no framework
 ```
 
 Scenarios reach `done`, deliverables are checked on disk, `self-repair` proves pass 2 is shorter
@@ -351,4 +351,4 @@ per step, `args` keys matching the tool signature exactly) and `fixtures/` (synt
 
 ## 13. Licence and author
 
-MIT — see `LICENSE`. Author: Loïc Huon.
+MIT, see `LICENSE`. Author: Loïc Huon.

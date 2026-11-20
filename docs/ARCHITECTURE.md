@@ -1,25 +1,25 @@
-# Vigie — architecture
+# Vigie, architecture
 
 ## Vue d'ensemble
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│ interface web (1 page, /api/*)          CLI (python -m agentdemo) │
+│ interface web (1 page, /api/*) CLI (python -m agentdemo) │
 └───────────────────────────────┬──────────────────────────────────┘
                                 │
                         ┌───────▼────────┐
-                        │   Agent.run()  │  boucle bornée par max_steps
+                        │ Agent.run() │ boucle bornée par max_steps
                         └───────┬────────┘
                 ┌───────────────┴────────────────┐
-                │                                │
-      ┌─────────▼─────────┐            ┌─────────▼──────────┐
-      │     Planner       │            │   Tool registry    │
-      │ replay | live     │            │   8 outils         │
-      └─────────┬─────────┘            └─────────┬──────────┘
-                │                                │
-   cassette.json │ décisions          ┌──────────▼──────────┐
-   modèle local  │ (OpenAI-compat.)   │  Sandbox (1 run)    │
-                                     │  écrit / déplace    │
+                │ │
+      ┌─────────▼─────────┐ ┌─────────▼──────────┐
+      │ Planner │ │ Tool registry │
+      │ replay | live │ │ 8 outils │
+      └─────────┬─────────┘ └─────────┬──────────┘
+                │ │
+   cassette.json │ décisions ┌──────────▼──────────┐
+   modèle local │ (OpenAI-compat.) │ Sandbox (1 run) │
+                                     │ écrit / déplace │
                                      └──────────┬──────────┘
                                                 │
                                     data/runs/<id>/workspace + journal JSON
@@ -31,7 +31,7 @@
 2. À chaque tour, le `Planner` renvoie **une** action : soit un appel d'outil, soit une
    conclusion (`final`).
 3. L'action est exécutée. Toute erreur (`ToolError`, arguments invalides, outil inconnu) devient
-   une **observation** que l'agent voit au tour suivant — il peut se corriger, comme en
+   une **observation** que l'agent voit au tour suivant, il peut se corriger, comme en
    production quand un sélecteur CSS casse.
 4. Chaque étape est publiée à l'interface via un callback (`on_step`) et journalisée.
 5. La boucle s'arrête sur `final` (statut `done`), sur échec de planification (`failed`), ou sur

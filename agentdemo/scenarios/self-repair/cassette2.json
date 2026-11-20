@@ -19,7 +19,7 @@
     "tool": "fs_write",
     "args": {
       "path": "veille.md",
-      "content": "# Veille — 20/11/2026\n\n**Service d'API exposé : entrées non validées, exécution de code**\nAvis 2026-051. Enjeu analyste : les instances non redémarrées restent vulnérables après le patch — vérifier l'état de redémarrage avant de clôturer.\n\n**Bibliothèque de chiffrement en fin de support (juin 2027)**\nEnjeu analyste : la migration est longue sur les projets anciens, l'inventaire des dépendances doit commencer maintenant.\n\n---\n*Demo générée à partir de flux d'exemple. Aucune donnée réelle.*\n"
+      "content": "# Veille, 20/11/2026\n\n**Service d'API exposé : entrées non validées, exécution de code**\nAvis 2026-051. Enjeu analyste : les instances non redémarrées restent vulnérables après le patch, vérifier l'état de redémarrage avant de clôturer.\n\n**Bibliothèque de chiffrement en fin de support (juin 2027)**\nEnjeu analyste : la migration est longue sur les projets anciens, l'inventaire des dépendances doit commencer maintenant.\n\n---\n*Demo générée à partir de flux d'exemple. Aucune donnée réelle.*\n"
     }
   },
   {

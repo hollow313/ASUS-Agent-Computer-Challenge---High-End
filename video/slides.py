@@ -51,12 +51,12 @@ END = f"""<!doctype html><html lang=fr><meta charset=utf-8><style>{BASE_CSS}
   .foot {{ margin-top: 34px; font: 15px/1.7 ui-monospace, monospace; color: #5e6675; }}
 </style>
 <body>
-  <h1>Vigie — ce qu'il faut retenir</h1>
+  <h1>Vigie, ce qu'il faut retenir</h1>
   <ul>
     <li><b>·</b> une boucle agentique réelle, journal JSON, bac à sable par run</li>
     <li><b>·</b> mémoire procédurale : 6 étapes / 1 erreur → 4 étapes / 0 erreur</li>
     <li><b>·</b> mesures reproductibles : réussite, latence, coût par 1 000 tâches</li>
-    <li><b>·</b> local d'abord : Ollama, LM Studio, vLLM — cloud en option</li>
+    <li><b>·</b> local d'abord : Ollama, LM Studio, vLLM, cloud en option</li>
   </ul>
   <div class=foot>github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End · MIT</div>
 </body></html>"""
