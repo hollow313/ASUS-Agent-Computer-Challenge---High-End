@@ -175,6 +175,38 @@ def build_registry(sandbox: Sandbox, artifacts: list[str], skills: "SkillStore |
             lines.append(f"- [{feed}] {title} :: {summary[:220]}")
         return "\n".join(lines)
 
+    def tts_speak(text: str, output: str = "narration.mp3", voice: str = "alloy") -> str:
+        """Génère un fichier audio depuis un texte, via un endpoint /audio/speech.
+
+        Désactivé si AGENTDEMO_TTS_URL n'est pas défini : la démo reste exécutable sans
+        dépendance réseau, et l'échec est explicite plutôt que simulé.
+        """
+        base = os.environ.get("AGENTDEMO_TTS_URL", "").rstrip("/")
+        if not base:
+            raise ToolError(
+                "synthèse vocale non configurée (AGENTDEMO_TTS_URL) : l'outil échoue proprement "
+                "au lieu de faire semblant"
+            )
+        payload = {"model": os.environ.get("AGENTDEMO_TTS_MODEL", "tts-1"), "input": str(text), "voice": voice}
+        request = urllib.request.Request(
+            f"{base}/audio/speech",
+            data=json.dumps(payload).encode(),
+            headers={
+                "Content-Type": "application/json",
+                **({"Authorization": f"Bearer {os.environ.get('AGENTDEMO_TTS_KEY', '')}"}
+                   if os.environ.get("AGENTDEMO_TTS_KEY") else {}),
+            },
+        )
+        dest = sandbox.resolve(output)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310
+                dest.write_bytes(response.read())
+        except (urllib.error.URLError, TimeoutError) as exc:
+            raise ToolError(f"synthèse vocale impossible : {exc}") from exc
+        note(dest)
+        return f"audio écrit dans {output} ({dest.stat().st_size} octets)"
+
     def http_get(url: str, max_chars: int = 2000) -> str:
         if not NETWORK_ENABLED:
             raise ToolError(
@@ -205,6 +237,12 @@ def build_registry(sandbox: Sandbox, artifacts: list[str], skills: "SkillStore |
         ),
         "rss_rank": Tool("rss_rank", "rss_rank(paths[], top_n?)", "lit des flux RSS et les classe", rss_rank),
         "http_get": Tool("http_get", "http_get(url, max_chars?)", "GET HTTP (désactivé par défaut)", http_get),
+        "tts_speak": Tool(
+            "tts_speak",
+            "tts_speak(text, output?, voice?)",
+            "génère un fichier audio depuis un texte (endpoint /audio/speech, désactivé par défaut)",
+            tts_speak,
+        ),
         "skill_list": Tool("skill_list", "skill_list()", "liste les procédures déjà apprises", skill_list),
         "skill_recall": Tool(
             "skill_recall",

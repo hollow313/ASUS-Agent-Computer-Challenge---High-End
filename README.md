@@ -11,7 +11,9 @@ Une démo volontairement petite, mais honnête.
 Aucune clé API, aucun réseau, aucune dépendance : deux commandes et ça tourne.
 
 **Vidéo de présentation (64 s)** : [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4),
-qui montre la boucle agentique, la mémoire procédurale et les mesures locales.
+qui montre la boucle agentique, la mémoire procédurale et les mesures locales. La voix off a été
+produite par l'agent lui-même à partir du script de [`video/narration.txt`](video/narration.txt),
+avec l'outil de synthèse vocale du dépôt (`tts_speak`, endpoint `/audio/speech`).
 
 ![Interface de la démo](docs/screenshot-run.png)
 
@@ -52,8 +54,9 @@ Détail, méthode et limites : [`docs/mesures-locales.md`](docs/mesures-locales.
 9. [Ce que la démo n'est pas](#9-ce-que-la-démo-nest-pas)
 10. [Du prototype au poste de travail](#10-du-prototype-au-poste-de-travail)
 11. [Mesurer plutôt qu'affirmer](#11-mesurer-plutôt-quaffirmer)
-12. [Ajouter un scénario](#12-ajouter-un-scénario)
-13. [Licence et auteur](#13-licence-et-auteur)
+12. [Pourquoi 32 Go](#12-pourquoi-32-go-la-carte-visée)
+13. [Ajouter un scénario](#13-ajouter-un-scénario)
+14. [Licence et auteur](#14-licence-et-auteur)
 
 ---
 
@@ -408,7 +411,7 @@ permet de tester le banc sans GPU ni clé : c'est ce que fait le job CI `bench`.
 [`docs/mesures-locales.md`](docs/mesures-locales.md), le 7B répond en 0,48 s mais réussit 60 %,
 le 8B VL réussit 90 % mais coûte 39× plus de temps par réponse.
 
-## 12. Ajouter un scénario
+## 13. Ajouter un scénario
 
 ```bash
 python3 -m agentdemo new --slug tri-factures --title "Tri de factures" \
@@ -422,6 +425,32 @@ action par étape, clés d'`args` strictement conformes à la signature de l'out
 (données synthétiques). `validate` compare les cassettes aux outils réels : outil inconnu,
 argument manquant ou superflu, absence de conclusion. Format complet et pièges :
 [`docs/SCENARIOS.md`](docs/SCENARIOS.md).
+
+## 12. Pourquoi 32 Go : la carte visée
+
+Le matériel demandé dans la candidature est une **ASUS TURBO Radeon AI PRO R9700 32 Go**. Ce
+n'est pas une envie de confort, c'est le dimensionnement du problème.
+
+Aujourd'hui, avec 3 Go de VRAM, mes propres mesures montrent le plafond : le modèle rapide réussit
+60 % des tâches vérifiables, le modèle juste réussit 90 % mais coûte 39 fois plus de temps par
+réponse (voir [`docs/mesures-locales.md`](docs/mesures-locales.md)). Un agent qui enchaîne huit
+étapes ne peut pas vivre avec ce compromis.
+
+Ce que 32 Go changent concrètement :
+
+| Aujourd'hui (3 Go) | Avec 32 Go |
+| --- | --- |
+| 7-8 B en Q4, 60 à 90 % de réussite | 32 B en Q5 entièrement en mémoire, et 70 B en Q4 possible |
+| contexte court, étapes sacrifiées | contexte long, historique complet du run |
+| veille et courrier traités sur le cloud | tout traite en local, les données sensibles ne sortent plus |
+| RAG personnel irréaliste | index sur mes archives, réponses citées |
+
+Et un argument de coût, pas de confort : l'agent tourne 24 heures sur 24 avec des tâches
+planifiées. Sur le cloud, chaque exécution a un prix qui augmente avec le nombre d'étapes. Sur la
+carte, le coût marginal est l'électricité. Le comparatif chiffré, local contre cloud, est dans
+[`docs/comparatif-local-cloud.md`](docs/comparatif-local-cloud.md).
+
+---
 
 ## 13. Licence et auteur
 

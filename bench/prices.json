@@ -1,5 +1,5 @@
 {
-  "_comment": "Prix indicatifs en EUR par million de tokens. A ajuster : ce ne sont pas des tarifs contractuels.",
+  "_comment": "Prix indicatifs en EUR par million de tokens. deepseek-flash : 0,15 $ entrée et 0,60 $ sortie hors pointe, convertis à 0,92 (la pointe double ces tarifs). Ajuster avant de publier un chiffre.",
   "qwen2.5-coder:7b": {
     "in": 0.0,
     "out": 0.0
@@ -19,5 +19,9 @@
   "deepseek-chat": {
     "in": 0.25,
     "out": 1.0
+  },
+  "deepseek-flash": {
+    "in": 0.138,
+    "out": 0.552
   }
 }
