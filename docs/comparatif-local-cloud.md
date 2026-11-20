@@ -57,6 +57,10 @@ pas le cloud, elle déplace la frontière de ce qui doit rester dedans.
 - coût cloud calculé sur les tokens réellement rapportés par l'API et le tarif public hors pointe
   (0,15 $ entrée et 0,60 $ sortie par million, convertis à 0,92). La pointe double ces tarifs.
 - coût local à 0 € par token, hors électricité et amortissement du matériel.
+- les lignes locales ont été mesurées serveur LM Studio actif. Si l'endpoint tombe, le banc
+  enregistre dix erreurs de connexion et un taux de réussite de 0 % : c'est un échec explicite,
+  pas une mesure. Le run de contrôle exécuté plus tard dans la journée, serveur éteint, donne
+  exactement cela, et c'est le comportement voulu.
 
 Reproductible : `python3 bench/bench.py --targets bench/targets.json` (voir
 [`bench/README.md`](../bench/README.md)).

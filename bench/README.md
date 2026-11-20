@@ -68,6 +68,9 @@ python3 bench/bench.py --target "simule=http://127.0.0.1:8077/v1|modele-simule-8
 C'est ce que fait le job CI `bench` : il vérifie que le rapport est généré et que les coûts sont
 calculés, sans GPU ni clé.
 
+Si l'endpoint local est éteint, chaque tâche remonte une erreur de connexion et la ligne affiche
+0 % avec 10 erreurs : c'est un échec explicite, jamais un score inventé.
+
 ## Ajouter une tâche
 
 Une ligne JSON dans `tasks.jsonl` :
