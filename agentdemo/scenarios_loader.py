@@ -33,6 +33,23 @@ class Scenario:
     def pass_labels(self) -> list[str]:
         return [p.get("label", "") for p in (self.passes or [{"label": ""}])]
 
+    def apply_mutations(self, index: int, workspace: Path) -> list[str]:
+        """Applique les modifications prévues avant une passe (renommage, déplacement).
+
+        Sert à démontrer qu'une procédure peut devenir fausse : le fichier sur lequel elle
+        s'appuie est renommé entre deux passes, le contrat de vérification casse.
+        """
+        passes = self.passes or [{"label": ""}]
+        entry = passes[min(index, len(passes) - 1)]
+        applied = []
+        for move in entry.get("mutate", {}).get("move", []):
+            source, dest = workspace / move[0], workspace / move[1]
+            if source.exists():
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                source.replace(dest)
+                applied.append(f"{move[0]} -> {move[1]}")
+        return applied
+
     def stage(self, workspace: Path) -> None:
         """Copy the scenario fixtures into the run workspace."""
         fixtures = self.root / "fixtures"

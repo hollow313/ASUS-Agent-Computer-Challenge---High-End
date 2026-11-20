@@ -73,6 +73,10 @@ class RunStore:
         def worker() -> None:
             try:
                 for index, label in enumerate(labels):
+                    for change in scenario.apply_mutations(index, workspace):
+                        applied = {"pass": index + 1, "label": label, "change": change}
+                        with self.lock:
+                            state.setdefault("mutations", []).append(applied)
                     if mode == "live":
                         planner = OpenAICompatPlanner(
                             base_url=str(llm.get("base_url") or ""),
@@ -162,14 +166,7 @@ def make_handler(store: RunStore):
                 return self._send_file(WEB_DIR / "index.html")
             if path == "/api/skills":
                 store_skills = SkillStore(store.data_dir / "skills")
-                return self._send_json(
-                    {
-                        "skills": [
-                            {"name": skill.name, "summary": skill.summary}
-                            for skill in store_skills.list()
-                        ]
-                    }
-                )
+                return self._send_json({"skills": store_skills.ledger()})
             if path == "/api/scenarios":
                 return self._send_json({"scenarios": [s.as_summary() for s in list_scenarios()]})
             if path == "/healthz":

@@ -79,6 +79,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     status = "done"
     recap = []
     for index, label in enumerate(scenario.pass_labels()):
+        for change in scenario.apply_mutations(index, workspace):
+            print(f"  (fixture modifiée avant la passe : {change})")
         planner = _make_planner(
             scenario, args.live, args.model, args.base_url, index, args.api_key
         )
@@ -236,6 +238,26 @@ def cmd_new(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_skills(args: argparse.Namespace) -> int:
+    """Registre des procédures apprises : confiance, statut, mise à la retraite."""
+    store = SkillStore(Path(args.out or DEFAULT_DATA_DIR) / "skills")
+    if args.prune:
+        retired = store.prune()
+        print(f"{len(retired)} procédure(s) mise(s) à la retraite : {', '.join(retired) or 'aucune'}")
+    rows = store.ledger()
+    if not rows:
+        print("aucune procédure enregistrée")
+        return 0
+    print(f"{'procédure':<24} {'statut':<8} {'succès':>7} {'usages':>7} {'confiance':>10}  contrat")
+    print("-" * 84)
+    for row in rows:
+        print(
+            f"{row['name']:<24} {row['status']:<8} {row['success']:>7} {row['uses']:>7} "
+            f"{str(row['confidence']) + ' %':>10}  {row['check'] or '-'}"
+        )
+    return 0
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     from .server import serve  # imported lazily: CLI mode must not require sockets
 
@@ -275,6 +297,10 @@ def build_parser() -> argparse.ArgumentParser:
     new.add_argument("--tag", action="append")
     new.add_argument("--force", action="store_true")
     new.set_defaults(func=cmd_new)
+
+    skills = sub.add_parser("skills", help="registre des procédures apprises")
+    skills.add_argument("--prune", action="store_true", help="met à la retraite ce qui est périmé")
+    skills.set_defaults(func=cmd_skills)
 
     serve = sub.add_parser("serve", help="lance l'interface web")
     serve.add_argument("--host", default="0.0.0.0")

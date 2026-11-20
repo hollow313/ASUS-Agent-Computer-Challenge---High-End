@@ -78,6 +78,7 @@
   .skills .skill { border-left: 2px solid #24506a; padding: 2px 0 2px 9px; margin-bottom: 9px; }
   .skills .skill code { display: block; font: 11px/1.5 var(--mono); color: #9dbcff; }
   .skills .skill span { display: block; font: 10.5px/1.5 var(--mono); color: #6f7a90; }
+  .skills .skill.retired { border-left-color: #4a2530; opacity: .7; }
   .hint { color: #6f7a90; font-size: 11.5px; margin: 12px 0 0; font-family: var(--mono); }
   .status { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font: 12px/1 var(--mono); color: var(--muted); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
@@ -334,7 +335,11 @@ async function refreshSkills() {
       return;
     }
     box.innerHTML = data.skills.map((skill) =>
-      `<div class="skill"><code>${escapeHtml(skill.name)}</code><span>${escapeHtml(skill.summary)}</span></div>`).join("");
+      `<div class="skill ${skill.status === "active" ? "" : "retired"}">
+         <code>${escapeHtml(skill.name)}</code>
+         <span>${escapeHtml(skill.status)} · confiance ${skill.confidence} % · ${skill.success}/${skill.uses} succès</span>
+         <span>${escapeHtml(skill.summary)}</span>
+       </div>`).join("");
   } catch (e) {
     $("skills").innerHTML = '<p class="empty">lecture impossible</p>';
   }

@@ -23,7 +23,15 @@
     }
   },
   {
-    "thought": "4 étapes contre 6, zéro erreur contre une. C'est ça, la mémoire procédurale.",
-    "final": "veille.md réécrit en 4 étapes et 0 erreur (contre 6 étapes et 1 erreur en passe 1) : la procédure enregistrée a été relue et appliquée."
+    "thought": "La procédure a servi et a fonctionné : je l'inscris comme un succès, donc sa confiance monte.",
+    "tool": "skill_feedback",
+    "args": {
+      "name": "feeds-avis",
+      "ok": true
+    }
+  },
+  {
+    "thought": "4 étapes contre 6, zéro erreur contre une, et la procédure gagne en confiance.",
+    "final": "veille.md réécrit en 4 étapes et 0 erreur (contre 6 étapes et 1 erreur en passe 1)."
   }
 ]

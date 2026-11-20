@@ -5,7 +5,7 @@
 [![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dépendances](https://img.shields.io/badge/d%C3%A9pendances-0-2ea043)
-![tests](https://img.shields.io/badge/tests-9%20passent-2ea043)
+![tests](https://img.shields.io/badge/tests-12%20passent-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 ![image](https://img.shields.io/badge/image%20docker-41%20Mo-2496ed)
 
@@ -26,7 +26,7 @@ Trois commandes, aucune clé, aucun réseau, aucune dépendance :
 ```bash
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
 python3 -m agentdemo run --scenario self-repair     # la démo en terminal
-python3 -m unittest discover -s tests               # 9 tests, 20 ms
+python3 -m unittest discover -s tests               # 12 tests, 30 ms
 ```
 
 Puis, dans l'interface : **Auto-réparation**, qui montre l'apprentissage en deux passes.
@@ -95,18 +95,37 @@ Quatre scénarios sont fournis, tous exécutables sans modèle :
 | `cyber-brief` | Agréger trois flux, hiérarchiser, rédiger un briefing daté | `briefing.md` |
 | `inbox-triage` | Lire 5 messages, classer en déplaçant les fichiers, rapport d'actions | `rapport-tri.md` + `triaged/` |
 | `dataset-report` | Profiler un CSV, tracer un graphique, produire une note à 3 constats | `synthese.md`, `graphique.svg` |
-| `self-repair` | **Deux passes sur le même objectif** : la première devine un nom de fichier et se casse, la seconde applique la procédure apprise | `veille.md` + une procédure persistée |
+| `self-repair` | **Trois passes sur le même objectif** : la première se casse et écrit une procédure, la deuxième l'applique, la troisième la voit devenir fausse et la remplace | `veille.md` + deux versions de la procédure |
 
 ### L'auto-amélioration, sans mythologie
 
 L'agent ne s'entraîne pas, il **capitalise des procédures**. Quand une étape échoue, il écrit la
-leçon en markdown (`skill_write`) ; au run suivant, il la relit avant d'agir (`skill_recall`). Les
-procédures vivent dans `data/skills/`, hors du bac à sable, donc elles survivent au run.
-L'interface affiche la liste des procédures connues et `GET /api/skills` renvoie la même chose.
+leçon en markdown (`skill_write`) ; au run suivant, il la relit avant d'agir (`skill_recall`).
 
-Ce qui n'est pas fait ici, et qui est le vrai travail de production : purge des procédures
-obsolètes, score de confiance, détection d'une leçon fausse. Une mauvaise procédure persiste et
-pollue les runs suivants, je préfère l'écrire que le laisser découvrir.
+Le problème d'une procédure, c'est qu'elle peut devenir **fausse** : un fichier renommé, une API
+qui change, un sélecteur qui ne matche plus. Alors chaque procédure porte un cycle de vie, et c'est
+ce que la troisième passe du scénario `self-repair` démontre :
+
+- **un contrat de vérification** : la procédure déclare ce dont elle dépend
+  (`check: path_exists feeds/flux-avis-112026.xml`), rejoué à chaque rappel ;
+- **détection automatique** : le fichier est renommé entre deux passes, le contrat casse, la
+  procédure est marquée `stale` et **n'est plus servie** : l'agent réexplore au lieu d'appliquer une
+  leçon morte ;
+- **score de confiance** : (succès + 1) / (usages + 2), lissage de Laplace. Une procédure neuve part
+  à 50 %, pas à 100 %, et chaque retour d'expérience (`skill_feedback`) la fait monter ou descendre ;
+- **mise à la retraite réversible** : `skill_prune` déplace les procédures périmées ou peu fiables
+  dans `skills/retired/`, jamais de suppression. Elles restent consultables dans le registre.
+
+Tout est visible, y compris en ligne de commande :
+
+```bash
+python3 -m agentdemo skills            # registre : statut, succès, usages, confiance, contrat
+python3 -m agentdemo skills --prune    # met à la retraite ce qui est périmé
+```
+
+Ce qui reste hors périmètre, et je l'assume : la **réécriture du contenu** d'une procédure par le
+modèle quand elle vieillit, et l'arbitrage entre deux procédures contradictoires. Le tri automatique
+des procédures obsolètes, lui, est implémenté et testé.
 
 ![Comparatif des deux passes](docs/screenshot-selfrepair.png)
 
@@ -251,10 +270,11 @@ la même interface :
 
 ### Les outils
 
-Douze outils, tous dans le bac à sable du run : `fs_list`, `fs_read`, `fs_write`, `fs_move`,
-`csv_profile`, `chart_bar`, `rss_rank`, `http_get` (réseau désactivé par défaut), `skill_list`,
-`skill_recall`, `skill_write`, `tts_speak` (synthèse vocale via un endpoint `/audio/speech`,
-désactivé par défaut). Un chemin absolu ou une remontée `../` est refusé, pas corrigé.
+Quatorze outils, tous dans le bac à sable du run. Fichiers : `fs_list`, `fs_read`, `fs_write`,
+`fs_move`. Analyse : `csv_profile`, `chart_bar`, `rss_rank`. Réseau : `http_get`, désactivé par
+défaut. Voix : `tts_speak`, via un endpoint `/audio/speech`, désactivé par défaut. Mémoire :
+`skill_list`, `skill_recall`, `skill_write` (avec contrat de vérification), `skill_feedback`,
+`skill_prune`. Un chemin absolu ou une remontée `../` est refusé, pas corrigé.
 
 ### Modèle de sécurité
 
@@ -275,14 +295,14 @@ sont synthétiques et vivent dans `agentdemo/scenarios/*/fixtures`.
 agentdemo/
 ├── agent.py              # la boucle : planification, outil, observation, bilan
 ├── planners.py           # ReplayPlanner (hors ligne) + OpenAICompatPlanner (modèle réel)
-├── tools.py              # 12 outils, bac à sable, graphiques SVG, synthèse vocale
+├── tools.py              # 14 outils, bac à sable, graphiques SVG, voix, procédures
 ├── skills.py             # mémoire procédurale persistante
 ├── scenarios_loader.py   # chargement des scénarios, cassettes et fixtures
 ├── cli.py                # CLI : scenarios, run, serve, validate, new
 ├── server.py             # API HTTP et interface web (http.server, stdlib)
 ├── web/index.html        # interface d'une page, aucune dépendance
 └── scenarios/            # cyber-brief, inbox-triage, dataset-report, self-repair
-tests/test_demo.py        # 9 tests : scénarios, apprentissage, bac à sable, budget
+tests/test_demo.py        # 12 tests : scénarios, cycle de vie des procédures, bac à sable
 bench/                    # banc de mesure : tâches, prix, endpoint simulé
 video/                    # cartons, capture d'interface et script de narration
 docs/                     # captures, architecture, comparatif, scénarios, parcours 3 min
@@ -306,7 +326,7 @@ docs/                     # captures, architecture, comparatif, scénarios, parc
 ## Vérifier par soi-même
 
 ```bash
-python3 -m unittest discover -s tests -v   # 9 tests, aucun framework
+python3 -m unittest discover -s tests -v   # 12 tests, aucun framework
 python3 -m agentdemo validate              # cohérence des cassettes avec les outils
 python3 bench/bench.py --targets bench/targets.json
 ```
@@ -333,7 +353,7 @@ Un jury technique le verra de toute façon, autant l'écrire :
 - **Le mode replay ne raisonne pas.** Il rejoue des décisions enregistrées. C'est un choix : une
   démo qui exige une clé ou un modèle de 20 Go n'est pas une démo, c'est une condition d'accès. Le
   mode réel existe pour prouver que la boucle fonctionne avec un vrai modèle.
-- **Le catalogue d'outils est réduit** à douze outils, tous en fichiers et en analyse. Pas de
+- **Le catalogue d'outils est réduit** à quatorze outils, tous en fichiers et en analyse. Pas de
   shell, pas d'envoi de courrier, pas d'automatisation de navigateur ici.
 - **La mémoire procédurale est une version réduite** : un dossier de procédures markdown relu au
   run suivant, sans déduplication ni révision automatique. À l'échelle de production, le vrai

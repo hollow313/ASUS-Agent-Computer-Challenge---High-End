@@ -1,0 +1,45 @@
+[
+  {
+    "thought": "J'ai une procédure sur ce dossier de flux. Je la relis avant d'agir, c'est le principe.",
+    "tool": "skill_recall",
+    "args": {
+      "keyword": "feeds"
+    }
+  },
+  {
+    "thought": "Le rappel m'annonce qu'aucune procédure n'est valide : son contrat de vérification a cassé, elle a été mise à la retraite d'elle-même. Je ne l'applique pas, je réexplore.",
+    "tool": "fs_list",
+    "args": {
+      "path": "feeds"
+    }
+  },
+  {
+    "thought": "Le flux a effectivement été renommé. La leçon était juste hier, elle est fausse aujourd'hui : c'est exactement pour ça qu'une procédure doit se vérifier.",
+    "tool": "fs_read",
+    "args": {
+      "path": "feeds/flux-avis-2027.xml",
+      "max_chars": 1500
+    }
+  },
+  {
+    "thought": "Je réécris le livrable avec la nouvelle source.",
+    "tool": "fs_write",
+    "args": {
+      "path": "veille.md",
+      "content": "# Veille, 20/11/2026\n\n**Service d'API exposé : entrées non validées, exécution de code**\nAvis 2026-051. Enjeu analyste : vérifier l'état de redémarrage des instances après le correctif.\n\n**Bibliothèque de chiffrement en fin de support (juin 2027)**\nEnjeu analyste : la migration est longue, l'inventaire des dépendances doit commencer maintenant.\n\n> Source renommée en cours de route : la procédure précédente a été invalidée par son contrat.\n"
+    }
+  },
+  {
+    "thought": "Je remplace la procédure par la version à jour, avec un contrat qui pointe sur le nouveau nom. L'ancienne reste dans retired/, rien n'est perdu.",
+    "tool": "skill_write",
+    "args": {
+      "name": "feeds-avis",
+      "check": "path_exists feeds/flux-avis-2027.xml",
+      "content": "# Procédure, flux d'avis dans feeds/\n\nLe flux a été renommé : le nom réel est `feeds/flux-avis-2027.xml`.\n\nRègle générale : lister le dossier avant de lire, ne jamais deviner un nom de fichier. Une procédure périmée est détectée par son contrat de vérification, pas par ma mémoire."
+    }
+  },
+  {
+    "thought": "Procédure remplacée et vérifiée par un contrat qui pointe sur la source réelle. La leçon est de nouveau valide.",
+    "final": "Procédure périmée détectée par son contrat, mise à la retraite, puis remplacée par une version à jour : veille.md régénéré en 6 étapes."
+  }
+]

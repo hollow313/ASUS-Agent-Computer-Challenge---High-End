@@ -1,9 +1,9 @@
 {
   "slug": "self-repair",
   "title": "Auto-réparation → procédure apprise",
-  "blurb": "Deux passes sur le même objectif : la première se casse sur un nom de fichier deviné, l'agent écrit la procédure, la seconde va droit au but.",
+  "blurb": "Trois passes sur le même objectif : la première se casse et écrit la procédure, la deuxième l'applique, la troisième la voit devenir fausse et la remplace.",
   "objective": "Produis veille.md à partir des flux du dossier feeds : deux entrées maximum, le fait puis l'enjeu. Si une étape échoue, note la leçon dans une procédure réutilisable.",
-  "max_steps": 8,
+  "max_steps": 10,
   "tags": [
     "mémoire procédurale",
     "erreur récupérée",
@@ -17,6 +17,18 @@
     {
       "label": "passe 2, avec la procédure apprise",
       "cassette": "cassette2.json"
+    },
+    {
+      "label": "passe 3, procédure devenue fausse",
+      "cassette": "cassette3.json",
+      "mutate": {
+        "move": [
+          [
+            "feeds/flux-avis-112026.xml",
+            "feeds/flux-avis-2027.xml"
+          ]
+        ]
+      }
     }
   ]
 }

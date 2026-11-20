@@ -30,11 +30,12 @@
     }
   },
   {
-    "thought": "C'est exactement le genre d'erreur que je ne veux pas repayer : j'enregistre la leçon (nom réel du fichier, et la règle « lister avant de lire ») dans une procédure réutilisable.",
+    "thought": "C'est exactement le genre d'erreur que je ne veux pas repayer : j'enregistre la leçon et un contrat de vérification, pour que la procédure se dénonce elle-même si le fichier change de nom.",
     "tool": "skill_write",
     "args": {
       "name": "feeds-avis",
-      "content": "# Procédure, flux d'avis dans `feeds/`\n\nLe flux n'est pas `feeds/cert.xml` : le nom réel est `feeds/flux-avis-112026.xml`.\n\nRègle générale : sur un dossier de flux inconnu, appeler `fs_list` d'abord, ne jamais deviner un nom de fichier. Coût de l'erreur évitée : une étape + une lecture ratée par run."
+      "content": "# Procédure, flux d'avis dans `feeds/`\n\nLe flux n'est pas `feeds/cert.xml` : le nom réel est `feeds/flux-avis-112026.xml`.\n\nRègle générale : sur un dossier de flux inconnu, appeler `fs_list` d'abord, ne jamais deviner un nom de fichier. Coût de l'erreur évitée : une étape + une lecture ratée par run.",
+      "check": "path_exists feeds/flux-avis-112026.xml"
     }
   },
   {

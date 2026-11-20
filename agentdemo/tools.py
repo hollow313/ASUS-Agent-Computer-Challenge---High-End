@@ -67,21 +67,50 @@ def build_registry(sandbox: Sandbox, artifacts: list[str], skills: "SkillStore |
     def skill_list() -> str:
         if skills is None:
             raise ToolError("mémoire procédurale désactivée dans ce run")
-        found = skills.list()
-        if not found:
+        rows = skills.ledger()
+        if not rows:
             return "aucune procédure enregistrée"
-        return "\n".join(f"- {s.name} : {s.summary}" for s in found)
+        return "\n".join(
+            f"- {row['name']} [{row['status']}] confiance {row['confidence']} % "
+            f"({row['success']}/{row['uses']} succès) : {row['summary']}"
+            for row in rows
+        )
 
     def skill_recall(keyword: str = "") -> str:
         if skills is None:
             raise ToolError("mémoire procédurale désactivée dans ce run")
-        return skills.format_recall(keyword)
+        return skills.format_recall(keyword, sandbox.root)
 
-    def skill_write(name: str, content: str) -> str:
+    def skill_write(name: str, content: str, check: str = "") -> str:
         if skills is None:
             raise ToolError("mémoire procédurale désactivée dans ce run")
-        path = skills.write(name, content)
-        return f"procédure « {path.stem} » enregistrée ({len(content)} caractères), réutilisable aux runs suivants"
+        skill = skills.write(name, content, check)
+        claim = f" contrat « {check} »" if check else " sans contrat de vérification"
+        return (
+            f"procédure « {skill.name} » enregistrée ({len(content)} caractères){claim} "
+            f"confiance {round(100 * skill.confidence)} %"
+        )
+
+    def skill_feedback(name: str, ok: bool = True) -> str:
+        if skills is None:
+            raise ToolError("mémoire procédurale désactivée dans ce run")
+        skill = skills.feedback(name, bool(ok))
+        if skill is None:
+            raise ToolError(f"procédure inconnue : {name}")
+        return (
+            f"procédure « {skill.name} » mise à jour : {skill.successes}/{skill.uses} succès, "
+            f"confiance {round(100 * skill.confidence)} %, statut {skill.status}"
+        )
+
+    def skill_prune() -> str:
+        if skills is None:
+            raise ToolError("mémoire procédurale désactivée dans ce run")
+        retired = skills.prune()
+        return (
+            f"{len(retired)} procédure(s) mise(s) à la retraite : {', '.join(retired)}"
+            if retired
+            else "aucune procédure à mettre à la retraite"
+        )
 
     def fs_list(path: str = ".") -> str:
         target = sandbox.resolve(path)
@@ -252,9 +281,21 @@ def build_registry(sandbox: Sandbox, artifacts: list[str], skills: "SkillStore |
         ),
         "skill_write": Tool(
             "skill_write",
-            "skill_write(name, content)",
-            "enregistre une procédure réutilisable après un échec ou une découverte",
+            "skill_write(name, content, check?)",
+            "enregistre une procédure, avec un contrat de vérification optionnel",
             skill_write,
+        ),
+        "skill_feedback": Tool(
+            "skill_feedback",
+            "skill_feedback(name, ok?)",
+            "enregistre le succès ou l'échec d'une procédure, met à jour sa confiance",
+            skill_feedback,
+        ),
+        "skill_prune": Tool(
+            "skill_prune",
+            "skill_prune()",
+            "met à la retraite les procédures obsolètes ou peu fiables (réversible)",
+            skill_prune,
         ),
     }
 
