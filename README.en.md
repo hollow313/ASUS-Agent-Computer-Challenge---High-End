@@ -387,6 +387,36 @@ Cost argument, not comfort: the agent runs 24/7 with scheduled tasks. On the clo
 a price that grows with the number of steps. On the card, marginal cost is electricity. The
 measured comparison lives in [`docs/comparatif-local-cloud.md`](docs/comparatif-local-cloud.md).
 
+### What comes next with this card
+
+This repo is the first brick of a roadmap I can execute alone:
+
+1. **A personal RAG** over my archives (notes, procedures, exports, client documentation), with
+   cited answers and an index rebuilt on every addition. Not realistic today with an 8B model on
+   3 GB of VRAM.
+2. **Supervised fine-tuning** of a small model on my own execution traces, with standard community
+   tooling (Unsloth, Axolotl, PEFT/LoRA). 32 GB makes QLoRA training on 7B to 14B models possible
+   locally, with no rented GPU by the hour.
+3. **A model router** choosing local or cloud per task, data sensitivity and cost, with a decision
+   log. The brick already exists in the demo (two planners, one loop).
+4. **A second household user**, with separate procedures and a compute quota.
+
+Each step produces a publishable measurement. One brick, one figure, one deliverable.
+
+---
+
+## Three projects, one submitted
+
+The rules allow a single entry level per participant. I had prepared three:
+
+| Level | Project | What it does |
+| --- | --- | --- |
+| AI Entry | [Archiviste](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---AI-Entry) | Reads a local administrative folder, extracts deadlines, answers with sources, refuses out-of-scope requests |
+| Developer | [RGAA Agent](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---Developer) | Audits a site, really patches the HTML, re-audits: 63.9 % to 100 % compliance on the demo site |
+
+This one, **Vigie**, is the most advanced of the three: an agent already in production, with a
+runnable demo and measurements.
+
 ---
 
 ## 13. Licence and author
