@@ -239,6 +239,36 @@ def cmd_new(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_doctor(args: argparse.Namespace) -> int:
+    """Diagnostic d'installation : ce qui est prêt, ce qui manque, ce qui est optionnel."""
+    from .doctor import doctor
+
+    text, code = doctor(Path(args.out or DEFAULT_DATA_DIR), args.base_url, args.model)
+    print(text)
+    return code
+
+
+def cmd_export(args: argparse.Namespace) -> int:
+    """Archive un run : journal, livrables et une page de synthèse, dans un seul ZIP."""
+    from .export import export_run, list_runs
+
+    runs_dir = Path(args.out or DEFAULT_DATA_DIR) / "runs"
+    run_id = args.run
+    if not run_id:
+        known = list_runs(runs_dir)
+        if not known:
+            print("aucun run à exporter, lance d'abord un scénario", file=sys.stderr)
+            return 1
+        run_id = known[0]
+    try:
+        exported = export_run(runs_dir, run_id, Path(args.file) if args.file else None)
+    except FileNotFoundError as exc:
+        print(f"erreur : {exc}", file=sys.stderr)
+        return 1
+    print(f"run {exported.run_id} exporté : {exported.summary()}")
+    return 0
+
+
 def cmd_fit(args: argparse.Namespace) -> int:
     """Dimensionnement : ce qui tient dans une carte pour un contexte donné."""
     from .fit import table
@@ -352,6 +382,16 @@ def build_parser() -> argparse.ArgumentParser:
     new.add_argument("--tag", action="append")
     new.add_argument("--force", action="store_true")
     new.set_defaults(func=cmd_new)
+
+    doctor = sub.add_parser("doctor", help="vérifie que l'installation peut tourner")
+    doctor.add_argument("--base-url", help="endpoint de modèle à tester (optionnel)")
+    doctor.add_argument("--model", help="nom du modèle attendu (optionnel)")
+    doctor.set_defaults(func=cmd_doctor)
+
+    export = sub.add_parser("export", help="archive un run (journal et livrables)")
+    export.add_argument("--run", help="identifiant du run (défaut : le plus récent)")
+    export.add_argument("--file", help="chemin du ZIP à produire")
+    export.set_defaults(func=cmd_export)
 
     fit = sub.add_parser("fit", help="quels modèles tiennent dans une carte")
     fit.add_argument("--vram", type=float, default=32.0, help="mémoire vidéo de la carte, en Go")

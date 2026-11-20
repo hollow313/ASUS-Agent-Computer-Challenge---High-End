@@ -24,7 +24,7 @@ using the repo's speech tool (`tts_speak`, `/audio/speech` endpoint).
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
 # without a published image: docker build -t vigie . && docker run --rm -p 8080:8080 vigie
 # or, without Docker: python3 -m agentdemo serve --port 8080
-python3 -m unittest discover -s tests -v # 17 tests, no dependency
+python3 -m unittest discover -s tests -v # 20 tests, no dependency
 ```
 
 Then, in the UI: **self-repair**, which shows learning across two passes.
@@ -262,7 +262,7 @@ agentdemo/
 ├── server.py # HTTP API + web UI (http.server, stdlib)
 ├── web/index.html # single page, no dependency
 └── scenarios/ # 4 scenarios: cassette + scenario.json + fixtures
-tests/test_demo.py # 17 tests: scenarios, learning, sandbox, budget
+tests/test_demo.py # 20 tests: scenarios, learning, sandbox, budget
 bench/ # measurement bench: bench.py, tasks, prices, simulated endpoint
 video/ # title cards and UI capture for the video (slides.py, record.py)
 docs/ # screenshots, architecture, local measurements, scenarios, 3-min path
@@ -285,7 +285,7 @@ Dockerfile, docker-compose.yml, Makefile, .github/workflows/docker-build.yml
 ## 8. Tests and CI
 
 ```bash
-python3 -m unittest discover -s tests -v # 17 tests, no framework
+python3 -m unittest discover -s tests -v # 20 tests, no framework
 ```
 
 Scenarios reach `done`, deliverables are checked on disk, `self-repair` proves pass 2 is shorter
@@ -426,6 +426,15 @@ runnable demo and measurements.
 `python3 -m agentdemo fit --vram 32 --context 32768` computes what fits on a given card: weights by
 quantisation, attention cache, runtime margin. On 32 GB at 32 k context, a 32B model fits in Q4 with
 1.6 GB left, in Q6 at 8 k context, and not at all on 16 GB.
+
+### Check the install, take a proof
+
+`python3 -m agentdemo doctor` runs the usual blockers for a reviewer (Python version, writable data
+directory, loadable scenarios and cassettes, procedural memory, disk space, Docker, optional model
+endpoint) and exits non-zero on a blocking failure.
+
+`python3 -m agentdemo export` packages a run as a readable archive: full journal, declared
+deliverables and a summary page. Also available as `GET /api/runs/<id>/export`.
 
 ## 13. Licence and author
 

@@ -185,6 +185,22 @@ def make_handler(store: RunStore):
                 if state is None:
                     return self._send_json({"error": "run inconnu"}, status=404)
                 return self._send_json(state)
+            if path.startswith("/api/runs/") and path.endswith("/export"):
+                run_id = path.split("/")[3]
+                from .export import export_run
+
+                try:
+                    exported = export_run(store.data_dir / "runs", run_id)
+                except FileNotFoundError:
+                    return self._send_json({"error": "run inconnu"}, status=404)
+                body = exported.path.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/zip")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Content-Disposition", f'attachment; filename="run-{run_id}.zip"')
+                self.end_headers()
+                self.wfile.write(body)
+                return
             if path.startswith("/api/artifacts/"):
                 _, _, _, run_id, *rest = path.split("/")
                 target = store.artifact_path(run_id, unquote("/".join(rest)))

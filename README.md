@@ -5,7 +5,7 @@
 [![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dépendances](https://img.shields.io/badge/d%C3%A9pendances-0-2ea043)
-![tests](https://img.shields.io/badge/tests-17%20passent-2ea043)
+![tests](https://img.shields.io/badge/tests-20%20passent-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **Français** · [English](README.en.md)
@@ -25,7 +25,7 @@ Trois commandes, aucune clé, aucun réseau, aucune dépendance :
 ```bash
 docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:latest
 python3 -m agentdemo run --scenario self-repair     # la démo en terminal
-python3 -m unittest discover -s tests               # 17 tests, 55 ms
+python3 -m unittest discover -s tests               # 20 tests, 75 ms
 ```
 
 Puis, dans l'interface : **Auto-réparation**, qui montre l'apprentissage en trois passes.
@@ -378,12 +378,14 @@ agentdemo/
 ├── skills.py             # mémoire procédurale : contrats, confiance, révision, arbitrage
 ├── maintenance.py        # entretien automatique : réparer, arbitrer, retirer
 ├── fit.py                # dimensionnement mémoire : ce qui tient dans une carte
+├── doctor.py             # diagnostic d'installation
+├── export.py             # archive d'un run : journal, livrables, synthèse
 ├── scenarios_loader.py   # chargement des scénarios, cassettes et fixtures
-├── cli.py                # CLI : scenarios, run, serve, skills, maintain, validate, new
+├── cli.py                # CLI : run, serve, doctor, export, fit, skills, maintain, validate, new
 ├── server.py             # API HTTP et interface web (http.server, stdlib)
 ├── web/index.html        # interface d'une page, aucune dépendance
 └── scenarios/            # cyber-brief, inbox-triage, dataset-report, delegation, self-repair
-tests/test_demo.py        # 17 tests : scénarios, procédures, délégation, bac à sable
+tests/test_demo.py        # 20 tests : scénarios, procédures, délégation, bac à sable
 bench/                    # banc de mesure : tâches, prix, endpoint simulé
 video/                    # cartons, capture d'interface et script de narration
 docs/                     # captures, architecture, comparatif, scénarios, parcours 3 min
@@ -401,6 +403,7 @@ docs/                     # captures, architecture, comparatif, scénarios, parc
 | `/api/skills` | GET | procédures apprises, confiance et statut |
 | `/api/maintenance` | GET | dernières passes d'entretien |
 | `/api/maintenance/run` | POST | déclenche une passe d'entretien |
+| `/api/runs/<id>/export` | GET | archive du run : journal et livrables |
 | `/api/llm/models` | GET | sonde un endpoint compatible OpenAI |
 | `/healthz` | GET | sonde de santé |
 
@@ -409,17 +412,51 @@ docs/                     # captures, architecture, comparatif, scénarios, parc
 ## Vérifier par soi-même
 
 ```bash
-python3 -m unittest discover -s tests -v   # 17 tests, aucun framework
+python3 -m unittest discover -s tests -v   # 20 tests, aucun framework
 python3 -m agentdemo validate              # cohérence des cassettes avec les outils
 python3 -m agentdemo skills                # registre des procédures et leur confiance
 python3 -m agentdemo maintain --once       # entretien : réparer, arbitrer, retirer
 python3 -m agentdemo fit --vram 32         # ce qui tient dans la carte visée
+python3 -m agentdemo doctor                # diagnostic d'installation, avant de lancer
+python3 -m agentdemo export                # archive le dernier run : journal et livrables
 python3 bench/bench.py --targets bench/targets.json
 ```
 
 La CI fait quatre choses à chaque push : tests sur Python 3.10 et 3.12, les cinq scénarios en
 ligne de commande, publication de l'image (Docker Hub et GHCR) et un test qui **démarre le
 conteneur**, appelle `/healthz`, lance un scénario et télécharge le livrable produit.
+
+### Vérifier l'installation, emporter une preuve
+
+Avant de lancer quoi que ce soit, `doctor` fait les contrôles à la place du juré : version de
+Python, dossier de données inscriptible, scénarios et cassettes chargeables, mémoire procédurale
+accessible, espace disque, présence de Docker, et endpoint de modèle si on lui en donne un. Sortie
+lisible, code de retour non nul si un contrôle bloquant échoue.
+
+```bash
+python3 -m agentdemo doctor --base-url http://MON-IP:1234/v1
+```
+
+```
+[ok]   Python 3.10 ou plus : 3.14.9 détecté
+[ok]   Scénarios chargeables : cyber-brief, dataset-report, delegation, inbox-triage, self-repair
+[ok]   Cassettes présentes : toutes
+[ok]   Mémoire procédurale accessible : 0 procédure(s)
+[info] Endpoint de modèle : non testé (optionnel)
+
+Installation prête.
+```
+
+Et `export` produit une archive lisible d'un run, pour que le jury garde une trace au lieu de
+faire confiance à une capture d'écran : le journal complet, les livrables réellement écrits et une
+page de synthèse. Les fixtures d'entrée ne sont pas incluses, seuls les livrables déclarés le sont.
+
+```bash
+python3 -m agentdemo export --run 7bc8dc6633 --file audit.zip
+# ↔ journal/7bc8dc6633-p1.json, livrables/synthese.md, livrables/graphique.svg, LISEZ-MOI.txt
+```
+
+Le même téléchargement est disponible depuis l'interface et l'API : `GET /api/runs/<id>/export`.
 
 Le banc de mesure répond à la seule question qui compte pour un Agent Computer : combien ça coûte
 et qu'est-ce que ça donne de faire tourner l'agent en local. Trois chiffres par cible : réussite sur

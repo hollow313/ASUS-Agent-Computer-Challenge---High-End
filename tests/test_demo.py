@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 from agentdemo.agent import Agent
@@ -314,6 +315,47 @@ class ScenarioTests(unittest.TestCase):
 
         rows_16 = {row["model"]: row for row in plan(16, 32768)}
         self.assertEqual(rows_16["qwen2.5-coder-32b"]["quant"], "ne rentre pas", "16 Go ne suffit pas pour un 32B")
+
+    def test_doctor_reports_a_ready_installation(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        from agentdemo.doctor import doctor
+
+        text, code = doctor(Path(tmp.name))
+        self.assertEqual(code, 0, "une installation neuve doit être prête")
+        self.assertIn("Installation prête", text)
+        self.assertIn("Scénarios chargeables", text)
+
+    def test_run_can_be_exported_as_an_archive(self) -> None:
+        scenario = get_scenario("dataset-report")
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "runs" / "run42" / "workspace"
+        workspace.mkdir(parents=True)
+        scenario.stage(workspace)
+        agent = Agent(
+            planner=ReplayPlanner(scenario.cassette()),
+            workspace=workspace,
+            runs_dir=root / "runs",
+            max_steps=scenario.max_steps,
+        )
+        agent.run(scenario.objective, run_id="run42")
+
+        from agentdemo.export import export_run
+
+        exported = export_run(root / "runs", "run42")
+        self.assertTrue(exported.path.exists())
+        with zipfile.ZipFile(exported.path) as archive:
+            names = archive.namelist()
+            self.assertTrue(any(name.startswith("journal/run42") for name in names), names)
+            self.assertIn("LISEZ-MOI.txt", names)
+            self.assertIn("livrables/synthese.md", names)
+            self.assertIn("livrables/graphique.svg", names)
+            self.assertNotIn("livrables/ventes-2026-T3.csv", names, "les fixtures ne sont pas des livrables")
+            readme = archive.read("LISEZ-MOI.txt").decode()
+        self.assertIn("run42", readme)
+        self.assertIn("statut", readme)
 
     def test_budget_is_enforced(self) -> None:
         scenario = get_scenario("cyber-brief")
