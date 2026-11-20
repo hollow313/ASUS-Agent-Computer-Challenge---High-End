@@ -1,0 +1,9 @@
+From: responsable@client-alpha.example
+To: boite@example.invalid
+Subject: URGENT — production a l'arret depuis 06h40
+Date: Thu, 19 Nov 2026 07:15:00 +0100
+Content-Type: text/plain; charset=utf-8
+
+La ligne de production est arretee depuis 06h40 ce matin.
+Le service ne repond plus depuis la mise a jour d'hier soir.
+Merci de rappeler avant 9h, chaque heure d'arret coute environ 4000 EUR.

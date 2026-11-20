@@ -1,0 +1,31 @@
+services:
+  demo:
+    build: .
+    image: agent-computer-demo:1.0.0
+    container_name: agent-computer-demo
+    ports:
+      - "8080:8080"
+    environment:
+      # Mode live : pointez vers un endpoint compatible OpenAI.
+      # Par défaut, la démo reste en replay déterministe (aucun modèle requis).
+      AGENTDEMO_LLM_BASE_URL: "${AGENTDEMO_LLM_BASE_URL:-http://ollama:11434/v1}"
+      AGENTDEMO_LLM_MODEL: "${AGENTDEMO_LLM_MODEL:-qwen2.5-coder:7b}"
+      AGENTDEMO_ALLOW_NETWORK: "${AGENTDEMO_ALLOW_NETWORK:-0}"
+    volumes:
+      - demo-data:/data
+    restart: unless-stopped
+
+  # Décommentez ce service (et `docker compose --profile ollama up`) pour
+  # tester le mode live entièrement hors ligne, sans clé API.
+  #
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   profiles: ["ollama"]
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama:/root/.ollama
+
+volumes:
+  demo-data:
+  # ollama:

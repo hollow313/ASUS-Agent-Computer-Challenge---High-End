@@ -1,0 +1,14 @@
+From: facturation@fournisseur-exemple.example
+To: boite@example.invalid
+Subject: Facture F-2026-8842 — echeance 05/12/2026
+Date: Fri, 20 Nov 2026 08:12:00 +0100
+Content-Type: text/plain; charset=utf-8
+
+Bonjour,
+
+Veuillez trouver ci-dessous le recapitulatif de la facture F-2026-8842
+d'un montant de 342,00 EUR TTC, echeance le 05/12/2026.
+Le PDF est disponible dans votre espace client.
+
+Cordialement,
+Service facturation

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Veille média — jeu de données d'exemple</title>
+    <link>https://example.invalid/media</link>
+    <description>Flux synthétique utilisé par la démo. Aucune donnée réelle.</description>
+    <item>
+      <title>Une bibliothèque de parsing très répandue patchée en urgence</title>
+      <description>Deux failles de corruption mémoire permettent un déni de service à distance sur les services qui exposent le parseur. Les mainteneurs publient une version corrective et recommandent un redémarrage contrôlé.</description>
+      <link>https://example.invalid/media/parser-patch</link>
+      <pubDate>Fri, 20 Nov 2026 07:45:00 +0100</pubDate>
+    </item>
+    <item>
+      <title>Le marché des courtiers en accès initiaux se structure</title>
+      <description>Enquête sur les places de marché où se revendent des accès VPN d'entreprise, avec des prix corrélés à la taille de la cible et à la présence d'un EDR.</description>
+      <link>https://example.invalid/media/initial-access</link>
+      <pubDate>Thu, 19 Nov 2026 11:20:00 +0100</pubDate>
+    </item>
+    <item>
+      <title>Les modèles locaux rattrapent leur retard sur l'analyse de logs</title>
+      <description>Comparatif de modèles ouverts exécutés sur GPU grand public pour la corrélation d'événements : la latence devient compatible avec une supervision temps réel, à condition de rester sur des fenêtres de contexte courtes.</description>
+      <link>https://example.invalid/media/local-models-logs</link>
+      <pubDate>Wed, 18 Nov 2026 14:05:00 +0100</pubDate>
+    </item>
+  </channel>
+</rss>

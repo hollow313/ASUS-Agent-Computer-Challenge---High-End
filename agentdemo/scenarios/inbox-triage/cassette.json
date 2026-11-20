@@ -1,0 +1,99 @@
+[
+  {
+    "thought": "Cinq messages annoncés par l'objectif. Je liste d'abord pour travailler sur les vrais noms de fichiers, pas sur une supposition.",
+    "tool": "fs_list",
+    "args": {
+      "path": "inbox"
+    }
+  },
+  {
+    "thought": "Je lis les messages un par un, en entier : objet et corps suffisent à décider, mais l'expéditeur et la date pèsent aussi.",
+    "tool": "fs_read",
+    "args": {
+      "path": "inbox/2026-11-19-incident-client.eml"
+    }
+  },
+  {
+    "thought": "Celui-là est le plus urgent de la boîte : production arrêtée, 4000 EUR par heure, demande d'appel avant 9h. Classement : urgent.",
+    "tool": "fs_move",
+    "args": {
+      "dst": "triaged/urgent/2026-11-19-incident-client.eml",
+      "src": "inbox/2026-11-19-incident-client.eml"
+    }
+  },
+  {
+    "tool": "fs_read",
+    "args": {
+      "path": "inbox/2026-11-20-facture.eml"
+    }
+  },
+  {
+    "thought": "Facture avec échéance au 05/12 : administratif, sans urgence aujourd'hui.",
+    "tool": "fs_move",
+    "args": {
+      "dst": "triaged/administratif/2026-11-20-facture.eml",
+      "src": "inbox/2026-11-20-facture.eml"
+    }
+  },
+  {
+    "tool": "fs_read",
+    "args": {
+      "path": "inbox/2026-11-17-reunion.eml"
+    }
+  },
+  {
+    "thought": "Point de suivi interne mardi, avec une demande de confirmation de présence : administratif, action légère.",
+    "tool": "fs_move",
+    "args": {
+      "dst": "triaged/administratif/2026-11-17-reunion.eml",
+      "src": "inbox/2026-11-17-reunion.eml"
+    }
+  },
+  {
+    "tool": "fs_read",
+    "args": {
+      "path": "inbox/2026-11-18-concours.eml"
+    }
+  },
+  {
+    "thought": "Tentative d'hameçonnage classique : gain annoncé, frais à payer, expéditeur jamais vu. Indésirable, aucun traitement à faire.",
+    "tool": "fs_move",
+    "args": {
+      "dst": "triaged/indesirable/2026-11-18-concours.eml",
+      "src": "inbox/2026-11-18-concours.eml"
+    }
+  },
+  {
+    "tool": "fs_read",
+    "args": {
+      "path": "inbox/2026-11-20-newsletter.eml"
+    }
+  },
+  {
+    "thought": "Newsletter avec lien de désabonnement en clair. Je la classe en info : le désabonnement demanderait un accès réseau, désactivé dans cette démo, et je ne vais pas le simuler.",
+    "tool": "fs_move",
+    "args": {
+      "dst": "triaged/info/2026-11-20-newsletter.eml",
+      "src": "inbox/2026-11-20-newsletter.eml"
+    }
+  },
+  {
+    "thought": "Maintenant le rapport : ce qui a été classé où, pourquoi, et surtout les deux actions du jour avec leur coût d'inaction — c'est ça qui rend le tri utile, pas la liste.",
+    "tool": "fs_write",
+    "args": {
+      "path": "rapport-tri.md",
+      "content": "# Rapport de tri — 20/11/2026\n\n5 messages lus, 5 classés, 0 laissé en place.\n\n| Message | Dossier | Raison |\n| --- | --- | --- |\n| incident-client (19/11) | `triaged/urgent/` | production à l'arrêt, 4 000 € / heure annoncés par le client |\n| facture F-2026-8842 (20/11) | `triaged/administratif/` | échéance au 05/12, aucune action immédiate |\n| point de suivi mardi (17/11) | `triaged/administratif/` | interne, demande de confirmation de présence |\n| concours « gagné » (18/11) | `triaged/indesirable/` | gain + frais à payer + expéditeur inconnu = hameçonnage |\n| newsletter produit (20/11) | `triaged/info/` | lecture facultative, désabonnement non exécuté (réseau désactivé) |\n\n## À faire aujourd'hui\n\n1. **Rappeler le client avant 9h.** Coût d'inaction annoncé : 4 000 € par heure d'arrêt soit, sur une journée ouvrée, l'ordre de 32 000 €.\n2. **Confirmer la présence au point de suivi de mardi.** Coût faible mais bloquant : sans confirmation, l'arbitrage budget du trimestre se fait sans l'information.\n\n## Ce que je n'ai pas fait, volontairement\n\n- pas de désabonnement automatique : le lien exige un appel réseau, désactivé par défaut dans cette démo ;\n- aucun message supprimé, tout est déplacé donc réversible.\n"
+    }
+  },
+  {
+    "thought": "Vérification finale : le rapport est sur le disque et les dossiers de destination existent réellement.",
+    "tool": "fs_list",
+    "args": {
+      "path": "triaged"
+    }
+  },
+  {
+    "thought": "Tri complet, rapport écrit, dossiers créés par les déplacements eux-mêmes. Objectif atteint.",
+    "final": "5 messages classés dans 4 dossiers, rapport-tri.md écrit, deux actions du jour identifiées avec leur coût. Aucune suppression : tout est réversible."
+  }
+]

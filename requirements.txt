@@ -1,0 +1,2 @@
+# Aucune dépendance : ce projet n'utilise que la bibliothèque standard de Python (3.10+).
+# Le fichier est présent uniquement pour que les outils qui en attendent un ne bloquent pas.

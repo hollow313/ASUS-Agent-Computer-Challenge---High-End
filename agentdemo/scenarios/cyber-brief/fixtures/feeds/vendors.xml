@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Éditeurs — jeu de données d'exemple</title>
+    <link>https://example.invalid/vendors</link>
+    <description>Flux synthétique utilisé par la démo. Aucune donnée réelle.</description>
+    <item>
+      <title>Correctif hors cycle pour un hyperviseur : redémarrage requis</title>
+      <description>Le correctif ferme une élévation de privilèges locale exploitée après compromission d'une machine virtuelle. Les hôtes non redémarrés restent vulnérables ; la fenêtre de maintenance doit être planifiée.</description>
+      <link>https://example.invalid/vendors/hypervisor</link>
+      <pubDate>Fri, 20 Nov 2026 06:15:00 +0100</pubDate>
+    </item>
+    <item>
+      <title>Fin de support annoncée pour une gamme de pare-feu encore déployée</title>
+      <description>Les modèles concernés ne recevront plus de correctifs de sécurité à partir de mars 2027. Un inventaire des parcs concernés est recommandé dès maintenant.</description>
+      <link>https://example.invalid/vendors/eol-firewall</link>
+      <pubDate>Tue, 17 Nov 2026 10:00:00 +0100</pubDate>
+    </item>
+    <item>
+      <title>Durcissement des valeurs par défaut dans un agent de télémétrie</title>
+      <description>Le service passe en écoute locale par défaut et exige une authentification pour l'exposition réseau. Les déploiements existants conservent l'ancien comportement tant que la configuration n'est pas migrée.</description>
+      <link>https://example.invalid/vendors/telemetry-hardening</link>
+      <pubDate>Mon, 16 Nov 2026 08:40:00 +0100</pubDate>
+    </item>
+  </channel>
+</rss>

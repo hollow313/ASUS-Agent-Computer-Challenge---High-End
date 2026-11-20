@@ -1,0 +1,8 @@
+{
+  "slug": "dataset-report",
+  "title": "CSV → analyse + graphique + note",
+  "blurb": "Un fichier de ventes à profiler, un graphique SVG généré, une note de synthèse avec une recommandation.",
+  "objective": "Analyse le fichier ventes-2026-T3.csv, calcule les indicateurs utiles, génère un graphique en barres du chiffre d'affaires par région dans graphique.svg, puis écris synthese.md : trois constats chiffrés et une recommandation opérationnelle.",
+  "max_steps": 8,
+  "tags": ["data", "SVG", "synthèse"]
+}

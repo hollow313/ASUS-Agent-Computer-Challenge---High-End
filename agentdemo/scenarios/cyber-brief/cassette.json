@@ -1,0 +1,32 @@
+[
+  {
+    "thought": "Objectif lisible : un briefing daté à partir des flux du dossier feeds. Je commence par inventaire, pas par lecture : je veux savoir combien de sources existent avant de consommer du budget.",
+    "tool": "fs_list",
+    "args": { "path": "feeds" }
+  },
+  {
+    "thought": "Trois flux. Plutôt que de lire chaque XML en brut, rss_rank fait le parsing et me renvoie les entrées classées par densité d'information : une seule étape au lieu de quatre.",
+    "tool": "rss_rank",
+    "args": {
+      "paths": ["feeds/cert.xml", "feeds/media.xml", "feeds/vendors.xml"],
+      "top_n": 6
+    }
+  },
+  {
+    "thought": "Neuf entrées, j'en retiens cinq : les trois avis exploitables en production, le correctif hyperviseur qui impose une fenêtre de maintenance, et la fin de support qui demande un inventaire. La loi du marché des accès initiaux est intéressante mais ne change aucune action aujourd'hui, je l'écarte du haut de briefing.",
+    "tool": "fs_write",
+    "args": {
+      "path": "briefing.md",
+      "content": "# Briefing cyber — 20/11/2026\n\n5 entrées · sources : CERT, éditeurs, veille média · généré par l'agent\n\n## 🔴 Exploitation active\n\n**Passerelle VPN : exécution de code à distance sans authentification**\nAvis 2026-041, versions 9.x concernées, exploitation observée en conditions réelles depuis 72 h. Enjeu analyste : c'est le seul item avec exploitation active — l'interface d'administration exposée est le point à vérifier avant midi, et les indicateurs fournis par l'éditeur doivent entrer dans la chasse.\n\n**Rançongiciel : exfiltration des sauvegardes avant chiffrement**\nLe vecteur initial reste le service de sauvegarde exposé sur Internet ; la négociation se fait désormais sur deux fronts (chiffrement et fuite). Enjeu analyste : vérifier la segmentation du plan de sauvegarde, un service joignable depuis l'extérieur est une cible déjà qualifiée.\n\n## 🟠 À planifier\n\n**Hyperviseur : correctif hors cycle, redémarrage obligatoire**\nÉlévation de privilèges locale après compromission d'une VM. Enjeu analyste : les hôtes non redémarrés restent vulnérables — à caler sur la prochaine fenêtre de maintenance, pas en urgence.\n\n**SSO : contournement d'authentification sur les déploiements multi-tenant**\nDéfaut de validation de jeton, pas d'exploitation publique connue. Enjeu analyste : impact réel seulement si plusieurs tenants partagent l'instance ; à confirmer côté architecture avant de remonter en incident.\n\n## 🟡 Veille\n\n**Pare-feu en fin de support en mars 2027**\nEnjeu analyste : la fenêtre utile n'est pas le patch mais l'inventaire — commencer à recenser les parcs concernés pendant qu'il reste du temps.\n\n---\n\n*Demo générée à partir de flux d'exemple. Aucune donnée réelle.*\n"
+    }
+  },
+  {
+    "thought": "Un livrable annoncé non relu n'est pas un livrable. Je vérifie ce qui est réellement sur le disque, taille et en-tête.",
+    "tool": "fs_read",
+    "args": { "path": "briefing.md", "max_chars": 700 }
+  },
+  {
+    "thought": "Briefing écrit et vérifié : 5 entrées, daté, avec le fait puis l'enjeu. Objectif atteint.",
+    "final": "briefing.md écrit (5 entrées datées, hiérarchisées par criticité) à partir des 3 flux. Livrable prêt à être envoyé tel quel."
+  }
+]

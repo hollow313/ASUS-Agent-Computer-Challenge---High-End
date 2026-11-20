@@ -1,0 +1,8 @@
+{
+  "slug": "cyber-brief",
+  "title": "Veille cyber → briefing daté",
+  "blurb": "Trois flux RSS à agréger, hiérarchiser et transformer en briefing markdown prêt à envoyer.",
+  "objective": "Agrège les trois flux du dossier feeds, hiérarchise les entrées par gravité et densité d'information, puis rédige un briefing daté de 5 entrées maximum en français. Chaque entrée doit tenir en deux lignes : le fait, puis l'enjeu pour l'analyste. Écris le résultat dans briefing.md.",
+  "max_steps": 8,
+  "tags": ["RSS", "synthèse", "livrable markdown"]
+}

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Computer — démo agentique</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-2: #171c27;
+    --line: #232a38;
+    --text: #e6ebf5;
+    --muted: #8a94a8;
+    --accent: #5b8cff;
+    --ok: #3ecf8e;
+    --warn: #f5a524;
+    --err: #ff6b6b;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    padding: 22px 28px 18px; border-bottom: 1px solid var(--line);
+  }
+  header h1 { font-size: 17px; margin: 0; letter-spacing: .14em; text-transform: uppercase; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  .badge {
+    margin-left: auto; font: 11px/1 var(--mono); letter-spacing: .08em;
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 11px; color: var(--muted);
+  }
+  .badge.live { color: var(--ok); border-color: #1f4a3a; }
+  main { display: grid; grid-template-columns: 340px minmax(0, 1fr); min-height: calc(100vh - 70px); }
+  aside { border-right: 1px solid var(--line); padding: 20px; }
+  section.console { padding: 20px 24px 40px; overflow-x: hidden; }
+  h2 { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  .scenario {
+    border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; margin-bottom: 8px;
+    cursor: pointer; background: var(--panel); transition: border-color .12s, background .12s;
+  }
+  .scenario:hover { border-color: #2f3a4d; }
+  .scenario[aria-pressed="true"] { border-color: var(--accent); background: #141b2b; }
+  .scenario strong { display: block; font-size: 14px; margin-bottom: 3px; }
+  .scenario span { color: var(--muted); font-size: 12.5px; }
+  .scenario em { display: block; margin-top: 6px; font: 10.5px/1 var(--mono); color: #6f7a90; font-style: normal; }
+  textarea {
+    width: 100%; min-height: 122px; resize: vertical; background: var(--panel); color: var(--text);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px; font: 12.5px/1.5 var(--mono);
+  }
+  .modes { display: flex; gap: 6px; margin: 10px 0 14px; }
+  .modes button {
+    flex: 1; padding: 8px 0; font: 11.5px/1 var(--mono); letter-spacing: .05em; cursor: pointer;
+    background: var(--panel); color: var(--muted); border: 1px solid var(--line); border-radius: 8px;
+  }
+  .modes button[aria-pressed="true"] { color: var(--text); border-color: var(--accent); background: #141b2b; }
+  #run {
+    width: 100%; padding: 12px; border: 0; border-radius: 10px; cursor: pointer;
+    background: var(--accent); color: #080b12; font-weight: 650; font-size: 14px;
+  }
+  #run:disabled { opacity: .45; cursor: progress; }
+  .hint { color: #6f7a90; font-size: 11.5px; margin: 12px 0 0; font-family: var(--mono); }
+  .status { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font: 12px/1 var(--mono); color: var(--muted); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.running { background: var(--accent); animation: pulse 1.1s infinite; }
+  .dot.done { background: var(--ok); }
+  .dot.failed, .dot.budget { background: var(--err); }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .objective { border-left: 2px solid var(--accent); padding: 2px 0 2px 12px; color: #c3cbdb; font-size: 13.5px; margin-bottom: 18px; }
+  .step { border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 11px 13px; margin-bottom: 9px; }
+  .step.err { border-color: #4a2530; }
+  .step .head { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+  .step .idx { font: 11px/1 var(--mono); color: #6f7a90; }
+  .step .tool {
+    font: 11.5px/1 var(--mono); padding: 5px 8px; border-radius: 6px;
+    background: #1a2438; color: #9dbcff; border: 1px solid #24314a;
+  }
+  .step .tool.final { background: #14261f; color: #7fe0b0; border-color: #1f4a3a; }
+  .step .ms { margin-left: auto; font: 10.5px/1 var(--mono); color: #5e6675; }
+  .step .thought { color: #d5dcea; font-size: 13.5px; }
+  details { margin-top: 7px; }
+  summary { cursor: pointer; color: #7f8ba1; font: 11px/1.6 var(--mono); }
+  pre {
+    margin: 6px 0 0; background: #0d1119; border: 1px solid var(--line); border-radius: 8px;
+    padding: 10px; font: 11.5px/1.55 var(--mono); color: #b7c0d0; white-space: pre-wrap;
+    word-break: break-word; max-height: 320px; overflow: auto;
+  }
+  .result { border: 1px solid #1f4a3a; background: #10201a; border-radius: 10px; padding: 13px; margin-top: 14px; }
+  .result strong { color: var(--ok); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; }
+  .result p { margin: 7px 0 0; font-size: 13.5px; }
+  .artifacts { margin-top: 16px; }
+  .artifacts a {
+    display: flex; justify-content: space-between; gap: 10px; text-decoration: none; color: #9dbcff;
+    border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; margin-bottom: 6px; font: 12.5px/1 var(--mono);
+  }
+  .artifacts a:hover { border-color: #2f3a4d; background: var(--panel-2); }
+  .artifacts a span { color: #5e6675; }
+  .empty { color: #5e6675; font: 12.5px/1.6 var(--mono); }
+  .thumb { width: 100%; max-width: 660px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; display: block; }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; }
+    aside { border-right: 0; border-bottom: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Agent Computer</h1>
+  <p>objectif → planification → outils → vérification → livrable</p>
+  <span class="badge" id="modeBadge">MODE REPLAY · DÉTERMINISTE</span>
+</header>
+
+<main>
+  <aside>
+    <h2>Scénarios</h2>
+    <div id="scenarios"></div>
+
+    <h2 style="margin-top:22px">Objectif</h2>
+    <textarea id="objective" spellcheck="false"></textarea>
+
+    <div class="modes">
+      <button id="modeReplay" aria-pressed="true">replay</button>
+      <button id="modeLive" aria-pressed="false">live (modèle)</button>
+    </div>
+
+    <button id="run">Lancer l'agent</button>
+    <p class="hint">Le mode replay rejoue des décisions enregistrées : aucune clé, aucun réseau,
+    mais les outils s'exécutent pour de vrai et écrivent dans le bac à sable du run.</p>
+  </aside>
+
+  <section class="console">
+    <div class="status">
+      <span class="dot" id="dot"></span>
+      <span id="statusText">prêt — choisis un scénario</span>
+    </div>
+    <div class="objective" id="objectiveView">—</div>
+    <div id="steps"><p class="empty">Lance un scénario pour voir la trace d'exécution.</p></div>
+    <div id="result"></div>
+    <div class="artifacts" id="artifacts"></div>
+  </section>
+</main>
+
+<script>
+const state = { scenarios: [], current: null, mode: "replay", runId: null, polling: null };
+
+const $ = (id) => document.getElementById(id);
+
+async function loadScenarios() {
+  const res = await fetch("/api/scenarios");
+  const data = await res.json();
+  state.scenarios = data.scenarios;
+  const box = $("scenarios");
+  box.innerHTML = "";
+  data.scenarios.forEach((s, i) => {
+    const el = document.createElement("div");
+    el.className = "scenario";
+    el.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    el.innerHTML = `<strong>${s.title}</strong><span>${s.blurb}</span><em>${s.tags.join(" · ")} · ${s.steps} étapes</em>`;
+    el.onclick = () => selectScenario(s, el);
+    box.appendChild(el);
+    if (i === 0) selectScenario(s, el);
+  });
+}
+
+function selectScenario(s, el) {
+  state.current = s;
+  document.querySelectorAll(".scenario").forEach((n) => n.setAttribute("aria-pressed", "false"));
+  el.setAttribute("aria-pressed", "true");
+  $("objective").value = s.objective;
+  $("objectiveView").textContent = s.objective;
+}
+
+function setMode(mode) {
+  state.mode = mode;
+  $("modeReplay").setAttribute("aria-pressed", mode === "replay");
+  $("modeLive").setAttribute("aria-pressed", mode === "live");
+  $("modeBadge").textContent = mode === "replay" ? "MODE REPLAY · DÉTERMINISTE" : "MODE LIVE · MODÈLE LOCAL";
+  $("modeBadge").classList.toggle("live", mode === "live");
+}
+
+function escapeHtml(text) {
+  return String(text ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+}
+
+function renderSteps(run) {
+  const box = $("steps");
+  if (!run.steps.length) {
+    box.innerHTML = '<p class="empty">L\'agent démarre…</p>';
+    return;
+  }
+  box.innerHTML = run.steps.map((step) => {
+    const final = !step.tool;
+    const args = Object.keys(step.args || {}).length
+      ? `<details><summary>arguments</summary><pre>${escapeHtml(JSON.stringify(step.args, null, 2))}</pre></details>` : "";
+    return `<div class="step${step.error ? " err" : ""}">
+      <div class="head">
+        <span class="idx">${String(step.index).padStart(2, "0")}</span>
+        <span class="tool${final ? " final" : ""}">${escapeHtml(step.tool || "final")}</span>
+        <span class="ms">${step.duration_ms} ms</span>
+      </div>
+      <div class="thought">${escapeHtml(step.thought)}</div>
+      ${args}
+      <details><summary>observation</summary><pre>${escapeHtml(step.observation)}</pre></details>
+    </div>`;
+  }).join("");
+}
+
+function renderResult(run) {
+  $("result").innerHTML = run.summary
+    ? `<div class="result"><strong>bilan</strong><p>${escapeHtml(run.summary)}</p></div>` : "";
+  const thumbs = run.artifacts.filter((n) => n.endsWith(".svg")).map((n) =>
+    `<img class="thumb" alt="aperçu ${escapeHtml(n)}" src="/api/artifacts/${run.run_id}/${encodeURI(n)}">`).join("");
+  $("artifacts").innerHTML = run.artifacts.length
+    ? `<h2>Livrables</h2>` + thumbs + run.artifacts.map((name) =>
+        `<a href="/api/artifacts/${run.run_id}/${encodeURI(name)}" target="_blank">
+           <code>${escapeHtml(name)}</code><span>ouvrir ↗</span></a>`).join("")
+    : "";
+}
+
+async function poll() {
+  const res = await fetch(`/api/runs/${state.runId}`);
+  const run = await res.json();
+  renderSteps(run);
+  renderResult(run);
+  const dot = $("dot");
+  dot.className = "dot " + run.status;
+  $("statusText").textContent = `${run.status} · ${run.steps.length} étapes · ${run.mode} · ${run.title}`;
+  if (run.status !== "running") {
+    clearInterval(state.polling);
+    state.polling = null;
+    $("run").disabled = false;
+  }
+}
+
+async function launch() {
+  if (!state.current) return;
+  $("run").disabled = true;
+  $("steps").innerHTML = '<p class="empty">L\'agent démarre…</p>';
+  $("result").innerHTML = "";
+  $("artifacts").innerHTML = "";
+  $("objectiveView").textContent = $("objective").value;
+  const res = await fetch("/api/run", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scenario: state.current.slug, mode: state.mode, objective: $("objective").value }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    $("statusText").textContent = "erreur : " + (data.error || res.status);
+    $("run").disabled = false;
+    return;
+  }
+  state.runId = data.run_id;
+  state.polling = setInterval(poll, 400);
+  poll();
+}
+
+$("run").onclick = launch;
+$("modeReplay").onclick = () => setMode("replay");
+$("modeLive").onclick = () => setMode("live");
+loadScenarios();
+</script>
+</body>
+</html>
