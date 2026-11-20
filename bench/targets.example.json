@@ -9,7 +9,7 @@
     },
     {
       "name": "lmstudio-local",
-      "base_url": "http://192.168.1.13:1234/v1",
+      "base_url": "http://IP-DE-LA-MACHINE:1234/v1",
       "model": "llama3.1-8b",
       "label": "local"
     },

@@ -153,7 +153,7 @@
 
     <div class="livecfg" id="liveConfig" hidden>
       <label>endpoint compatible OpenAI <span class="opt">(terminer par /v1)</span>
-        <input id="llmBase" placeholder="http://192.168.1.13:1234/v1" spellcheck="false" autocomplete="off">
+        <input id="llmBase" placeholder="http://IP-DE-LA-MACHINE:1234/v1" spellcheck="false" autocomplete="off">
       </label>
       <label>modèle
         <input id="llmModel" placeholder="llama-3.1-8b" list="modelList" spellcheck="false" autocomplete="off">
@@ -163,7 +163,7 @@
         <input id="llmKey" type="password" placeholder="—" autocomplete="off">
       </label>
       <div class="presets">
-        <button type="button" data-base="http://192.168.1.13:1234/v1" data-model="llama-3.1-8b">LM Studio</button>
+        <button type="button" data-base="http://IP-DE-LA-MACHINE:1234/v1" data-model="llama-3.1-8b">LM Studio</button>
         <button type="button" data-base="http://localhost:11434/v1" data-model="qwen2.5-coder:7b">Ollama</button>
         <button type="button" data-base="https://api.deepseek.com/v1" data-model="deepseek-chat">DeepSeek</button>
         <button type="button" data-base="https://generativelanguage.googleapis.com/v1beta/openai" data-model="gemini-2.5-flash">Gemini</button>

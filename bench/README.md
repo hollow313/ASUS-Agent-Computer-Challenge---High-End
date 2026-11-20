@@ -22,7 +22,7 @@ ollama pull qwen2.5-coder:7b
 python3 bench/bench.py --target "ollama-local=http://localhost:11434/v1|qwen2.5-coder:7b"
 ```
 
-LM Studio : `--target "lmstudio=http://192.168.1.13:1234/v1|llama-3.1-8b"`.
+LM Studio : `--target "lmstudio=http://IP-DE-LA-MACHINE:1234/v1|llama-3.1-8b"`.
 
 ### 2. Comparer local et cloud dans le même run
 
