@@ -19,7 +19,7 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .agent import Agent, Step
-from .planners import OpenAICompatPlanner, ReplayPlanner
+from .planners import OpenAICompatPlanner, ReplayPlanner, normalize_base_url
 from .scenarios_loader import get_scenario, list_scenarios
 from .skills import SkillStore
 from .tools import build_registry
@@ -204,7 +204,7 @@ def make_handler(store: RunStore):
 
         def _probe_models(self, query: dict[str, list[str]]) -> None:
             """Interroge {base_url}/models pour vérifier un endpoint local ou distant."""
-            base_url = (query.get("base_url") or [""])[0].strip().rstrip("/")
+            base_url = normalize_base_url((query.get("base_url") or [""])[0])
             api_key = (query.get("api_key") or [""])[0].strip()
             if not base_url.startswith(("http://", "https://")):
                 return self._send_json({"error": "endpoint invalide : http(s) attendu"}, status=400)
@@ -220,7 +220,8 @@ def make_handler(store: RunStore):
                     {"error": f"endpoint injoignable : {str(exc)[:160]}"}, status=502
                 )
             models = [m.get("id", "?") for m in payload.get("data", [])][:40]
-            return self._send_json({"ok": True, "base_url": base_url, "models": models})
+            hint = "" if models else " — charge un modèle dans LM Studio, ou vérifie le suffixe /v1"
+            return self._send_json({"ok": True, "base_url": base_url, "models": models, "hint": hint})
 
         # ---------- helpers ----------
         def _send_json(self, payload: dict[str, Any], status: int = 200) -> None:

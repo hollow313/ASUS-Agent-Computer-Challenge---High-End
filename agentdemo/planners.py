@@ -19,6 +19,23 @@ import urllib.request
 from typing import Any, Protocol
 
 
+def normalize_base_url(url: str) -> str:
+    """Complète un endpoint nu (`http://hote:port`) en `…/v1`.
+
+    LM Studio, Ollama et vLLM exposent l'API compatible OpenAI sous `/v1`. Sans ce
+    suffixe, le serveur répond « endpoint inconnu » avec un 200 sans `choices`,
+    ce qui ressemble à une panne de modèle alors que c'est juste une URL courte.
+    """
+    cleaned = (url or "").strip().rstrip("/")
+    if not cleaned:
+        return cleaned
+    without_scheme = cleaned.split("://", 1)[-1]
+    path = without_scheme.split("/", 1)[1] if "/" in without_scheme else ""
+    if path:
+        return cleaned
+    return f"{cleaned}/v1"
+
+
 class Planner(Protocol):
     label: str
 
@@ -52,7 +69,8 @@ class OpenAICompatPlanner:
         tools: dict[str, Any] | None = None,
         timeout: int = 120,
     ) -> None:
-        self.base_url = (base_url or os.environ.get("AGENTDEMO_LLM_BASE_URL", "http://localhost:11434/v1")).rstrip("/")
+        raw_base = base_url or os.environ.get("AGENTDEMO_LLM_BASE_URL", "http://localhost:11434/v1")
+        self.base_url = normalize_base_url(raw_base)
         self.model = model or os.environ.get("AGENTDEMO_LLM_MODEL", "qwen2.5-coder:7b")
         self.api_key = api_key or os.environ.get("AGENTDEMO_LLM_API_KEY", "")
         self.timeout = timeout
@@ -102,6 +120,12 @@ class OpenAICompatPlanner:
                 body = json.loads(response.read().decode())
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
             raise RuntimeError(f"appel modèle impossible ({self.base_url}) : {exc}") from exc
+        if "choices" not in body:
+            excerpt = json.dumps(body, ensure_ascii=False)[:300]
+            raise RuntimeError(
+                f"réponse inattendue de {self.base_url} (pas de 'choices') : {excerpt} — "
+                "vérifie que l'endpoint est bien l'API compatible OpenAI, en général …/v1"
+            )
         text = body["choices"][0]["message"]["content"]
         action = _extract_json(text)
         if action is None:

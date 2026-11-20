@@ -146,7 +146,7 @@
     </div>
 
     <div class="livecfg" id="liveConfig" hidden>
-      <label>endpoint compatible OpenAI
+      <label>endpoint compatible OpenAI <span class="opt">(terminer par /v1)</span>
         <input id="llmBase" placeholder="http://192.168.1.13:1234/v1" spellcheck="false" autocomplete="off">
       </label>
       <label>modèle
@@ -244,7 +244,11 @@ async function checkModels() {
     if (!res.ok) { box.className = "llmstatus err"; box.textContent = data.error || ("erreur " + res.status); return; }
     const list = $("modelList");
     list.innerHTML = data.models.map((m) => `<option value="${escapeHtml(m)}"></option>`).join("");
-    if (!data.models.length) { box.className = "llmstatus err"; box.textContent = "endpoint joignable, aucun modèle chargé"; return; }
+    if (!data.models.length) {
+      box.className = "llmstatus err";
+      box.textContent = "endpoint joignable, aucun modèle chargé" + (data.hint ? data.hint : "");
+      return;
+    }
     box.className = "llmstatus ok";
     box.textContent = `${data.models.length} modèle${data.models.length > 1 ? "s" : ""} : ${data.models.slice(0, 4).join(", ")}`;
     if (!$("llmModel").value) $("llmModel").value = data.models[0];
