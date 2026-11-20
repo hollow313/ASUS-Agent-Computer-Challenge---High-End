@@ -321,7 +321,7 @@ My current limit is compute: **3 GB of VRAM**, so 3-4 B models in aggressive qua
 near-systematic fallback to the cloud as soon as reasoning is needed. Consequences: cost per
 token, network dependency, and no way to process sensitive documents locally.
 
-| Today (3 GB) | With 16 GB |
+| Today (3 GB) | With 32 GB |
 | --- | --- |
 | 7-8 B in Q4, 60 to 90 % success | 14 B to 32 B in Q4/Q5, usable context |
 | anything sensitive goes to the cloud | monitoring and mail triage processed offline |
