@@ -135,7 +135,7 @@ whim, it is a sizing decision you can verify.
 
 | Video | Length | What it shows |
 | --- | --- | --- |
-| [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4) | 2 min 25 | the whole project: the 3 GB ceiling, the five scenarios, procedural memory, delegation, routing, scheduling, the measurements and the card sizing |
+| [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4) | 2 min 35 | the whole project: the 3 GB ceiling, the five scenarios, procedural memory, delegation, routing, scheduling, the measurements and the card sizing |
 | [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4) | 64 s | the agentic loop in action, from objective to deliverable |
 
 The first is the guided tour: nine slides, a continuous voice-over, the real screenshots of the

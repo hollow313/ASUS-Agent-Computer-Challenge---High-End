@@ -141,7 +141,7 @@ un caprice, c'est un dimensionnement vérifiable.
 
 | Vidéo | Durée | Ce qu'elle montre |
 | --- | --- | --- |
-| [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4) | 2 min 25 | le projet complet : la limite des 3 Go, les cinq scénarios, la mémoire procédurale, la délégation, le routage, le planning, les mesures et le dimensionnement de la carte |
+| [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4) | 2 min 35 | le projet complet : la limite des 3 Go, les six scénarios, la mémoire procédurale, la délégation, le routage, le planning, les runs réels avec leur audit incomplet, les mesures et le dimensionnement de la carte |
 | [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4) | 64 s | la boucle agentique en action, du scénario au livrable |
 
 La première est la visite guidée : neuf cartons, une voix off continue, les captures réelles du

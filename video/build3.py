@@ -17,7 +17,7 @@ SLIDES_DIR = Path("/data/agent-computer-challenge/video/slides3")
 OUT_DIR = Path("/data/agent-computer-challenge/video/build3")
 DEST = Path(__file__).resolve().parent.parent / "docs" / "video" / "agent-computer-presentation.mp4"
 
-PADDING = 0.5  # respiration après chaque phrase
+PADDING = 0.0  # pas de respiration : la durée cible est de deux minutes trente
 SEGMENTS = [
     ("01-titre", "vigie-seg01.mp3"),
     ("02-limite", "vigie-seg02.mp3"),
@@ -26,6 +26,7 @@ SEGMENTS = [
     ("05-delegation", "vigie-seg05.mp3"),
     ("06-routage", "vigie-seg06.mp3"),
     ("07-exploitation", "vigie-seg07.mp3"),
+    ("08-runs-audit", "vigie-seg08b.mp3"),
     ("08-chiffres", "vigie-seg08.mp3"),
     ("09-fin", "vigie-seg09.mp3"),
 ]
@@ -71,7 +72,7 @@ def main() -> None:
         audio_lines.append(f"file '{track}'")
 
     concat_file = OUT_DIR / "video.txt"
-    concat_file.write_text("\n".join(concat_lines + [f"file '{OUT_DIR / 'seg09.mp4'}'"]) + "\n", encoding="utf-8")
+    concat_file.write_text("\n".join(concat_lines + [f"file '{OUT_DIR / ('seg%02d.mp4' % len(SEGMENTS))}'"]) + "\n", encoding="utf-8")
     audio_file = OUT_DIR / "audio.txt"
     audio_file.write_text("\n".join(audio_lines) + "\n", encoding="utf-8")
 

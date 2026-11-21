@@ -153,6 +153,22 @@ SLIDES["08-chiffres"] = base(
 """
 )
 
+SLIDES["08-runs-audit"] = base(
+    """
+  <div class=kicker>Runs réels, pas seulement des rejeux</div>
+  <h1>Trois traces, dont un rapport incomplet</h1>
+  <table>
+    <tr><th>scénario</th><th>modèle</th><th>statut</th><th>étapes</th><th>durée</th></tr>
+    <tr><td>cyber-brief</td><td>Qwen 7B</td><td class=ok>done</td><td>4</td><td>9 s</td></tr>
+    <tr><td>cyber-brief</td><td>Qwen 8B vision</td><td class=ok>done</td><td>7</td><td>136 s</td></tr>
+    <tr><td>local-audit</td><td>Qwen 7B</td><td class=warn>rapport incomplet</td><td>7</td><td>32 s</td></tr>
+  </table>
+  <p style="margin-top:20px">L'audit en réel rate deux ports exposés et ne met pas de sévérité.
+  La trace est versionnée telle quelle, avec son journal complet.</p>
+  <div class=foot>docs/runs/ · journal.json, transcript.md, meta.json · aucun run nettoyé</div>
+"""
+)
+
 SLIDES["09-fin"] = base(
     """
   <div class=kicker>Ce que la carte change</div>
