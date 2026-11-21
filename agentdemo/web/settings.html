@@ -107,6 +107,22 @@
   </section>
 
   <section>
+    <h2>Outils et diagnostic</h2>
+    <p class="hint" style="margin-top:0">Un outil est un dossier avec un manifeste et une empreinte
+    sha256. L'installation vérifie l'empreinte, copie dans le dossier de données, journalise le
+    refus éventuel. Aucun paquet n'est téléchargé.</p>
+    <table>
+      <thead><tr><th>outil</th><th>description</th><th>état</th><th></th></tr></thead>
+      <tbody id="toolRows"></tbody>
+    </table>
+    <div class="bar" style="margin-top:14px">
+      <button id="runDoctor">lancer le diagnostic</button>
+      <span class="hint" id="doctorSummary"></span>
+    </div>
+    <div id="doctorRows"></div>
+  </section>
+
+  <section>
     <h2>Serveurs MCP</h2>
     <p class="hint" style="margin-top:0">Le catalogue embarqué décrit des serveurs connus. « ajouter » écrit la
     configuration, rien n'est installé ni téléchargé ici : la commande est celle que le client lancera.</p>
@@ -189,6 +205,17 @@ function render() {
   $("mailStatus").className = "status " + (s.mail.configured ? "ok" : "");
   $("mailPassword").placeholder = s.mail.has_key ? "•••••••• (inchangé)" : "mot de passe IMAP";
 
+  const tools = state.tools || [];
+  $("toolRows").innerHTML = tools.map((tool) => `
+    <tr>
+      <td>${esc(tool.name)} <span class="hint">${esc(tool.version)}</span></td>
+      <td>${esc(tool.description)}</td>
+      <td><span class="tag ${tool.installed ? "ok" : "off"}">${tool.installed ? "installé" : "au catalogue"}</span></td>
+      <td>${tool.installed
+        ? `<button class="mini danger" data-tool-remove="${esc(tool.name)}">retirer</button>`
+        : `<button class="mini" data-tool-install="${esc(tool.name)}">installer</button>`}</td>
+    </tr>`).join("") || '<tr><td colspan="4" class="hint">catalogue vide</td></tr>';
+
   const servers = s.mcp_servers || [];
   $("mcpRows").innerHTML = servers.map((srv, i) => `
     <tr>
@@ -235,6 +262,23 @@ function render() {
 
 let catalog = [];
 
+async function loadTools() {
+  const res = await fetch("/api/tools");
+  const data = await res.json().catch(() => ({}));
+  state.tools = data.catalog || [];
+}
+
+async function toolAction(path, name) {
+  const res = await fetch(path, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, approved: true }),
+  });
+  const data = await res.json().catch(() => ({}));
+  setStatus(res.ok ? `${name} : ${path.endsWith("install") ? "installé" : "retiré"}` : (data.error || "refusé"),
+            res.ok ? "ok" : "err");
+  await load();
+}
+
 async function loadCatalog() {
   const res = await fetch("/api/mcp/catalog");
   catalog = (await res.json()).servers || [];
@@ -260,6 +304,7 @@ async function load() {
   const res = await fetch("/api/settings");
   const data = await res.json();
   state = { settings: data.settings, scenarios: data.scenarios };
+  await loadTools();
   render();
   if (!catalog.length) loadCatalog();
 }
@@ -303,6 +348,8 @@ document.addEventListener("input", (event) => {
 
 document.addEventListener("click", async (event) => {
   const el = event.target;
+  if (el.dataset.toolInstall) { await toolAction("/api/tools/install", el.dataset.toolInstall); return; }
+  if (el.dataset.toolRemove) { await toolAction("/api/tools/remove", el.dataset.toolRemove); return; }
   if (el.dataset.mcpAdd) {
     const entry = catalog.find((srv) => srv.name === el.dataset.mcpAdd);
     if (!entry) return;
@@ -356,6 +403,18 @@ $("addJob").onclick = () => {
     last_status: "",
   });
   render();
+};
+
+$("runDoctor").onclick = async () => {
+  $("doctorSummary").textContent = "diagnostic en cours…";
+  const res = await fetch("/api/doctor");
+  const data = await res.json().catch(() => ({}));
+  const checks = data.checks || [];
+  const bad = checks.filter((c) => c.status === "fail").length;
+  $("doctorSummary").textContent = `${checks.length} contrôles, ${bad} bloquant(s)`;
+  $("doctorRows").innerHTML = checks.map((c) => `
+    <p class="hint" style="margin:4px 0"><span class="tag ${c.status === "ok" ? "ok" : (c.status === "warn" ? "off" : "err")}">${esc(c.status)}</span>
+    ${esc(c.name)} · ${esc(c.detail)}</p>`).join("");
 };
 
 $("mcpCatalogToggle").onclick = () => {

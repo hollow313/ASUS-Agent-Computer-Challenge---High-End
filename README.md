@@ -356,7 +356,8 @@ scénario, c'est une mauvaise interface.
 | son dossier d'entrée | champ + bouton de vérification | `--input-dir` |
 | ses flux RSS | champ propre au scénario | même chose par `scenario.json` |
 | configurer un serveur MCP | section **Serveurs MCP** dans `/settings` | `agentdemo mcp-servers add/list/remove` |
-| installer un outil du catalogue | `tool list/install/remove` | idem |
+| installer un outil du catalogue | section **Outils** dans `/settings` | `agentdemo tool install <nom>` |
+| vérifier l'installation | bouton **diagnostic** | `agentdemo doctor` |
 | choisir le modèle | page `/routing` | `agentdemo route` |
 | planifier un scénario | `/settings` | `settings.json` |
 

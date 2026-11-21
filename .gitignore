@@ -8,3 +8,6 @@ venv/
 *.log
 bench/reports/
 bench/targets.json
+
+# entrées de démonstration : exemples versionnés, pas des journaux
+!demo/inputs/**/*.log

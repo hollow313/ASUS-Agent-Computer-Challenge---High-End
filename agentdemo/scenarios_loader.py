@@ -122,6 +122,7 @@ class Scenario:
             "objective": self.objective,
             "tags": self.tags,
             "steps": len(self.cassette()),
+            "max_steps": self.max_steps,
             "passes": self.pass_labels(),
             "has_cassette": self.has_cassette(),
             "network": self.network,

@@ -226,6 +226,35 @@ def make_handler(store: RunStore):
                 return self._send_json({"ok": True})
             if path == "/api/scenarios":
                 return self._send_json({"scenarios": [sc.as_summary() for sc in list_scenarios()]})
+            if path == "/api/tools":
+                from .toolcatalog import CATALOG_DIR, installed
+
+                present = {str(item.get("name")) for item in installed(store.data_dir)}
+                items = []
+                for folder in sorted(CATALOG_DIR.glob("*/manifest.json")):
+                    try:
+                        data = json.loads(folder.read_text(encoding="utf-8"))
+                    except json.JSONDecodeError:
+                        continue
+                    name = str(data.get("name") or folder.parent.name)
+                    items.append({
+                        "name": name,
+                        "description": str(data.get("description") or ""),
+                        "version": str(data.get("version") or ""),
+                        "installed": name in present,
+                    })
+                return self._send_json({"catalog": items, "installed": sorted(present)})
+            if path == "/api/doctor":
+                from .doctor import run_checks
+
+                checks = run_checks(store.data_dir)
+                return self._send_json({
+                    "checks": [
+                        {"name": c.name, "status": c.status, "detail": c.detail, "required": c.required}
+                        for c in checks
+                    ],
+                    "blocking": [c.name for c in checks if c.required and c.status == "fail"],
+                })
             if path == "/api/inputs/check":
                 query = parse_qs(urlparse(self.path).query)
                 raw = (query.get("path") or [""])[0].strip()
@@ -379,6 +408,27 @@ def make_handler(store: RunStore):
                 if target is None:
                     return self._send_json({"error": "cible inconnue"}, status=404)
                 return self._probe_models({"base_url": [target.base_url], "api_key": [target.api_key]})
+            if path == "/api/tools/install":
+                from .toolcatalog import install
+
+                try:
+                    result = install(
+                        store.data_dir,
+                        str(payload.get("name") or ""),
+                        approved=bool(payload.get("approved")),
+                        catalog_dir=None,
+                    )
+                except Exception as exc:  # CatalogError et refus d'empreinte
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"ok": True, "installed": str(result)})
+            if path == "/api/tools/remove":
+                from .toolcatalog import remove
+
+                try:
+                    remove(store.data_dir, str(payload.get("name") or ""), approved=True)
+                except Exception as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"ok": True})
             if path == "/api/maintenance/run":
                 from .maintenance import Maintainer
 
@@ -513,6 +563,28 @@ def make_handler(store: RunStore):
                 return self._send_json({"error": str(exc)}, status=400)
             return self._send_json({"run_id": run_id}, status=202)
 
+        def _probe_models(self, query: dict[str, list[str]]) -> None:
+            """Interroge `/models` d'un endpoint compatible OpenAI et renvoie ce qu'il expose."""
+            import urllib.error
+            import urllib.request
+
+            base_url = (query.get("base_url") or [""])[0].strip().rstrip("/")
+            api_key = (query.get("api_key") or [""])[0].strip()
+            if not base_url:
+                return self._send_json({"ok": False, "error": "adresse manquante"}, status=400)
+            request = urllib.request.Request(f"{base_url}/models", headers={"Accept": "application/json"})
+            if api_key:
+                request.add_header("Authorization", f"Bearer {api_key}")
+            try:
+                with urllib.request.urlopen(request, timeout=8) as response:
+                    payload = json.loads(response.read().decode("utf-8") or "{}")
+            except urllib.error.HTTPError as exc:
+                return self._send_json({"ok": False, "error": f"HTTP {exc.code}"})
+            except Exception as exc:
+                return self._send_json({"ok": False, "error": f"{type(exc).__name__}: {exc}"[:160]})
+            models = [str(item.get("id")) for item in (payload.get("data") or []) if item.get("id")]
+            return self._send_json({"ok": True, "models": models})
+
         def _routing_public(self, table: RoutingTable) -> dict[str, Any]:
             return {
                 "targets": [t.as_public() for t in table.targets],
@@ -526,6 +598,7 @@ def make_handler(store: RunStore):
             }
 
         # ---------- helpers ----------
+
         def _send_json(self, payload: dict[str, Any], status: int = 200) -> None:
             body = json.dumps(payload, ensure_ascii=False).encode()
             self.send_response(status)

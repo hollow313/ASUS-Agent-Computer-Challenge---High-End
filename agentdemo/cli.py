@@ -427,11 +427,13 @@ def cmd_mcp_servers(args: argparse.Namespace) -> int:
         return 0
     if args.action == "add":
         if not args.name or not args.command:
-            print("usage : agentdemo mcp-servers add --name X --command python3 --args '-m,module'", file=sys.stderr)
+            print("usage : agentdemo mcp-servers add --name X --command python3 --arg -m --arg module", file=sys.stderr)
             return 2
+        arguments = list(args.arg or [])
+        if not arguments:
+            arguments = [a.strip() for a in (args.args or "").split(",") if a.strip()]
         settings.mcp_servers.append(
-            McpServer(name=args.name, command=args.command,
-                      args=[a.strip() for a in (args.args or "").split(",") if a.strip()],
+            McpServer(name=args.name, command=args.command, args=arguments,
                       description="ajouté en CLI", source="cli")
         )
     if args.action == "remove":
@@ -630,7 +632,8 @@ def build_parser() -> argparse.ArgumentParser:
     mcp_servers.add_argument("action", choices=["list", "add", "remove"])
     mcp_servers.add_argument("--name")
     mcp_servers.add_argument("--command")
-    mcp_servers.add_argument("--args", help="arguments séparés par des virgules")
+    mcp_servers.add_argument("--args", help="arguments séparés par des virgules (ou --arg, répétable)")
+    mcp_servers.add_argument("--arg", action="append", help="un argument, répétable (les tirets passent sans guillemets)")
     mcp_servers.add_argument("--out", help="dossier de données")
     mcp_servers.set_defaults(func=cmd_mcp_servers)
 
