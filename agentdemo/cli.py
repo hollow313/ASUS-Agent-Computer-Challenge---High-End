@@ -437,6 +437,27 @@ def cmd_mcp_servers(args: argparse.Namespace) -> int:
             McpServer(name=args.name, command=args.command, args=arguments,
                       description="ajouté en CLI", source="cli")
         )
+    if args.action == "test":
+        from .mcp_client import McpClientError, call_tool, probe
+
+        server = next((item for item in settings.mcp_servers if item.name == args.name), None)
+        if server is None:
+            print(f"serveur inconnu : {args.name}", file=sys.stderr)
+            return 1
+        try:
+            if args.tool:
+                result = call_tool(server.command, server.args, args.tool, json.loads(args.args_json or "{}"))
+                print(result.get("text") or json.dumps(result, ensure_ascii=False)[:600])
+            else:
+                result = probe(server.command, server.args)
+                print(f"▸ {result['server']['name']} {result['server']['version']} "
+                      f"(protocole {result['protocol']}) : {result['count']} outil(s)")
+                for tool in result["tools"]:
+                    print(f"  - {tool['name']} : {tool['description']}")
+        except McpClientError as exc:
+            print(f"refusé : {exc}", file=sys.stderr)
+            return 1
+        return 0
     if args.action == "remove":
         before = len(settings.mcp_servers)
         settings.mcp_servers = [srv for srv in settings.mcp_servers if srv.name != args.name]
@@ -630,7 +651,9 @@ def build_parser() -> argparse.ArgumentParser:
     mcp.set_defaults(func=cmd_mcp)
 
     mcp_servers = sub.add_parser("mcp-servers", help="serveurs MCP configurés")
-    mcp_servers.add_argument("action", choices=["list", "add", "remove"])
+    mcp_servers.add_argument("action", choices=["list", "add", "remove", "test"])
+    mcp_servers.add_argument("--tool", help="outil MCP à appeler (test)")
+    mcp_servers.add_argument("--args-json", help="arguments JSON de l'outil (test)")
     mcp_servers.add_argument("--name")
     mcp_servers.add_argument("--command")
     mcp_servers.add_argument(

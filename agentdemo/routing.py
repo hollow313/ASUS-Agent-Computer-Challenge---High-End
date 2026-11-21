@@ -65,6 +65,22 @@ class Target:
         if not self.model:
             raise RoutingError(f"modèle manquant pour {self.id}")
 
+    @classmethod
+    def from_public(cls, item: dict[str, Any]) -> "Target":
+        """Reconstruit une cible depuis ce que l'interface a reçu.
+
+        `/api/routing` renvoie des champs calculés (`has_key`) que l'interface renvoie tels quels
+        au moment d'enregistrer : les ignorer évite un refus incompréhensible sur un simple ajout.
+        """
+        return cls(
+            id=str(item.get("id") or ""),
+            label=str(item.get("label") or item.get("id") or ""),
+            base_url=str(item.get("base_url") or ""),
+            model=str(item.get("model") or ""),
+            kind=str(item.get("kind") or "local"),
+            api_key=str(item.get("api_key") or ""),
+        )
+
     def as_public(self) -> dict[str, Any]:
         return {
             "id": self.id,
@@ -127,7 +143,7 @@ class RoutingTable:
             return cls.default()
         raw = json.loads(path.read_text(encoding="utf-8"))
         table = cls(
-            targets=[Target(**item) for item in raw.get("targets", [])],
+            targets=[Target.from_public(item) for item in raw.get("targets", [])],
             rules=[Rule(**{k: item.get(k, "") for k in ("match", "value", "target", "note")}) for item in raw.get("rules", [])],
             default_target=raw.get("default_target", ""),
             override=raw.get("override", ""),

@@ -275,7 +275,7 @@ def create_scenario(
         "title": str(title).strip(),
         "blurb": str(blurb).strip() or "Scénario créé depuis l'interface.",
         "objective": str(objective).strip(),
-        "max_steps": max(2, min(int(max_steps or 10), 20)),
+        "max_steps": max(2, min(int(max_steps or 10), 24)),
         "tags": [str(t) for t in (tags or [])],
         "passes": passes or [{"label": "", "cassette": "cassette.json"}],
     }
@@ -366,10 +366,11 @@ def update_scenario(slug: str, payload: dict[str, Any]) -> Scenario:
         hosts = [str(h).strip().lower() for h in (network.get("hosts") or []) if str(h).strip()]
         if mode == "allowlist" and not hosts:
             raise ValueError("allowlist sans hôte : ajoute au moins un domaine")
-        meta["network"] = {"mode": mode, "hosts": hosts} if mode != "open" else {
-            "mode": "open",
-            "justification": str(network.get("justification") or "déclaré dans l'interface"),
-        }
+        meta["network"] = (
+            {"mode": "open", "justification": str(network.get("justification") or "déclaré dans l'interface")}
+            if mode == "open"
+            else {"mode": mode, "hosts": hosts}
+        )
     if isinstance(payload.get("exec"), dict):
         meta["exec"] = {
             "allow_unsandboxed": bool(payload["exec"].get("allow_unsandboxed")),

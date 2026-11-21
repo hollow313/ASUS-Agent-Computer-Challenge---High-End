@@ -367,7 +367,7 @@ def make_handler(store: RunStore):
                 try:
                     table = RoutingTable.load(store.data_dir / "routing.json")
                     if "targets" in payload:
-                        table.targets = [Target(**item) for item in payload["targets"]]
+                        table.targets = [Target.from_public(item) for item in payload["targets"] if isinstance(item, dict)]
                     if "rules" in payload:
                         from .routing import Rule
 
@@ -426,6 +426,22 @@ def make_handler(store: RunStore):
                 settings.update({"hidden_scenarios": sorted(hidden)})
                 settings.save(settings_path)
                 return self._send_json({"ok": True, "hidden": sorted(hidden)})
+            if path == "/api/mcp/test":
+                from .mcp_client import McpClientError, call_tool, probe
+
+                settings = Settings.load(store.data_dir / "settings.json")
+                name = str(payload.get("name") or "")
+                server = next((item for item in settings.mcp_servers if item.name == name), None)
+                if server is None:
+                    return self._send_json({"error": f"serveur inconnu : {name}"}, status=404)
+                try:
+                    if payload.get("tool"):
+                        result = call_tool(server.command, server.args, str(payload["tool"]), payload.get("args") or {})
+                    else:
+                        result = probe(server.command, server.args)
+                except McpClientError as exc:
+                    return self._send_json({"ok": False, "error": str(exc)})
+                return self._send_json(result)
             if path == "/api/tools/install":
                 from .toolcatalog import install
 

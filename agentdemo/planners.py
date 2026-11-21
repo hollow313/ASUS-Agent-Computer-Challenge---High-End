@@ -145,6 +145,13 @@ class OpenAICompatPlanner:
                 "vérifie que l'endpoint est bien l'API compatible OpenAI, en général …/v1"
             )
         text = body["choices"][0]["message"]["content"]
+        if os.environ.get("AGENTDEMO_DEBUG_RAW"):
+            # utile quand un petit modèle répond à côté : on garde la réponse brute
+            from pathlib import Path as _Path
+
+            log = _Path(os.environ["AGENTDEMO_DEBUG_RAW"])
+            with log.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps({"len": len(text), "text": text}, ensure_ascii=False) + "\n")
         action = _extract_json(text)
         if action is None:
             return {
@@ -179,15 +186,88 @@ class OpenAICompatPlanner:
 
 
 def _extract_json(text: str) -> dict[str, Any] | None:
+    """Premier objet JSON complet de la réponse.
+
+    Les petits modèles enchaînent parfois deux objets (l'appel d'outil puis un `final`).
+    Découper du premier `{` au dernier `}` donnait alors un JSON invalide, l'appel d'outil
+    était perdu et le run se terminait sans livrable : on lit donc objet par objet.
+    """
     text = text.strip()
     fenced = re.search(r"```(?:json)?\s*(.+?)```", text, re.S)
     if fenced:
         text = fenced.group(1).strip()
-    start, end = text.find("{"), text.rfind("}")
-    if start == -1 or end <= start:
-        return None
-    try:
-        parsed = json.loads(text[start : end + 1])
-    except json.JSONDecodeError:
-        return None
-    return parsed if isinstance(parsed, dict) else None
+
+    for candidate in _json_objects(text):
+        for attempt in (candidate, _escape_control_chars(candidate)):
+            try:
+                parsed = json.loads(attempt, strict=False)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(parsed, dict):
+                return parsed
+    return None
+
+
+def _json_objects(text: str) -> list[str]:
+    """Découpe le texte en objets JSON de premier niveau, équilibrés et hors chaînes."""
+    objects: list[str] = []
+    depth = 0
+    start = -1
+    inside = False
+    escaped = False
+    for index, char in enumerate(text):
+        if inside:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                inside = False
+            continue
+        if char == '"' and depth > 0:
+            inside = True
+            continue
+        if char == "{":
+            if depth == 0:
+                start = index
+            depth += 1
+        elif char == "}" and depth > 0:
+            depth -= 1
+            if depth == 0 and start != -1:
+                objects.append(text[start : index + 1])
+                start = -1
+    return objects
+
+
+def _escape_control_chars(text: str) -> str:
+    """Échappe les retours à la ligne bruts à l'intérieur des chaînes JSON.
+
+    Les petits modèles écrivent un contenu multi-ligne sans `\\n` : le JSON est invalide,
+    l'appel d'outil est perdu et le run se termine sans livrable. On répare au lieu de perdre.
+    """
+    out: list[str] = []
+    inside = False
+    escaped = False
+    for char in text:
+        if inside:
+            if escaped:
+                out.append(char)
+                escaped = False
+                continue
+            if char == "\\":
+                out.append(char)
+                escaped = True
+                continue
+            if char == '"':
+                inside = False
+                out.append(char)
+                continue
+            if char in "\n\r\t":
+                out.append("\\n" if char == "\n" else ("\\r" if char == "\r" else "\\t"))
+                continue
+            out.append(char)
+        else:
+            if char == '"':
+                inside = True
+            out.append(char)
+    return "".join(out)

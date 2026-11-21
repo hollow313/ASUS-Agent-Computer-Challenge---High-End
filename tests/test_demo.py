@@ -887,6 +887,62 @@ class ScenarioTests(unittest.TestCase):
                 slug="sans-hote", title="x", objective="y", network={"mode": "allowlist", "hosts": []}
             )
 
+    def test_editing_title_alone_keeps_network(self) -> None:
+        """Modifier seulement le titre ne doit pas casser le réseau (bug vu en test)."""
+        import os
+
+        from agentdemo import scenarios_loader as loader
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        previous = os.environ.get("AGENTDEMO_DATA_DIR")
+        os.environ["AGENTDEMO_DATA_DIR"] = tmp.name
+        self.addCleanup(
+            lambda: os.environ.pop("AGENTDEMO_DATA_DIR", None)
+            if previous is None
+            else os.environ.__setitem__("AGENTDEMO_DATA_DIR", previous)
+        )
+        loader.create_scenario("sans-reseau", "Titre", "objectif", network={"mode": "deny"})
+        updated = loader.update_scenario("sans-reseau", {"title": "Titre bis"})
+        self.assertEqual(updated.title, "Titre bis")
+        self.assertEqual(updated.network.get("mode"), "deny")
+
+    def test_routing_accepts_public_payload(self) -> None:
+        """L'interface renvoie les champs calculés (has_key) : l'écriture doit les tolérer."""
+        from agentdemo.routing import Target
+
+        target = Target.from_public(
+            {
+                "id": "local-rapide",
+                "label": "7B",
+                "base_url": "http://192.168.1.153:1234/v1",
+                "model": "qwen2.5-coder-7b-instruct",
+                "kind": "local",
+                "has_key": False,
+                "installed": True,
+            }
+        )
+        self.assertEqual(target.id, "local-rapide")
+        self.assertEqual(target.api_key, "")
+
+    def test_mcp_client_handshakes_with_own_server(self) -> None:
+        """Le client MCP démarre un vrai serveur, fait la poignée de main et liste ses outils."""
+        from agentdemo.mcp_client import probe
+
+        result = probe(sys.executable, ["-m", "agentdemo", "mcp"])
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["server"]["name"], "vigie")
+        names = [tool["name"] for tool in result["tools"]]
+        self.assertIn("fs_list", names)
+        self.assertIn("skill_recall", names)
+        self.assertGreaterEqual(result["count"], 8)
+
+    def test_mcp_client_refuses_missing_command(self) -> None:
+        from agentdemo.mcp_client import McpClientError, probe
+
+        with self.assertRaises(McpClientError):
+            probe("commande-qui-nexiste-pas-2026")
+
     def test_hidden_scenarios_are_remembered(self) -> None:
         """Un scénario livré se masque au lieu d'être supprimé, et le réglage se relit."""
         from agentdemo.settings_store import Settings

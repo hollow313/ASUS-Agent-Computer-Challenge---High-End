@@ -237,6 +237,7 @@ function render() {
       <td>${esc(srv.source || "-")}</td>
       <td><span class="tag ${srv.enabled ? "ok" : "off"}">${srv.enabled ? "actif" : "en pause"}</span></td>
       <td>
+        <button class="mini" data-mcp-test="${esc(srv.name)}" title="démarrer et lister les outils">tester</button>
         <button class="mini" data-mcp-toggle="${i}" title="activer ou suspendre">${srv.enabled ? "❙❙" : "▶︎"}</button>
         <button class="mini danger" data-mcp-del="${i}" title="retirer">×</button>
       </td>
@@ -379,6 +380,21 @@ document.addEventListener("click", async (event) => {
       description: entry.description, source: "catalogue", env: {},
     }];
     await saveMcp(servers, `${entry.name} configuré`);
+    return;
+  }
+  if (el.dataset.mcpTest) {
+    setStatus(`démarrage de ${el.dataset.mcpTest}…`);
+    const res = await fetch("/api/mcp/test", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: el.dataset.mcpTest }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.ok) {
+      const names = (data.tools || []).map((t) => t.name).join(", ");
+      setStatus(`${data.server.name} ${data.server.version} : ${data.count} outil(s) — ${names}`, "ok");
+    } else {
+      setStatus(data.error || "le serveur n'a pas répondu", "err");
+    }
     return;
   }
   if (el.dataset.mcpToggle !== undefined) {

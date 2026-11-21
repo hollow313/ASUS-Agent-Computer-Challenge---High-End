@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -93,6 +94,7 @@ class Agent:
         scenario: str = "",
     ) -> None:
         self.planner = planner
+        self.workspace = Path(workspace)
         self.sandbox = Sandbox(workspace)
         self.runs_dir = Path(runs_dir)
         self.max_steps = max_steps
@@ -152,6 +154,30 @@ class Agent:
             thought = str(action.get("thought", "")).strip()
             if action.get("final"):
                 result.summary = str(action["final"]).strip()
+                expected = _expected_deliverable(objective)
+                produced = sorted(
+                    str(p.relative_to(self.workspace))
+                    for p in self.workspace.rglob("*")
+                    if p.is_file() and p.name not in {"cassette.json"} and p.suffix in {".md", ".txt", ".json", ".csv", ".svg"}
+                )
+                if expected and not any(name.endswith(expected) for name in produced):
+                    step = Step(
+                        index,
+                        thought or "Le modèle a conclu.",
+                        None,
+                        {},
+                        f"aucun livrable : {expected} n'a été écrit",
+                        _ms(started),
+                        True,
+                    )
+                    result.steps.append(step)
+                    _notify(self.on_step, step)
+                    result.status = "blocked"
+                    result.summary = (
+                        f"bloqué : le modèle a conclu sans écrire {expected}. "
+                        f"Fichiers présents : {', '.join(produced) or 'aucun'}."
+                    )
+                    break
                 step = Step(index, thought or "Objectif atteint.", None, {}, "run terminé", _ms(started))
                 result.steps.append(step)
                 _notify(self.on_step, step)
@@ -250,3 +276,9 @@ def _ms(started: float) -> int:
 def _notify(callback: Callable[[Step], None] | None, step: Step) -> None:
     if callback is not None:
         callback(step)
+
+
+def _expected_deliverable(objective: str) -> str:
+    """Nom de fichier attendu, lu dans l'objectif (« écris briefing.md »)."""
+    matches = re.findall(r"[\w-]+\.(?:md|txt|csv|json|svg)\b", objective or "")
+    return matches[-1] if matches else ""

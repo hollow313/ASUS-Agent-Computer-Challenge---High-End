@@ -12,7 +12,7 @@ Pas de clé API, pas de réseau, pas de dépendance. Une commande et il tourne.
 [![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dépendances](https://img.shields.io/badge/d%C3%A9pendances-0-2ea043)
-![tests](https://img.shields.io/badge/tests-46%20passent-2ea043)
+![tests](https://img.shields.io/badge/tests-51%20passent-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **Français** · [English](README.en.md)
@@ -54,7 +54,7 @@ cd ASUS-Agent-Computer-Challenge---High-End
 python3 -m agentdemo scenarios                  # les cinq scénarios, sans rien installer
 python3 -m agentdemo run --scenario cyber-brief # un run complet, déterministe
 python3 -m agentdemo serve --port 8080          # la même chose avec l'interface
-python3 -m unittest discover -s tests           # 46 tests, deux secondes
+python3 -m unittest discover -s tests           # 51 tests, deux secondes
 ```
 
 Ou en conteneur, avec l'image utilisée pour toutes les captures de ce dépôt :
@@ -357,6 +357,7 @@ scénario, c'est une mauvaise interface.
 | son dossier d'entrée | champ + bouton de vérification | `--input-dir` |
 | ses flux RSS | champ propre au scénario | même chose par `scenario.json` |
 | configurer un serveur MCP | section **Serveurs MCP** dans `/settings` | `agentdemo mcp-servers add/list/remove` |
+| vérifier qu'un serveur MCP répond | bouton **tester** sur la ligne du serveur | `agentdemo mcp-servers test --name <nom>` |
 | installer un outil du catalogue | section **Outils** dans `/settings` | `agentdemo tool install <nom>` |
 | vérifier l'installation | bouton **diagnostic** | `agentdemo doctor` |
 | choisir le modèle | page `/routing` | `agentdemo route` |
@@ -377,6 +378,40 @@ Le catalogue MCP embarqué décrit sept serveurs connus (filesystem, git, sqlite
 memory, et celui de ce dépôt). « ajouter » écrit la configuration, **rien n'est installé ni
 téléchargé** : la commande enregistrée est celle que le client lancera, et elle reste visible dans la
 liste.
+
+## Une veille cyber réelle, sur internet
+
+Le scénario livré `cyber-brief` lit des flux locaux : la démonstration doit marcher sans réseau. Mais
+rien n'empêche l'agent d'aller sur internet quand le scénario y est autorisé. Créé en trois champs
+dans l'interface, lancé sur le 8B local, il donne ceci :
+
+    réseau : allowlist (www.cert.ssi.gouv.fr, www.zataz.com, www.01net.com)
+    1. http_get https://www.cert.ssi.gouv.fr/feed/      → RSS réel reçu
+    2. http_get https://www.zataz.com/feed/             → RSS réel reçu
+    3. http_get https://www.01net.com/rss/actualites/   → RSS réel reçu
+    4. fs_write briefing.md (578 octets)
+    5. final : briefing rédigé, sources listées
+
+Le livrable de ce run, tel qu'il a été écrit :
+
+```
+Vulnérabilités multiples dans Mattermost Server : risque de déni de service et compromission des données.
+Vulnérabilités dans les produits F5 : menace pour les infrastructures réseau critiques.
+Fuite de données chez Maileva : risque pour les clients et nécessité d'une réponse rapide.
+Amende de la CNIL : rappel des obligations de conformité RGPD.
+Hausses de prix chez Canal+ : impact sur les consommateurs et potentiel de réactions sociales.
+
+Sources lues :
+- https://www.cert.ssi.gouv.fr/feed/
+- https://www.zataz.com/feed/
+- https://www.01net.com/rss/actualites/
+```
+
+Deux choses à retenir de ce run, parce qu'elles sont le cœur du produit. D'abord, le réseau n'est pas
+un réglage décoratif : en mode `deny`, le même objectif donne `accès réseau refusé : scénario en mode
+deny`, et l'agent le dit au lieu d'inventer un contenu. Ensuite, un scénario qui autorise internet
+autorise **ces trois domaines**, pas « internet » : l'allowlist est vérifiée à chaque appel d'outil,
+et un hôte oublié est refusé et journalisé.
 
 ## Des runs réels, pas seulement des rejeux
 
@@ -658,7 +693,7 @@ agentdemo/
 ├── web/routing.html      # page de configuration du routage
 ├── web/settings.html     # page d'exploitation : entrées, IMAP, planning
 └── scenarios/            # cyber-brief, inbox-triage, dataset-report, delegation, self-repair, local-audit
-tests/test_demo.py        # 46 tests : scénarios, sandbox, réseau, MCP, catalogue, HITL
+tests/test_demo.py        # 51 tests : scénarios, sandbox, réseau, MCP, catalogue, HITL
 demo/inputs/              # fichiers de démonstration prêts à l'emploi (audit, CSV)
 bench/                    # banc de mesure : tâches, prix, endpoint simulé
 video/                    # cartons, capture d'interface et script de narration
