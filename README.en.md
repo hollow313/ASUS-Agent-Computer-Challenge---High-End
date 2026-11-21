@@ -329,9 +329,23 @@ container: due task, fired in 20 s, run produced, history kept.
 Replay mode serves the demo. It does not prove a real model does the work. Three runs are versioned
 in `docs/runs/`, each with its full journal, a readable transcript and metadata.
 
-The most interesting one is the first: the 7B asked for `feeds/*.xml`, a glob the tool refuses. The
-error message lists the feeds that are actually there, and the next step succeeds. That is what we
-want to show: a small model that guesses wrong, a tool that explains, an immediate correction.
+| Date | Scenario | Model | Status | Steps | Duration |
+| --- | --- | --- | --- | --- | --- |
+| 21/11 | cyber-brief | qwen2.5-coder-7b-instruct | done after a corrected error | 4 | 9 s |
+| 21/11 | cyber-brief | qwen/qwen3-vl-8b | done, one tool error | 7 | 136 s |
+| 21/11 | local-audit | qwen2.5-coder-7b-instruct | done, shallow report | 7 | 32 s |
+
+The three runs tell three different stories, and the third is the most useful.
+
+The 7B on the briefing asks for `feeds/*.xml`, a glob the tool refuses: the message lists the feeds
+that actually exist and the next step succeeds. The 8B on the same scenario takes 7 steps and 136
+seconds, hits one tool error, then reads the three XML files directly: same result, fifteen times
+slower.
+
+The 7B on the audit is the honest one: seven steps, zero errors, and a **shallow** report. It counts
+failures per user, sees port 22, quotes the sudo rule, but misses the exposed 3306 and 6379 and
+gives neither severity nor remediation. Published as is, because that is exactly the limit 32 GB
+removes.
 
 ```bash
 python3 bench/run_real.py --scenario cyber-brief --model qwen2.5-coder-7b-instruct \

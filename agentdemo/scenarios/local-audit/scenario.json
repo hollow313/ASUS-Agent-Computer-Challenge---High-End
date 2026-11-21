@@ -2,7 +2,7 @@
   "slug": "local-audit",
   "title": "Audit de sécurité locale",
   "blurb": "Journaux d'authentification, ports en écoute et configuration SSH lus sur place, rapport daté avec sévérité et remédiation, sans sortie réseau.",
-  "objective": "Audite le dossier fixtures de la machine : relève les tentatives d'authentification suspectes, les ports exposés inutilement et les directives risquées, puis écris RAPPORT-AUDIT.md avec la sévérité, la remédiation et la ligne source de chaque constat.",
+  "objective": "Audite cette machine à partir des fichiers présents à la racine du bac à sable : relève les tentatives d'authentification suspectes, les ports exposés inutilement et les directives risquées, puis écris RAPPORT-AUDIT.md avec la sévérité, la remédiation et la ligne source de chaque constat.",
   "max_steps": 12,
   "tags": [
     "sécurité",

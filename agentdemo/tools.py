@@ -422,7 +422,11 @@ def build_registry(
     def fs_list(path: str = ".") -> str:
         target = sandbox.resolve(path)
         if not target.exists():
-            raise ToolError(f"introuvable : {path}{hint_for(path)}")
+            entries = sorted(item.name + ("/" if item.is_dir() else "") for item in sandbox.root.iterdir())
+            raise ToolError(
+                f"introuvable : {path}{hint_for(path)}"
+                + (f" — à la racine du bac à sable : {', '.join(entries[:12])}" if entries else "")
+            )
         if target.is_file():
             return f"{path} est un fichier ({target.stat().st_size} octets)"
         rows = []

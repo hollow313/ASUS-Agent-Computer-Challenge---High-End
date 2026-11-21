@@ -1,0 +1,19 @@
+{
+  "scenario": "local-audit",
+  "model": "qwen2.5-coder-7b-instruct",
+  "endpoint_host": "192.168.1.153:1234",
+  "date": 1795263111.099999,
+  "status": "done",
+  "steps": 7,
+  "errors": 0,
+  "duration_s": 31.59,
+  "network": {
+    "network_mode": "deny",
+    "hosts": [],
+    "justification": ""
+  },
+  "isolation": "aucune",
+  "artifacts": [
+    "RAPPORT-AUDIT.md"
+  ]
+}

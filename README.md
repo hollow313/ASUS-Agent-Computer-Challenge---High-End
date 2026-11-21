@@ -343,12 +343,24 @@ et leurs métadonnées :
 | Date | Scénario | Modèle | Statut | Étapes | Durée |
 | --- | --- | --- | --- | --- | --- |
 | 21/11 | cyber-brief | qwen2.5-coder-7b-instruct | done après une erreur corrigée | 4 | 9 s |
-| 21/11 | cyber-brief | qwen/qwen3-vl-8b | échec du modèle (HTTP 400 côté serveur), trace conservée | 2 | 14 s |
-| 21/11 | local-audit | qwen2.5-coder-7b-instruct | à lancer | | |
+| 21/11 | cyber-brief | qwen/qwen3-vl-8b | done, une erreur d'outil | 7 | 136 s |
+| 21/11 | local-audit | qwen2.5-coder-7b-instruct | done, rapport superficiel | 7 | 32 s |
 
-Le premier run est le plus intéressant : le 7B a d'abord demandé `feeds/*.xml`, un joker que l'outil
-refuse. Le message d'erreur liste les flux réellement présents, et l'étape suivante passe. C'est ça
-qu'on veut montrer : un petit modèle qui se trompe, un outil qui explique, une correction immédiate.
+Les trois runs racontent trois choses différentes, et la troisième est la plus utile.
+
+Le 7B sur le briefing : il demande `feeds/*.xml`, un joker que l'outil refuse. Le message liste les
+flux réellement présents, et l'étape suivante passe. Un petit modèle qui se trompe, un outil qui
+explique, une correction immédiate en 9 secondes.
+
+Le 8B sur le même scénario : 7 étapes et 136 secondes, une erreur d'outil (`csv_dir_profile` sur un
+dossier de flux), puis il lit les trois XML directement et écrit son briefing. Deux stratégies
+différentes pour le même résultat, à un facteur quinze sur la durée.
+
+Le 7B sur l'audit : sept étapes, zéro erreur, et un rapport **superficiel**. Il compte les échecs par
+utilisateur, voit le port 22, cite la règle sudo, mais rate le 3306 et le 6379 exposés et ne met ni
+sévérité ni remédiation. C'est publié tel quel : c'est exactement la limite que 32 Go lèvent, et le
+genre de faille qu'un jury doit voir plutôt que lire. La version rejouée du même scénario, elle,
+produit le rapport complet, parce que les décisions ont été écrites à la main.
 
 ```bash
 python3 bench/run_real.py --scenario cyber-brief --model qwen2.5-coder-7b-instruct \
