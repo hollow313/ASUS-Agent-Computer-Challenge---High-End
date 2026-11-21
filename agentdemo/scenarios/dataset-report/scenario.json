@@ -3,10 +3,21 @@
   "title": "CSV → analyse + graphique + note",
   "blurb": "Un fichier de ventes à profiler, un graphique SVG généré, une note de synthèse avec une recommandation.",
   "objective": "Analyse le fichier ventes-2026-T3.csv présent à la racine du bac à sable : profil des colonnes, chiffre d'affaires total, marge, part de l'Île-de-France, puis écris synthese.md et graphique.svg.",
-  "max_steps": 8,
   "tags": [
     "data",
     "SVG",
     "synthèse"
+  ],
+  "max_steps": 8,
+  "network": {
+    "mode": "deny"
+  },
+  "exec": {},
+  "inputs": {},
+  "passes": [
+    {
+      "label": "",
+      "cassette": "cassette.json"
+    }
   ]
 }

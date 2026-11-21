@@ -348,7 +348,7 @@ scénario, c'est une mauvaise interface.
 | --- | --- | --- |
 | créer un scénario | bouton **＋ nouveau scénario** | `agentdemo new --slug ...` |
 | le modifier | bouton **✎** sur la fiche | `agentdemo edit <nom> --network allowlist --hosts ...` |
-| modifier un scénario livré | **✎** crée la copie puis ouvre l'éditeur | `agentdemo scenario duplicate <nom> --to <copie>` |
+| rétablir un scénario livré | bouton **rétablir l'original** dans l'éditeur | `agentdemo scenario reset <nom>` |
 | le dupliquer | bouton **⧉** | `agentdemo scenario duplicate <nom> --to <copie>` |
 | le supprimer | bouton **×** (masquer pour un livré) | `agentdemo scenario remove <nom> --yes` |
 | voir son détail | clic sur l'éditeur | `agentdemo show <nom>` |
@@ -365,9 +365,10 @@ scénario, c'est une mauvaise interface.
 
 Trois détails qui font la différence à l'usage :
 
-- **un scénario livré ne se modifie ni ne se supprime : il se copie ou se masque.** Le bouton ✎
-  crée la copie puis ouvre directement son éditeur ; le bouton – le masque, et il se réaffiche depuis
-  les réglages. L'original reste la référence de la démonstration, et rien n'est perdu ;
+- **un scénario livré s'édite vraiment, sans être abîmé.** Le bouton ✎ ouvre l'éditeur complet sur le
+  scénario lui-même ; ce que tu changes est écrit dans le dossier de données, jamais dans l'image, et
+  la fiche affiche « modifié localement » avec un bouton **rétablir l'original**. Le bouton – le
+  masque, et il se réaffiche depuis les réglages ;
 - **les domaines autorisés peuvent être déduits des flux** : un bouton lit les URL du champ flux et
   remplit l'allowlist, ce qui évite l'incohérence classique entre une source déclarée et un domaine
   oublié ;

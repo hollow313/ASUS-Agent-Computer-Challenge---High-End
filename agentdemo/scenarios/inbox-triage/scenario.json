@@ -3,6 +3,21 @@
   "title": "Boîte mail → tri + rapport",
   "blurb": "Cinq messages à lire, classer dans des dossiers, avec un rapport des actions et deux points à traiter en priorité.",
   "objective": "Lis les messages du dossier inbox, classe chaque message dans triaged/urgent, triaged/administratif, triaged/info ou triaged/indesirable en le déplaçant, puis écris rapport-tri.md : ce que tu as classé où et pourquoi, et les deux actions à faire aujourd'hui avec leur coût si on les ignore.",
+  "tags": [
+    "IMAP-like",
+    "classement",
+    "rapport"
+  ],
   "max_steps": 16,
-  "tags": ["IMAP-like", "classement", "rapport"]
+  "network": {
+    "mode": "deny"
+  },
+  "exec": {},
+  "inputs": {},
+  "passes": [
+    {
+      "label": "",
+      "cassette": "cassette.json"
+    }
+  ]
 }

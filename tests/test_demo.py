@@ -833,8 +833,21 @@ class ScenarioTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             loader.update_scenario("editable", {"network": {"mode": "allowlist", "hosts": []}})
-        with self.assertRaises(ValueError):
-            loader.update_scenario("cyber-brief", {"title": "tentative"})
+        # un scénario livré s'édite par surcharge : l'image n'est jamais modifiée
+        before = (loader.SCENARIOS_DIR / "cyber-brief" / "scenario.json").read_text(encoding="utf-8")
+        patched = loader.update_scenario(
+            "cyber-brief", {"title": "Veille maison", "network": {"mode": "allowlist", "hosts": ["exemple.local"]}}
+        )
+        self.assertEqual(patched.title, "Veille maison")
+        self.assertEqual(patched.network["hosts"], ["exemple.local"])
+        self.assertTrue(patched.builtin and patched.overridden)
+        self.assertEqual(
+            (loader.SCENARIOS_DIR / "cyber-brief" / "scenario.json").read_text(encoding="utf-8"), before,
+            "le scénario livré ne doit pas être modifié sur disque",
+        )
+        restored = loader.reset_scenario("cyber-brief")
+        self.assertFalse(restored.overridden)
+        self.assertNotEqual(restored.title, "Veille maison")
 
         copy = loader.duplicate_scenario("cyber-brief", "veille-copie")
         self.assertEqual(copy.slug, "veille-copie")

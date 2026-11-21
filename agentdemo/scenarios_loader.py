@@ -17,6 +17,21 @@ SCENARIOS_DIR = Path(__file__).resolve().parent / "scenarios"
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,40}$")
 
 
+OVERRIDE_FIELDS = ("title", "blurb", "objective", "tags", "max_steps", "network", "exec", "inputs")
+
+
+def overrides_dir() -> Path:
+    """Surcharges des scénarios livrés : le dossier de données, jamais l'image."""
+    base = Path(os.environ.get("AGENTDEMO_DATA_DIR") or "./data")
+    path = base / "scenario-overrides"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def override_path(slug: str) -> Path:
+    return overrides_dir() / f"{slug}.json"
+
+
 def user_scenarios_dir() -> Path:
     """Scénarios créés par l'utilisateur : dans le volume de données, jamais dans l'image."""
     return Path(os.environ.get("AGENTDEMO_DATA_DIR", "./data")) / "scenarios"
@@ -41,6 +56,7 @@ class Scenario:
     network: dict[str, Any] = field(default_factory=lambda: {"mode": "deny"})
     exec_config: dict[str, Any] = field(default_factory=dict)
     inputs: dict[str, Any] = field(default_factory=dict)
+    overridden: bool = False
 
     @property
     def builtin(self) -> bool:
@@ -129,6 +145,7 @@ class Scenario:
             "exec": self.exec_config,
             "inputs": self.inputs,
             "builtin": self.builtin,
+            "overridden": self.overridden,
             "user": str(self.root).startswith(str(user_scenarios_dir())),
         }
 
@@ -144,24 +161,36 @@ def list_scenarios(dirs: list[Path] | None = None) -> list[Scenario]:
             if not (folder.is_dir() and meta_file.exists()):
                 continue
             meta = json.loads(meta_file.read_text(encoding="utf-8"))
-            if meta.get("slug") in seen:
+            slug_value = str(meta.get("slug") or folder.name)
+            if slug_value in seen:
                 continue
-            seen.add(meta.get("slug"))
+            seen.add(slug_value)
+            overridden = False
+            override = override_path(slug_value)
+            if override.is_file():
+                try:
+                    local = json.loads(override.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError):
+                    local = {}
+                # la surcharge ne touche que les champs d'édition, jamais le dossier ni la cassette
+                meta.update({key: value for key, value in local.items() if key in OVERRIDE_FIELDS})
+                overridden = bool(local)
             scenarios.append(
-            Scenario(
-                slug=meta["slug"],
-                title=meta["title"],
-                blurb=meta.get("blurb", ""),
-                objective=meta["objective"],
-                max_steps=int(meta.get("max_steps", 14)),
-                tags=list(meta.get("tags", [])),
-                root=folder,
-                passes=list(meta.get("passes", [{"label": "", "cassette": "cassette.json"}])),
-                network=dict(meta.get("network") or {"mode": "deny"}),
-                exec_config=dict(meta.get("exec") or {}),
-                inputs=dict(meta.get("inputs") or {}),
+                Scenario(
+                    slug=slug_value,
+                    title=str(meta.get("title") or slug_value),
+                    blurb=str(meta.get("blurb") or ""),
+                    objective=str(meta.get("objective") or ""),
+                    max_steps=int(meta.get("max_steps") or 10),
+                    tags=list(meta.get("tags") or []),
+                    root=folder,
+                    passes=list(meta.get("passes") or [{"label": "", "cassette": "cassette.json"}]),
+                    network=dict(meta.get("network") or {"mode": "deny"}),
+                    exec_config=dict(meta.get("exec") or {}),
+                    inputs=dict(meta.get("inputs") or {}),
+                    overridden=overridden,
+                )
             )
-        )
     return scenarios
 
 
@@ -334,7 +363,7 @@ def scenario_detail(slug: str) -> dict[str, Any]:
         **scenario.as_summary(),
         "fixtures": fixtures,
         "passes_detail": scenario.passes,
-        "editable": not scenario.builtin,
+        "editable": True,
         "network": scenario.network,
         "exec": scenario.exec_config,
         "inputs": scenario.inputs,
@@ -343,6 +372,7 @@ def scenario_detail(slug: str) -> dict[str, Any]:
         "title": scenario.title,
         "blurb": scenario.blurb,
         "tags": scenario.tags,
+        "overridden": scenario.overridden,
     }
 
 
@@ -353,11 +383,18 @@ def update_scenario(slug: str, payload: dict[str, Any]) -> Scenario:
     """Édite un scénario utilisateur. Un scénario livré n'est pas modifiable : on le duplique."""
     scenario = get_scenario(slug)
     if scenario.builtin:
-        raise ValueError(
-            "scénario livré : duplication nécessaire. Utilise « dupliquer » puis modifie la copie."
-        )
-    meta_path = scenario.root / "scenario.json"
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        # on n'écrit pas dans l'image : la modification vit dans une surcharge du dossier de données
+        meta_path = override_path(slug)
+        meta = {}
+        if meta_path.is_file():
+            try:
+                meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                meta = {}
+        meta["slug"] = slug
+    else:
+        meta_path = scenario.root / "scenario.json"
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
     network = payload.get("network")
     if isinstance(network, dict):
         mode = str(network.get("mode") or "deny")
@@ -411,3 +448,14 @@ def duplicate_scenario(slug: str, new_slug: str) -> Scenario:
     meta["title"] = f"{meta.get('title', new_slug)} (copie)"
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return get_scenario(new_slug)
+
+
+def reset_scenario(slug: str) -> Scenario:
+    """Retire la surcharge d'un scénario livré : il revient exactement tel qu'il est dans l'image."""
+    scenario = get_scenario(slug)
+    if not scenario.builtin:
+        raise ValueError("seul un scénario livré a une surcharge à retirer")
+    path = override_path(slug)
+    if path.is_file():
+        path.unlink()
+    return get_scenario(slug)

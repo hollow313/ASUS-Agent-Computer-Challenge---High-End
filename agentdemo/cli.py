@@ -331,6 +331,16 @@ def cmd_scenario(args: argparse.Namespace) -> int:
     from .scenarios_loader import remove_scenario
 
     root = Path(args.out or DEFAULT_DATA_DIR)
+    if args.action == "reset":
+        from .scenarios_loader import reset_scenario
+
+        try:
+            restored = reset_scenario(args.name)
+        except (ValueError, KeyError) as exc:
+            print(f"refusé : {exc}", file=sys.stderr)
+            return 1
+        print(f"▸ {restored.slug} rétabli : {restored.title}")
+        return 0
     if args.action == "duplicate":
         from .scenarios_loader import duplicate_scenario
 
@@ -680,7 +690,7 @@ def build_parser() -> argparse.ArgumentParser:
     scenario_edit.set_defaults(func=cmd_scenario_edit)
 
     scenario = sub.add_parser("scenario", help="cycle de vie d'un scénario")
-    scenario.add_argument("action", choices=["remove", "duplicate"], help="action à effectuer")
+    scenario.add_argument("action", choices=["remove", "duplicate", "reset"], help="action à effectuer")
     scenario.add_argument("name", help="slug du scénario")
     scenario.add_argument("--force", action="store_true", help="autorise un scénario livré")
     scenario.add_argument("--yes", action="store_true", help="confirme la suppression")

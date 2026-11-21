@@ -3,12 +3,17 @@
   "title": "Auto-réparation → procédure apprise",
   "blurb": "Trois passes sur le même objectif : la première se casse et écrit la procédure, la deuxième l'applique, la troisième la voit devenir fausse et la remplace.",
   "objective": "Produis veille.md à partir des flux du dossier feeds : deux entrées maximum, le fait puis l'enjeu. Si une étape échoue, note la leçon dans une procédure réutilisable.",
-  "max_steps": 10,
   "tags": [
     "mémoire procédurale",
     "erreur récupérée",
     "2 passes"
   ],
+  "max_steps": 10,
+  "network": {
+    "mode": "deny"
+  },
+  "exec": {},
+  "inputs": {},
   "passes": [
     {
       "label": "passe 1, sans procédure",

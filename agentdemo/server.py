@@ -426,6 +426,17 @@ def make_handler(store: RunStore):
                 settings.update({"hidden_scenarios": sorted(hidden)})
                 settings.save(settings_path)
                 return self._send_json({"ok": True, "hidden": sorted(hidden)})
+            if path and path.startswith("/api/scenarios/") and path.endswith("/reset"):
+                slug = path.split("/")[3]
+                try:
+                    from .scenarios_loader import reset_scenario
+
+                    restored = reset_scenario(slug)
+                except KeyError:
+                    return self._send_json({"error": f"scénario inconnu : {slug}"}, status=404)
+                except ValueError as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"ok": True, "scenario": restored.as_summary()})
             if path == "/api/mcp/test":
                 from .mcp_client import McpClientError, call_tool, probe
 

@@ -223,6 +223,7 @@
       <div class="formbar">
         <button id="nsCreate" class="primary small">enregistrer</button>
         <button id="nsCancel" class="ghost small">annuler</button>
+        <button id="nsReset" class="ghost small" hidden>rétablir l'original</button>
       </div>
       <p class="llmstatus" id="nsStatus"></p>
       <p class="hint" style="margin-top:6px">Un scénario créé n'a pas encore de cassette : lance-le en mode réel,
@@ -297,16 +298,14 @@ async function loadScenarios(preferred) {
     const flag = s.has_cassette === false ? '<span class="flag">trace à enregistrer</span>' : "";
     const net = (s.network && s.network.mode) || "deny";
     const actions = `<div class="scen-actions">
-        ${s.builtin
-          ? `<button class="mini" data-copy-edit="${s.slug}" title="modifier une copie">✎</button>`
-          : `<button class="mini" data-edit="${s.slug}" title="modifier">✎</button>`}
+        <button class="mini" data-edit="${s.slug}" title="modifier">✎</button>
         <button class="mini" data-dup="${s.slug}" title="dupliquer">⧉</button>
         ${s.builtin
           ? `<button class="mini" data-hide="${s.slug}" title="masquer (réaffichable dans les réglages)">–</button>`
           : `<button class="mini danger" data-del-scen="${s.slug}" title="supprimer">×</button>`}
       </div>`;
     el.innerHTML = `<strong>${escapeHtml(s.title)}</strong><span>${escapeHtml(s.blurb)}</span>
-      <em>${escapeHtml(s.tags.join(" · "))} · ${s.steps} étapes · réseau ${escapeHtml(net)}</em>${flag}${actions}`;
+      <em>${escapeHtml(s.tags.join(" · "))} · ${s.steps} étapes · réseau ${escapeHtml(net)}${s.overridden ? " · modifié localement" : ""}</em>${flag}${actions}`;
     el.onclick = () => selectScenario(s, el);
     box.appendChild(el);
     if (s.slug === previous) selected = { scenario: s, element: el };
@@ -609,42 +608,41 @@ $("nsCheckInput").onclick = async () => {
 };
 $("nsCancel").onclick = () => { $("newScenarioForm").hidden = true; editing = null; };
 
+$("nsReset").onclick = async () => {
+  if (!editing) return;
+  if (!confirm("Retirer tes modifications et revenir au scénario livré d'origine ?")) return;
+  const res = await fetch(`/api/scenarios/${encodeURIComponent(editing)}/reset`, { method: "POST" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { setStatus(data.error || "échec", "err"); return; }
+  $("newScenarioForm").hidden = true;
+  editing = null;
+  await loadScenarios(data.scenario.slug);
+  setStatus("scénario livré rétabli", "ok");
+};
+
 async function openEditor(slug) {
   const res = await fetch(`/api/scenarios/${encodeURIComponent(slug)}`);
   if (!res.ok) { setStatus("scénario illisible", "err"); return; }
   const detail = await res.json();
-  editing = detail.builtin ? null : slug;
+  editing = slug;  // un scénario livré s'édite aussi : la modification reste dans le dossier de données
   $("newScenarioForm").hidden = false;
   fillForm(detail);
   $("nsStatus").className = "llmstatus";
+  $("nsReset").hidden = !(detail.builtin && detail.overridden);
   $("nsStatus").textContent = detail.builtin
-    ? "scénario livré : « enregistrer » créera une copie modifiable"
-    : "modification de " + slug;
+    ? (detail.overridden
+        ? `scénario livré, modifié localement · ${slug}`
+        : `scénario livré · ${slug} — tes changements restent dans le dossier de données`)
+    : `modification de ${slug}`;
   $("nsTitle").focus();
 }
 
 document.addEventListener("click", async (event) => {
   const el = event.target;
-  if (el.dataset.edit || el.dataset.dup || el.dataset.delScen || el.dataset.copyEdit || el.dataset.hide) {
+  if (el.dataset.edit || el.dataset.dup || el.dataset.delScen || el.dataset.hide) {
     event.stopPropagation();
   }
   if (el.dataset.edit) { await openEditor(el.dataset.edit); }
-  if (el.dataset.copyEdit) {
-    const slug = prompt(
-      "Un scénario livré ne se modifie pas : on modifie une copie. Nom de la copie ?",
-      el.dataset.copyEdit + "-perso",
-    );
-    if (!slug) return;
-    const res = await fetch(`/api/scenarios/${encodeURIComponent(el.dataset.copyEdit)}/duplicate`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: slug.trim().toLowerCase() }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) { setStatus(data.error || "copie impossible", "err"); return; }
-    await loadScenarios(data.scenario.slug);
-    await openEditor(data.scenario.slug);
-    setStatus(`copie ${data.scenario.slug} prête à modifier`, "ok");
-  }
   if (el.dataset.hide) {
     if (!confirm("Masquer ce scénario livré ? Il reste dans l'image et se réaffiche depuis les réglages.")) return;
     const res = await fetch(`/api/scenarios/${encodeURIComponent(el.dataset.hide)}/hide`, {
