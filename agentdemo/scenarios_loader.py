@@ -6,9 +6,12 @@ import json
 import os
 import re
 import shutil
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from .skills import SkillStore
 
 SCENARIOS_DIR = Path(__file__).resolve().parent / "scenarios"
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,40}$")
@@ -35,6 +38,11 @@ class Scenario:
     tags: list[str]
     root: Path
     passes: list[dict[str, Any]]
+    network: dict[str, Any] = field(default_factory=lambda: {"mode": "deny"})
+    exec_config: dict[str, Any] = field(default_factory=dict)
+
+    def exec_policy(self) -> dict[str, Any]:
+        return dict(self.exec_config or {})
 
     def cassette(self, index: int = 0) -> list[dict[str, Any]]:
         """Recorded trace of pass ``index`` (a scenario can be replayed twice to
@@ -91,6 +99,8 @@ class Scenario:
             "steps": len(self.cassette()),
             "passes": self.pass_labels(),
             "has_cassette": self.has_cassette(),
+            "network": self.network,
+            "exec": self.exec_config,
             "user": str(self.root).startswith(str(user_scenarios_dir())),
         }
 
@@ -119,6 +129,8 @@ def list_scenarios(dirs: list[Path] | None = None) -> list[Scenario]:
                 tags=list(meta.get("tags", [])),
                 root=folder,
                 passes=list(meta.get("passes", [{"label": "", "cassette": "cassette.json"}])),
+                network=dict(meta.get("network") or {"mode": "deny"}),
+                exec_config=dict(meta.get("exec") or {}),
             )
         )
     return scenarios
@@ -129,6 +141,82 @@ def get_scenario(slug: str, dirs: list[Path] | None = None) -> Scenario:
         if scenario.slug == slug:
             return scenario
     raise KeyError(f"scénario inconnu : {slug}")
+
+
+def remove_scenario(
+    slug: str, data_dir: Path, *, force: bool = False, dry_run: bool = False
+) -> dict[str, Any]:
+    """Supprime un scénario utilisateur, ses runs et ses procédures rattachées.
+
+    Les cinq scénarios livrés sont marqués `builtin` et refusent la suppression sans `force`.
+    Rien ne sort de `data/` : les chemins sont résolus et vérifiés avant toute suppression.
+    """
+    scenario = get_scenario(slug)
+    builtin = str(scenario.root).startswith(str(SCENARIOS_DIR))
+    if builtin and not force:
+        raise ValueError(
+            f"« {slug} » est un scénario livré : suppression refusée sans --force"
+        )
+    data_dir = Path(data_dir).resolve()
+    runs_dir = (data_dir / "runs").resolve()
+    artifacts: list[str] = []
+    for journal in sorted(runs_dir.glob("*.json")):
+        try:
+            payload = json.loads(journal.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if payload.get("scenario") != slug:
+            continue
+        artifacts.append(journal.name)
+        workspace = runs_dir / journal.stem.split("-p")[0] / "workspace"
+        if workspace.is_dir() and workspace.resolve().is_relative_to(runs_dir):
+            artifacts.append(str(workspace.relative_to(data_dir)))
+    skills = SkillStore(data_dir / "skills")
+    attached = [row["name"] for row in skills.ledger() if row.get("topic") == slug]
+    summary = {
+        "scenario": slug,
+        "builtin": builtin,
+        "root": str(scenario.root),
+        "runs": artifacts,
+        "skills": attached,
+    }
+    if dry_run:
+        return summary
+    if not str(scenario.root).startswith(str(user_scenarios_dir().resolve())) and not force:
+        raise ValueError("ce scénario n'est pas dans le dossier utilisateur : suppression refusée")
+    import shutil
+
+    shutil.rmtree(scenario.root)
+    for name in artifacts:
+        target = (data_dir / name).resolve()
+        if not target.is_relative_to(data_dir):
+            continue
+        if target.is_dir():
+            shutil.rmtree(target, ignore_errors=True)
+        elif target.exists():
+            target.unlink()
+    retired = data_dir / "skills" / "retired"
+    retired.mkdir(parents=True, exist_ok=True)
+    for name in attached:
+        source = data_dir / "skills" / f"{name}.md"
+        if source.exists() and source.resolve().is_relative_to(data_dir):
+            source.replace(retired / source.name)
+    log = data_dir / "removals.jsonl"
+    with log.open("a", encoding="utf-8") as handle:
+        handle.write(
+            json.dumps(
+                {
+                    "event": "scenario_removed",
+                    "name": slug,
+                    "artifacts": artifacts,
+                    "skills": attached,
+                    "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                },
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
+    return summary
 
 
 def create_scenario(
@@ -159,6 +247,7 @@ def create_scenario(
         "tags": [str(t) for t in (tags or [])],
         "passes": passes or [{"label": "", "cassette": "cassette.json"}],
     }
+    meta["network"] = {"mode": "deny"}
     (folder / "scenario.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     scenario = get_scenario(slug)
     return scenario

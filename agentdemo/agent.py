@@ -11,7 +11,9 @@ from typing import Any, Callable
 
 from .planners import Planner
 from .skills import SkillStore
-from .tools import Sandbox, ToolError, build_registry
+from .tools import Sandbox, ToolError, NetworkPolicy, build_registry
+
+APPROVAL_TOOLS = ("fs_write", "fs_move", "mail_move", "run")
 
 
 @dataclass
@@ -48,6 +50,9 @@ class RunResult:
     planner: str = ""
     started_at: float = field(default_factory=time.time)
     finished_at: float | None = None
+    scenario: str = ""
+    network: dict[str, Any] = field(default_factory=lambda: {"network_mode": "deny"})
+    events: list[dict[str, Any]] = field(default_factory=list)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -62,6 +67,9 @@ class RunResult:
             "started_at": self.started_at,
             "finished_at": self.finished_at,
             "duration_s": round((self.finished_at or time.time()) - self.started_at, 2),
+            "scenario": self.scenario,
+            "network": self.network,
+            "events": list(self.events),
         }
 
 
@@ -79,6 +87,10 @@ class Agent:
         children_dir: "Path | None" = None,
         delegation_depth: int = 0,
         settings: Any = None,
+        network_config: dict[str, Any] | None = None,
+        runner: Any = None,
+        approver: Callable[[str, dict[str, Any]], bool] | None = None,
+        scenario: str = "",
     ) -> None:
         self.planner = planner
         self.sandbox = Sandbox(workspace)
@@ -89,6 +101,10 @@ class Agent:
         self.children_dir = children_dir
         self.delegation_depth = delegation_depth
         self.settings = settings
+        self.network_config = network_config or {"mode": "deny"}
+        self.runner = runner
+        self.approver = approver
+        self.scenario = scenario
 
     def run(self, objective: str, run_id: str | None = None) -> RunResult:
         run_id = run_id or uuid.uuid4().hex[:10]
@@ -98,8 +114,11 @@ class Agent:
             status="running",
             workspace=str(self.sandbox.root),
             planner=getattr(self.planner, "label", "unknown"),
+            scenario=self.scenario,
         )
         artifacts: list[str] = []
+        network = NetworkPolicy(self.network_config, result.events)
+        result.network = network.as_dict()
         tools = build_registry(
             self.sandbox,
             artifacts,
@@ -109,6 +128,9 @@ class Agent:
             parent_planner=self.planner,
             depth=self.delegation_depth,
             settings=self.settings,
+            network=network,
+            runner=self.runner,
+            events=result.events,
         )
         # le planner réel reçoit le catalogue de ce run (et non celui du parent)
         if hasattr(self.planner, "tools") and not getattr(self.planner, "tools", None):
@@ -148,7 +170,16 @@ class Agent:
                 args = {}
             if tool_name not in tools:
                 observation, error = f"outil inconnu : {tool_name}", True
+            elif self.approver is not None and tool_name in APPROVAL_TOOLS and not self.approver(tool_name, args):
+                observation, error = f"refusé par l'opérateur : {tool_name}", True
+                result.events.append(
+                    {"event": "approval", "tool": tool_name, "args": args, "decision": "refused"}
+                )
             else:
+                if self.approver is not None and tool_name in APPROVAL_TOOLS:
+                    result.events.append(
+                        {"event": "approval", "tool": tool_name, "args": args, "decision": "approved"}
+                    )
                 try:
                     observation = tools[tool_name].fn(**args)
                     error = False
@@ -191,6 +222,8 @@ class Agent:
             result.status = "budget"
             result.summary = f"Budget de {self.max_steps} étapes atteint sans conclusion."
 
+        for event in result.events:
+            event.setdefault("ts", time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
         result.artifacts = artifacts
         result.finished_at = time.time()
         self._write_log(result)

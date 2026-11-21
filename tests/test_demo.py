@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import sys
 import tempfile
 import json
 import unittest
@@ -39,7 +40,7 @@ class ScenarioTests(unittest.TestCase):
     def test_scenarios_are_discoverable(self) -> None:
         slugs = {s.slug for s in list_scenarios()}
         self.assertEqual(
-            {"cyber-brief", "inbox-triage", "dataset-report", "self-repair", "delegation"}, slugs
+            {"cyber-brief", "inbox-triage", "dataset-report", "self-repair", "delegation", "local-audit"}, slugs
         )
 
     def test_cyber_brief(self) -> None:
@@ -598,6 +599,276 @@ class ScenarioTests(unittest.TestCase):
         with self.assertRaises(ToolError) as ctx:
             registry["mail_list"].fn(limit=1)
         self.assertIn("connexion IMAP impossible", str(ctx.exception))
+
+
+    def test_command_sandbox_runs_and_reports_isolation(self) -> None:
+        """Une commande tourne, et le bac à sable réellement utilisé est annoncé."""
+        from agentdemo.sandbox import CommandSandbox, isolation_level
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        workspace = Path(tmp.name)
+        (workspace / "note.txt").write_text("bonjour", encoding="utf-8")
+        runner = CommandSandbox(workspace, allow_unsandboxed=True)
+        result = runner.run("cat note.txt")
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("bonjour", result.stdout)
+        self.assertIn(result.isolation.split(" ")[0], {"bwrap", "unshare", "aucune"})
+        self.assertEqual(isolation_level(), isolation_level(), "la détection est stable")
+
+    def test_command_sandbox_timeout(self) -> None:
+        from agentdemo.sandbox import CommandSandbox
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        runner = CommandSandbox(Path(tmp.name), timeout=1, allow_unsandboxed=True)
+        result = runner.run("sleep 5")
+        self.assertTrue(result.timed_out)
+        self.assertEqual(result.returncode, 124)
+
+    def test_command_sandbox_refuses_without_isolation(self) -> None:
+        """Sans bwrap ni unshare, et sans déclaration du scénario, l'exécution est refusée."""
+        from agentdemo.sandbox import CommandSandbox, SandboxError, isolation_level
+
+        if isolation_level() != "aucune":
+            self.skipTest("un bac à sable noyau est disponible sur cette machine")
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        runner = CommandSandbox(Path(tmp.name))
+        with self.assertRaises(SandboxError):
+            runner.run("echo interdit")
+
+    def test_network_policy_deny_and_allowlist(self) -> None:
+        """deny refuse tout ; allowlist accepte l'hôte déclaré et refuse les autres, en journalisant."""
+        import http.server
+        import threading
+
+        from agentdemo.tools import NetworkPolicy, ToolError
+
+        handler = http.server.SimpleHTTPRequestHandler
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        port = server.server_address[1]
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        self.addCleanup(server.server_close)
+        self.addCleanup(server.shutdown)
+
+        events: list[dict] = []
+        deny = NetworkPolicy({"mode": "deny"}, events)
+        with self.assertRaises(ToolError):
+            deny.check(f"http://127.0.0.1:{port}/")
+        self.assertEqual(events[0]["event"], "network_denied")
+
+        allow = NetworkPolicy({"mode": "allowlist", "hosts": ["127.0.0.1"]}, events)
+        allow.check(f"http://127.0.0.1:{port}/")  # ne lève pas
+        with self.assertRaises(ToolError):
+            allow.check("http://exemple.invalid/")
+        self.assertEqual(allow.as_dict()["network_mode"], "allowlist")
+
+    def test_run_tool_is_journaled_and_network_denied_is_recorded(self) -> None:
+        from agentdemo.sandbox import CommandSandbox
+        from agentdemo.tools import NetworkPolicy, ToolError, Sandbox, build_registry
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        workspace = Path(tmp.name)
+        events: list[dict] = []
+        registry = build_registry(
+            Sandbox(workspace),
+            [],
+            network=NetworkPolicy({"mode": "deny"}, events),
+            runner=CommandSandbox(workspace, allow_unsandboxed=True),
+            events=events,
+        )
+        observation = registry["run"].fn("echo audit")
+        self.assertIn("audit", observation)
+        self.assertEqual(events[-1]["event"], "exec")
+        with self.assertRaises(ToolError):
+            registry["http_get"].fn("http://exemple.invalid/")
+        self.assertEqual(events[-1]["event"], "network_denied")
+
+    def test_local_audit_scenario_learns_between_passes(self) -> None:
+        """Le scénario d'audit produit son rapport, et la seconde passe coûte moins d'étapes."""
+        import os
+
+        scenario = get_scenario("local-audit")
+        self.assertEqual(scenario.network["mode"], "deny")
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        previous = os.environ.get("AGENTDEMO_DATA_DIR")
+        os.environ["AGENTDEMO_DATA_DIR"] = str(root)
+        self.addCleanup(
+            lambda: os.environ.pop("AGENTDEMO_DATA_DIR", None)
+            if previous is None
+            else os.environ.__setitem__("AGENTDEMO_DATA_DIR", previous)
+        )
+        from agentdemo.sandbox import CommandSandbox
+        from agentdemo.skills import SkillStore
+
+        workspace = root / "runs" / "audit" / "workspace"
+        workspace.mkdir(parents=True)
+        scenario.stage(workspace)
+        skills = SkillStore(root / "skills")
+        lengths = []
+        for index in range(2):
+            agent = Agent(
+                planner=ReplayPlanner(scenario.cassette(index)),
+                workspace=workspace,
+                runs_dir=root / "runs",
+                max_steps=scenario.max_steps,
+                skills=skills,
+                network_config=scenario.network,
+                runner=CommandSandbox(workspace, allow_unsandboxed=True),
+                scenario="local-audit",
+            )
+            result = agent.run(scenario.objective, run_id=f"audit-p{index + 1}")
+            lengths.append(len(result.steps))
+            self.assertEqual(result.status, "done")
+        self.assertLess(lengths[1], lengths[0], "la mémoire procédurale doit raccourcir la passe 2")
+        report = (workspace / "RAPPORT-AUDIT.md").read_text(encoding="utf-8")
+        self.assertIn("203.0.113.42", report)
+        self.assertIn("3306", report)
+        self.assertTrue(any("bruteforce" in skill.name for skill in skills.list()))
+
+    def test_interactive_refusal_is_journaled(self) -> None:
+        """Un refus de l'opérateur devient une observation, pas un crash, et il est tracé."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "run" / "workspace"
+        workspace.mkdir(parents=True)
+        tape = [
+            {"thought": "j'écris le livrable", "tool": "fs_write",
+             "args": {"path": "sortie.md", "content": "contenu"}},
+            {"thought": "je conclus", "final": "terminé"},
+        ]
+        agent = Agent(
+            planner=ReplayPlanner(tape),
+            workspace=workspace,
+            runs_dir=root / "run",
+            max_steps=4,
+            approver=lambda tool, args: False,
+        )
+        result = agent.run("écris un fichier")
+        self.assertFalse((workspace / "sortie.md").exists(), "un refus ne doit rien écrire")
+        self.assertTrue(result.steps[0].error)
+        self.assertIn("refusé par l'opérateur", result.steps[0].observation)
+        approvals = [e for e in result.events if e["event"] == "approval"]
+        self.assertEqual(approvals[0]["decision"], "refused")
+
+    def test_scenario_removal_guards(self) -> None:
+        import os
+
+        from agentdemo import scenarios_loader as loader
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        previous = os.environ.get("AGENTDEMO_DATA_DIR")
+        os.environ["AGENTDEMO_DATA_DIR"] = tmp.name
+        self.addCleanup(
+            lambda: os.environ.pop("AGENTDEMO_DATA_DIR", None)
+            if previous is None
+            else os.environ.__setitem__("AGENTDEMO_DATA_DIR", previous)
+        )
+        created = loader.create_scenario(slug="a-supprimer", title="À supprimer", objective="écris x.md")
+        with self.assertRaises(ValueError):
+            loader.remove_scenario("self-repair", Path(tmp.name))  # scénario livré
+        summary = loader.remove_scenario("a-supprimer", Path(tmp.name), dry_run=True)
+        self.assertEqual(summary["scenario"], "a-supprimer")
+        self.assertFalse(created.root.exists() is False, "une simulation ne supprime rien")
+        loader.remove_scenario("a-supprimer", Path(tmp.name), dry_run=False)
+        self.assertFalse(created.root.exists())
+        self.assertNotIn("a-supprimer", [sc.slug for sc in loader.list_scenarios()])
+
+    def test_tool_install_verifies_hash_and_traversal(self) -> None:
+        import os
+        import shutil as sh
+
+        from agentdemo import toolcatalog
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        source = root / "catalogue" / "csv_top"
+        source.mkdir(parents=True)
+        template = Path(toolcatalog.CATALOG_DIR) / "csv_top"
+        for name in ("manifest.json", "csv_top.py"):
+            sh.copy2(template / name, source / name)
+
+        with self.assertRaises(toolcatalog.CatalogError):
+            toolcatalog.install(root, str(source), approved=False)
+
+        installed = toolcatalog.install(root, str(source), approved=True)
+        self.assertEqual(installed["name"], "csv_top")
+        self.assertEqual(len(toolcatalog.installed(root)), 1)
+
+        # empreinte falsifiée
+        tampered = root / "catalogue" / "faux"
+        sh.copytree(source, tampered)
+        (tampered / "csv_top.py").write_text("def main(**kwargs):\n    return 'pirate'\n", encoding="utf-8")
+        with self.assertRaises(toolcatalog.CatalogError):
+            toolcatalog.install(root, str(tampered), approved=True, force=True)
+
+        # point d'entrée qui sort du dossier
+        escape = root / "catalogue" / "evasion"
+        escape.mkdir()
+        import json as _json
+
+        manifest = _json.loads((source / "manifest.json").read_text())
+        manifest["entrypoint"] = "../../etc/passwd"
+        (escape / "manifest.json").write_text(_json.dumps(manifest), encoding="utf-8")
+        with self.assertRaises(toolcatalog.CatalogError):
+            toolcatalog.install(root, str(escape), approved=True)
+
+    def test_mcp_server_lists_and_calls_tools(self) -> None:
+        """Un client MCP liste les outils et en exécute un, sans planter."""
+        import json as _json
+        import os
+        import subprocess
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "ws"
+        workspace.mkdir()
+        (workspace / "note.txt").write_text("contenu", encoding="utf-8")
+        messages = [
+            {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": "2024-11-05"}},
+            {"jsonrpc": "2.0", "method": "notifications/initialized"},
+            {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+            {"jsonrpc": "2.0", "id": 3, "method": "tools/call",
+             "params": {"name": "fs_write", "arguments": {"path": "sortie.txt", "content": "ok"}}},
+            {"jsonrpc": "2.0", "id": 4, "method": "tools/call", "params": {"name": "mail_list", "arguments": {}}},
+            {"jsonrpc": "2.0", "id": 5, "method": "inconnue/vraiment"},
+        ]
+        payload = "\n".join(_json.dumps(m) for m in messages) + "\n"
+        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parent.parent))
+        completed = subprocess.run(
+            [sys.executable, "-c",
+             f"from pathlib import Path; from agentdemo.mcp_server import serve_stdio; "
+             f"serve_stdio(Path({str(workspace)!r}), Path({str(root)!r}))"],
+            input=payload,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            env=env,
+        )
+        responses = [_json.loads(line) for line in completed.stdout.splitlines() if line.strip()]
+        self.assertGreaterEqual(len(responses), 4)
+        listed = next(r for r in responses if r.get("id") == 2)["result"]["tools"]
+        names = {tool["name"] for tool in listed}
+        self.assertIn("fs_read", names)
+        self.assertNotIn("mail_list", names, "les outils d'écriture et de réseau ne sont pas exposés")
+        self.assertIn("inputSchema", listed[0])
+        written = next(r for r in responses if r.get("id") == 3)
+        self.assertFalse(written["result"]["isError"])
+        self.assertTrue((workspace / "sortie.txt").exists())
+        refused = next(r for r in responses if r.get("id") == 4)
+        self.assertIn("error", refused)
+        self.assertEqual(refused["error"]["code"], -32602)
+        unknown = next(r for r in responses if r.get("id") == 5)
+        self.assertEqual(unknown["error"]["code"], -32601)
 
     def test_routing_resolution_order(self) -> None:
         """Forçage manuel > règle > défaut, et les règles s'évaluent dans l'ordre."""

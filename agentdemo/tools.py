@@ -14,13 +14,49 @@ import re
 import shutil
 import urllib.error
 import urllib.request
+from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 
 MAX_OBSERVATION_CHARS = 2400
-NETWORK_ENABLED = os.environ.get("AGENTDEMO_ALLOW_NETWORK", "0") == "1"
+
+
+class NetworkPolicy:
+    """Politique réseau du scénario : deny par défaut, allowlist explicite, open refusé sans accord.
+
+    L'isolation réseau du noyau est assurée par le bac à sable ; ici on refuse avant même l'appel,
+    pour que l'erreur soit lisible et pour qu'un `deny` ne dépende pas de la qualité de l'isolation.
+    """
+
+    def __init__(self, config: dict[str, Any] | None = None, events: list[dict[str, Any]] | None = None) -> None:
+        config = config or {"mode": "deny"}
+        self.mode = str(config.get("mode") or "deny")
+        self.hosts = [str(h).strip().lower() for h in (config.get("hosts") or []) if str(h).strip()]
+        self.justification = str(config.get("justification") or "")
+        self.events = events if events is not None else []
+
+    def allows(self, url: str) -> tuple[bool, str]:
+        if not url.startswith(("http://", "https://")):
+            return False, "seuls http(s) sont autorisés"
+        if self.mode == "deny":
+            return False, "scénario en mode deny : aucun accès réseau (les données sont locales)"
+        if self.mode == "open":
+            return True, "mode open"
+        host = (urlparse(url).hostname or "").lower()
+        if host in self.hosts:
+            return True, f"hôte {host} dans l'allowlist"
+        return False, f"hôte {host} absent de l'allowlist ({', '.join(self.hosts) or 'vide'})"
+
+    def check(self, url: str, tool: str = "http_get") -> None:
+        allowed, reason = self.allows(url)
+        if not allowed:
+            self.events.append({"event": "network_denied", "tool": tool, "url": url[:200], "reason": reason})
+            raise ToolError(f"accès réseau refusé : {reason}")
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"network_mode": self.mode, "hosts": list(self.hosts), "justification": self.justification}
 
 
 class ToolError(RuntimeError):
@@ -67,6 +103,9 @@ def build_registry(
     parent_planner: Any = None,
     depth: int = 0,
     settings: Any = None,
+    network: "NetworkPolicy | None" = None,
+    runner: Any = None,
+    events: "list[dict[str, Any]] | None" = None,
 ) -> dict[str, Tool]:
     """Return the tool registry bound to one sandbox (and, optionally, a skill store)."""
 
@@ -86,6 +125,32 @@ def build_registry(
             if "delegations" not in candidate.parts
         ][:5]
         return f" — aucun « {name} » ; CSV disponibles : {', '.join(files)}" if files else ""
+
+    network = network or NetworkPolicy()
+    events = events if events is not None else []
+
+    def run(command: str) -> str:
+        """Exécute une commande shell dans le dossier du run, sous bac à sable."""
+        if runner is None:
+            raise ToolError("exécution de commandes désactivée dans ce run")
+        from .sandbox import SandboxError
+
+        try:
+            result = runner.run(command)
+        except SandboxError as exc:
+            events.append({"event": "exec_refused", "command": str(command)[:200], "reason": str(exc)})
+            raise ToolError(str(exc)) from exc
+        events.append(
+            {
+                "event": "exec",
+                "command": str(command)[:200],
+                "returncode": result.returncode,
+                "isolation": result.isolation,
+                "network": result.network,
+                "duration_ms": result.duration_ms,
+            }
+        )
+        return _clip(result.as_text(), MAX_OBSERVATION_CHARS)
 
     def note(path: Path) -> None:
         name = sandbox.rel(path)
@@ -429,9 +494,16 @@ def build_registry(
     def rss_rank(paths: list[str], top_n: int = 6) -> str:
         items: list[tuple[str, str, str]] = []
         for raw in paths:
+            if str(raw).startswith(("http://", "https://")):
+                network.check(str(raw), "rss_rank")
             target = sandbox.resolve(raw)
             if not target.is_file():
-                raise ToolError(f"flux introuvable : {raw}")
+                feed_dir = sandbox.root / "feeds"
+                available = sorted(x.name for x in feed_dir.glob("*")) if feed_dir.is_dir() else []
+                hint = f" — flux présents dans feeds/ : {', '.join(available)}" if available else ""
+                raise ToolError(
+                    f"flux introuvable : {raw} (un chemin exact par fichier, pas de joker){hint}"
+                )
             try:
                 root = ET.fromstring(target.read_text(encoding="utf-8", errors="replace"))
             except ET.ParseError as exc:
@@ -479,13 +551,7 @@ def build_registry(
         return f"audio écrit dans {output} ({dest.stat().st_size} octets)"
 
     def http_get(url: str, max_chars: int = 2000) -> str:
-        if not NETWORK_ENABLED:
-            raise ToolError(
-                "réseau désactivé dans cette démo (AGENTDEMO_ALLOW_NETWORK=0), "
-                "les scénarios hors-ligne utilisent les fichiers de fixtures"
-            )
-        if not url.startswith(("http://", "https://")):
-            raise ToolError("seuls http(s) sont autorisés")
+        network.check(url, "http_get")
         request = urllib.request.Request(url, headers={"User-Agent": "agent-computer-demo/1.0"})
         try:
             with urllib.request.urlopen(request, timeout=20) as response:  # noqa: S310
@@ -531,7 +597,18 @@ def build_registry(
             chart_bar,
         ),
         "rss_rank": Tool("rss_rank", "rss_rank(paths[], top_n?)", "lit des flux RSS et les classe", rss_rank),
-        "http_get": Tool("http_get", "http_get(url, max_chars?)", "GET HTTP (désactivé par défaut)", http_get),
+        "http_get": Tool(
+            "http_get",
+            "http_get(url, max_chars?)",
+            "GET HTTP, soumis à la politique réseau du scénario (deny par défaut)",
+            http_get,
+        ),
+        "run": Tool(
+            "run",
+            "run(command)",
+            "exécute une commande shell dans le dossier du run, sous bac à sable (bwrap, unshare)",
+            run,
+        ),
         "tts_speak": Tool(
             "tts_speak",
             "tts_speak(text, output?, voice?)",

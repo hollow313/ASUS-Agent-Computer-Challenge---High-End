@@ -18,6 +18,7 @@ from pathlib import Path
 from .agent import Agent
 from .planners import OpenAICompatPlanner, ReplayPlanner
 from .scenarios_loader import SCENARIOS_DIR, Scenario, get_scenario, list_scenarios
+from .sandbox import CommandSandbox
 from .skills import SkillStore
 from .tools import build_registry
 from .scenarios_loader import Scenario
@@ -78,6 +79,22 @@ def cmd_run(args: argparse.Namespace) -> int:
     scenario.stage(workspace)
     skills = SkillStore(root / "skills")  # persiste entre les runs, c'est le principe
 
+    def approver(tool: str, args_: dict) -> bool:
+        """Demande l'accord de l'opérateur avant une écriture ou une commande."""
+        if tool == "run" and not getattr(args, "interactive", False):
+            return True
+        cible = args_.get("path") or args_.get("dst") or args_.get("command") or args_.get("uid") or ""
+        print(f"\n  ⚠ {tool} sur {cible!r}")
+        try:
+            answer = input("    exécuter ? [o/N] ").strip().lower()
+        except EOFError:
+            answer = ""
+        return answer in ("o", "oui", "y", "yes")
+
+    confirm = None
+    if getattr(args, "interactive", False) or getattr(args, "confirm_writes", False):
+        confirm = approver
+
     print(f"▸ scénario  : {scenario.slug} ({scenario.title})")
     print(f"▸ objectif  : {scenario.objective}")
     print(f"▸ espace    : {workspace}")
@@ -106,6 +123,14 @@ def cmd_run(args: argparse.Namespace) -> int:
             on_step=on_step,
             skills=skills,
             children_dir=scenario.root / "children",
+            network_config=scenario.network,
+            runner=CommandSandbox(
+                workspace,
+                network=str(scenario.network.get("mode", "deny")),
+                allow_unsandboxed=bool((scenario.exec_policy() or {}).get("allow_unsandboxed")),
+            ),
+            approver=confirm,
+            scenario=scenario.slug,
         )
         result = agent.run(scenario.objective, run_id=f"{run_id}-p{index + 1}")
         errors = sum(1 for s in result.steps if s.error)
@@ -296,6 +321,70 @@ def cmd_route(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_mcp(args: argparse.Namespace) -> int:
+    """Sert les outils de Vigie à un client MCP, en JSON-RPC sur stdio."""
+    from .mcp_server import serve_stdio
+
+    root = Path(args.out or DEFAULT_DATA_DIR)
+    serve_stdio(root / "mcp-workspace", root)
+    return 0
+
+
+def cmd_scenario(args: argparse.Namespace) -> int:
+    """Cycle de vie d'un scénario : lister, supprimer, en création voir `new`."""
+    from .scenarios_loader import remove_scenario
+
+    root = Path(args.out or DEFAULT_DATA_DIR)
+    if args.action != "remove":
+        print("usage : agentdemo scenario remove <nom> [--force] [--yes]", file=sys.stderr)
+        return 2
+    try:
+        preview = remove_scenario(args.name, root, force=args.force, dry_run=not args.yes)
+    except (ValueError, KeyError) as exc:
+        print(f"refusé : {exc}", file=sys.stderr)
+        return 1
+    print(f"▸ scénario : {preview['scenario']}{' (livré)' if preview['builtin'] else ''}")
+    print(f"▸ dossier  : {preview['root']}")
+    print(f"▸ runs     : {len(preview['runs'])} artefact(s)")
+    for name in preview["runs"][:5]:
+        print(f"    - {name}")
+    print(f"▸ procédures rattachées : {', '.join(preview['skills']) or 'aucune'}")
+    if not args.yes:
+        print("\nRien n'a été supprimé. Relance avec --yes pour confirmer.")
+        return 0
+    print("\nSupprimé.")
+    return 0
+
+
+def cmd_tool(args: argparse.Namespace) -> int:
+    """Catalogue d'outils : lister, installer par manifeste vérifié, retirer."""
+    from . import toolcatalog
+
+    root = Path(args.out or DEFAULT_DATA_DIR)
+    try:
+        if args.action == "list":
+            rows = toolcatalog.installed(root)
+            if not rows:
+                print("aucun outil installé")
+            for row in rows:
+                print(f"- {row['name']} {row['version']} : {row['description']} (sha256 {row['sha256'][:12]}…)")
+            return 0
+        if args.action == "install":
+            result = toolcatalog.install(root, args.name, force=args.force, approved=args.yes)
+            print(f"▸ {result['name']} {result['version']} installé dans {result['path']}")
+            print(f"  empreinte vérifiée : {result['sha256'][:16]}…")
+            return 0
+        if args.action == "remove":
+            result = toolcatalog.remove(root, args.name, approved=args.yes)
+            print(f"▸ {result['removed']} retiré")
+            return 0
+    except toolcatalog.CatalogError as exc:
+        print(f"refusé : {exc}", file=sys.stderr)
+        return 1
+    print("usage : agentdemo tool <list|install|remove> <nom> [--yes] [--force]", file=sys.stderr)
+    return 2
+
+
 def cmd_doctor(args: argparse.Namespace) -> int:
     """Diagnostic d'installation : ce qui est prêt, ce qui manque, ce qui est optionnel."""
     from .doctor import doctor
@@ -439,6 +528,26 @@ def build_parser() -> argparse.ArgumentParser:
     new.add_argument("--tag", action="append")
     new.add_argument("--force", action="store_true")
     new.set_defaults(func=cmd_new)
+
+    mcp = sub.add_parser("mcp", help="sert les outils en MCP (JSON-RPC sur stdio)")
+    mcp.add_argument("--out", help="dossier de données")
+    mcp.set_defaults(func=cmd_mcp)
+
+    scenario = sub.add_parser("scenario", help="cycle de vie d'un scénario")
+    scenario.add_argument("action", choices=["remove"], help="action à effectuer")
+    scenario.add_argument("name", help="slug du scénario")
+    scenario.add_argument("--force", action="store_true", help="autorise un scénario livré")
+    scenario.add_argument("--yes", action="store_true", help="confirme la suppression")
+    scenario.add_argument("--out", help="dossier de données")
+    scenario.set_defaults(func=cmd_scenario)
+
+    tool = sub.add_parser("tool", help="catalogue d'outils vérifiés")
+    tool.add_argument("action", choices=["list", "install", "remove"])
+    tool.add_argument("name", nargs="?", help="nom ou dossier du manifeste")
+    tool.add_argument("--yes", action="store_true", help="accord explicite de l'opérateur")
+    tool.add_argument("--force", action="store_true", help="remplace une installation existante")
+    tool.add_argument("--out", help="dossier de données")
+    tool.set_defaults(func=cmd_tool)
 
     route = sub.add_parser("route", help="décision de routage pour un objectif")
     route.add_argument("--objective", help="objectif à router (sinon, affiche la politique)")

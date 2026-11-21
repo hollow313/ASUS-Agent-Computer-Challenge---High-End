@@ -23,6 +23,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 from .agent import Agent, Step
 from .planners import OpenAICompatPlanner, ReplayPlanner, normalize_base_url
 from .routing import RoutingError, RoutingTable, Target
+from .sandbox import CommandSandbox, isolation_level
 from .settings_store import Settings
 from .scenarios_loader import get_scenario, list_scenarios
 from .skills import SkillStore
@@ -108,6 +109,9 @@ class RunStore:
             "workspace": str(workspace),
             "routing": routing_decision,
             "inputs_staged": staged,
+            "network": scenario.network,
+            "events": [],
+            "isolation": isolation_level(),
         }
         with self.lock:
             self.runs[run_id] = state
@@ -145,12 +149,21 @@ class RunStore:
                         skills=skills,
                         settings=settings,
                         children_dir=scenario.root / "children",
+                        network_config=scenario.network,
+                        runner=CommandSandbox(
+                            workspace,
+                            network=str(scenario.network.get("mode", "deny")),
+                            allow_unsandboxed=bool((scenario.exec_policy() or {}).get("allow_unsandboxed")),
+                        ),
+                        scenario=slug,
                     )
                     result = agent.run(state["objective"], run_id=f"{run_id}-p{index + 1}")
                     with self.lock:
                         state["status"] = result.status
                         state["summary"] = result.summary
                         state["artifacts"] = result.artifacts
+                        state["events"] = result.events
+                        state["network_effective"] = result.network
                         state["recap"].append(
                             {
                                 "label": label or f"passe {index + 1}",

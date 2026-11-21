@@ -167,6 +167,7 @@ class RoutingTable:
             ],
             rules=[
                 Rule("sensitive", "", "local-gros", "ce qui ne doit pas sortir reste en local"),
+                Rule("scenario", "local-audit", "local-gros", "audit de sécurité : rien ne sort"),
                 Rule("scenario", "dataset-report", "cloud", "analyse de données non sensible"),
                 Rule("keyword", r"r[ée]sum|tri|classement", "local-rapide", "tâche mécanique, le petit modèle suffit"),
                 Rule("always", "", "local-gros", "par défaut, le modèle local le plus capable"),

@@ -1,0 +1,14 @@
+{
+  "name": "csv_top",
+  "version": "1.0.0",
+  "description": "retourne les N premières lignes d'un CSV, triées sur une colonne numérique",
+  "entrypoint": "csv_top.py",
+  "sha256": "baa1b6a0065e82e7571142d3544631bcbab09e1d52b049d1bd3139c77b6972ef",
+  "params": {
+    "path": "string",
+    "column": "string",
+    "n": "integer",
+    "output": "string"
+  },
+  "provenance": "catalogue embarqué Vigie, MIT, écrit pour ce dépôt"
+}

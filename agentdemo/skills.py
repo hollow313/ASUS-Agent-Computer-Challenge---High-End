@@ -87,6 +87,7 @@ class Skill:
             "failure": self.failures,
             "confidence": round(100 * self.confidence),
             "check": self.check,
+            "topic": self.meta.get("topic", ""),
             "summary": self.summary,
             "last_used": self.meta.get("last_used", ""),
         }

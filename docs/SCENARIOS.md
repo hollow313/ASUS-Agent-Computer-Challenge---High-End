@@ -117,3 +117,26 @@ C'est ce que fait `self-repair`.
 Quatre suffisent. Un catalogue de dix scénarios dilue le propos : un jury retient la profondeur
 d'un cas réussi, pas la longueur d'une liste. Un nouveau scénario se justifie s'il couvre une
 famille d'usage absente (ici : synthèse, tri, données, apprentissage).
+
+## `local-audit`, le scénario métier
+
+Dossier : `agentdemo/scenarios/local-audit/`. Deux passes, comme `self-repair`, mais sur un cas
+métier : journaux d'authentification, ports en écoute, configuration SSH, règle sudo.
+
+- réseau `deny` : rien ne sort, et le rapport du run l'indique ;
+- `exec` déclaré avec `allow_unsandboxed` pour `grep` et `wc` sur les fichiers du run seulement ;
+- la passe 1 écrit deux procédures (`reconnaitre-bruteforce-ssh`, `port-expose-vs-necessaire`),
+  la passe 2 les relit et passe de 11 à 6 étapes, zéro erreur.
+
+## Politique réseau d'un scénario
+
+Champ `network` du `scenario.json`, obligatoire dans les faits puisque le défaut est `deny` :
+
+```json
+"network": {"mode": "deny"}
+"network": {"mode": "allowlist", "hosts": ["exemple.local"]}
+"network": {"mode": "open", "justification": "pourquoi c'est nécessaire"}
+```
+
+`http_get` et `rss_rank` consultent cette politique avant tout appel. Un refus écrit
+`{"event": "network_denied", "tool": ..., "url": ..., "reason": ...}` dans le journal du run.

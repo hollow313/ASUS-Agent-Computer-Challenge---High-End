@@ -1,0 +1,78 @@
+{
+  "run_id": "real-20261121-130713",
+  "objective": "Agrège les trois flux du dossier feeds, hiérarchise les entrées par gravité et densité d'information, puis rédige un briefing daté de 5 entrées maximum en français. Chaque entrée doit tenir en deux lignes : le fait, puis l'enjeu pour l'analyste. Écris le résultat dans briefing.md.",
+  "status": "done",
+  "steps": [
+    {
+      "index": 1,
+      "thought": "Je vais commencer par lister les flux RSS dans le dossier feeds.",
+      "tool": "rss_rank",
+      "args": {
+        "paths": [
+          "feeds/*.xml"
+        ],
+        "top_n": 5
+      },
+      "observation": "flux introuvable : feeds/*.xml (un chemin exact par fichier, pas de joker) — flux présents dans feeds/ : cert.xml, media.xml, vendors.xml",
+      "duration_ms": 738,
+      "error": true
+    },
+    {
+      "index": 2,
+      "thought": "Je vais lister les flux RSS présents dans le dossier feeds.",
+      "tool": "rss_rank",
+      "args": {
+        "paths": [
+          "feeds/cert.xml",
+          "feeds/media.xml",
+          "feeds/vendors.xml"
+        ],
+        "top_n": 5
+      },
+      "observation": "9 entrées lues dans 3 flux, classées par densité d'information\n- [cert.xml] Vigilance : campagne de rançongiciel ciblant les sauvegardes non segmentées :: Les attaquants exfiltrent les jeux de sauvegarde avant chiffrement, puis négocient sur deux fronts. Les services de sauvegarde exposés sur Internet restent le vecteur initial dominant.\n- [media.xml] Une bibliothèque de parsing très répandue patchée en urgence :: Deux failles de corruption mémoire permettent un déni de service à distance sur les services qui exposent le parseur. Les mainteneurs publient une version corrective et recommandent un redémarrage contrôlé.\n- [media.xml] Les modèles locaux rattrapent leur retard sur l'analyse de logs :: Comparatif de modèles ouverts exécutés sur GPU grand public pour la corrélation d'événements : la latence devient compatible avec une supervision temps réel, à condition de rester sur des fenêtres de contexte courtes.\n- [media.xml] Le marché des courtiers en accès initiaux se structure :: Enquête sur les places de marché où se revendent des accès VPN d'entreprise, avec des prix corrélés à la taille de la cible et à la présence d'un EDR.\n- [vendors.xml] Fin de support annoncée pour une gamme de pare-feu encore déployée :: Les modèles concernés ne recevront plus de correctifs de sécurité à partir de mars 2027. Un inventaire des parcs concernés est recommandé dès maintenant.",
+      "duration_ms": 809,
+      "error": false
+    },
+    {
+      "index": 3,
+      "thought": "Je vais rédiger le briefing en français sur les 5 entrées les plus importantes.",
+      "tool": "fs_write",
+      "args": {
+        "path": "briefing.md",
+        "content": "# Briefing\n\n1. **Vigilance : campagne de rançongiciel ciblant les sauvegardes non segmentées**\n   - Les attaquants exfiltrent les jeux de sauvegarde avant chiffrement, puis négocient sur deux fronts.\n   - Les services de sauvegarde exposés sur Internet restent le vecteur initial dominant.\n\n2. **Le marché des courtiers en accès initiaux se structure**\n   - Enquête sur les places de marché où se revendent des accès VPN d'entreprise, avec des prix corrélés à la taille de la cible et à la présence d'un EDR.\n   - Les entreprises doivent surveiller attentivement ces marchés pour éviter les risques associés aux accès non sécurisés.\n\n3. **Fin de support annoncée pour une gamme de pare-feu encore déployée**\n   - Les modèles concernés ne recevront plus de correctifs de sécurité à partir de mars 2027.\n   - Un inventaire des parcs concernés est recommandé dès maintenant pour prévenir les vulnérabilités potentielles.\n\n4. **Les modèles locaux rattrapent leur retard sur l'analyse de logs**\n   - Comparatif de modèles ouverts exécutés sur GPU grand public pour la corrélation d'événements : la latence devient compatible avec une supervision temps réel, à condition de rester sur des fenêtres de contexte courtes.\n   - Les entreprises peuvent tirer parti de ces solutions pour améliorer leur capacité d'analyse en temps réel.\n\n5. **Une bibliothèque de parsing très répandue patchée en urgence**\n   - Deux failles de corruption mémoire permettent un déni de service à distance sur les services qui exposent le parseur.\n   - Les mainteneurs publient une version corrective et recommandent un redémarrage contrôlé pour appliquer la mise à jour."
+      },
+      "observation": "écrit briefing.md, 1699 octets",
+      "duration_ms": 6996,
+      "error": false
+    },
+    {
+      "index": 4,
+      "thought": "Le briefing a été écrit avec succès.",
+      "tool": null,
+      "args": {},
+      "observation": "run terminé",
+      "duration_ms": 582,
+      "error": false
+    }
+  ],
+  "artifacts": [
+    "briefing.md"
+  ],
+  "summary": "Briefing généré et enregistré dans briefing.md.",
+  "workspace": "/opt/data/cache/scratch/realruns/runs/real-20261121-130713/workspace",
+  "planner": "live:qwen2.5-coder-7b-instruct",
+  "started_at": 1795262833.0884242,
+  "finished_at": 1795262842.2157028,
+  "duration_s": 9.13,
+  "scenario": "cyber-brief",
+  "network": {
+    "network_mode": "deny",
+    "hosts": [],
+    "justification": ""
+  },
+  "events": [],
+  "isolation": "aucune",
+  "artifacts_list": [
+    "briefing.md"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "run_id": "real-20261121-130725",
+  "objective": "Agrège les trois flux du dossier feeds, hiérarchise les entrées par gravité et densité d'information, puis rédige un briefing daté de 5 entrées maximum en français. Chaque entrée doit tenir en deux lignes : le fait, puis l'enjeu pour l'analyste. Écris le résultat dans briefing.md.",
+  "status": "failed",
+  "steps": [
+    {
+      "index": 1,
+      "thought": "Je vais d'abord lister les fichiers dans le dossier feeds pour identifier les flux RSS à traiter.",
+      "tool": "fs_list",
+      "args": {
+        "path": "./feeds"
+      },
+      "observation": "file  cert.xml     1770 o\nfile  media.xml     1676 o\nfile  vendors.xml     1679 o",
+      "duration_ms": 11923,
+      "error": false
+    },
+    {
+      "index": 2,
+      "thought": "Le modèle n'a pas répondu.",
+      "tool": null,
+      "args": {},
+      "observation": "appel modèle impossible (http://192.168.1.153:1234/v1) : HTTP Error 400: Bad Request",
+      "duration_ms": 2255,
+      "error": true
+    }
+  ],
+  "artifacts": [],
+  "summary": "appel modèle impossible (http://192.168.1.153:1234/v1) : HTTP Error 400: Bad Request",
+  "workspace": "/opt/data/cache/scratch/realruns/runs/real-20261121-130725/workspace",
+  "planner": "live:qwen/qwen3-vl-8b",
+  "started_at": 1795262845.6863742,
+  "finished_at": 1795262859.8661177,
+  "duration_s": 14.18,
+  "scenario": "cyber-brief",
+  "network": {
+    "network_mode": "deny",
+    "hosts": [],
+    "justification": ""
+  },
+  "events": [],
+  "isolation": "aucune",
+  "artifacts_list": []
+}

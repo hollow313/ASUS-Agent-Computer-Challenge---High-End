@@ -60,3 +60,15 @@ aucun modèle n'est appelé, donc le résultat est déterministe et testable en 
 eux, s'exécutent vraiment : les fichiers sont réellement écrits, lus, déplacés, le graphique est
 réellement calculé. Le mode `live` fait tourner la même boucle avec un vrai modèle, local de
 préférence.
+
+## Parcours de cinq minutes, mis à jour
+
+```bash
+python3 -m agentdemo doctor                      # l'installation est-elle prête
+python3 -m agentdemo run --scenario cyber-brief  # 5 étapes, un briefing daté
+python3 -m agentdemo run --scenario local-audit  # 11 puis 6 étapes, un rapport d'audit
+python3 -m agentdemo run --scenario local-audit --interactive   # refuser une écriture et voir l'agent continuer
+python3 -m agentdemo mcp                         # exposer les outils à un client MCP
+python3 -m agentdemo tool list                   # catalogue d'outils vérifiés
+python3 -m agentdemo scenario remove mon-scenario # simulation avant suppression
+```

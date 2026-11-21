@@ -5,12 +5,15 @@
 [![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
-![tests](https://img.shields.io/badge/tests-32%20passing-2ea043)
+![tests](https://img.shields.io/badge/tests-42%20passing-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 [Français](README.md) · **English**
 
 **ASUS Agent Computer Challenge submission, High-End category.**
+
+Vigie is the distributable version of the agent that has been running on my machine for months.
+This repository publishes its core, without my data and without my keys.
 
 ---
 
@@ -51,7 +54,7 @@ cd ASUS-Agent-Computer-Challenge---High-End
 python3 -m agentdemo scenarios                  # five scenarios, nothing to install
 python3 -m agentdemo run --scenario cyber-brief # one full, deterministic run
 python3 -m agentdemo serve --port 8080          # the same with the web UI
-python3 -m unittest discover -s tests           # 32 tests, a quarter of a second
+python3 -m unittest discover -s tests           # 42 tests, two seconds
 ```
 
 Or in a container, the same image used for every screenshot here:
@@ -115,7 +118,7 @@ whim, it is a sizing decision you can verify.
 
 ## What a jury can verify in ten minutes
 
-1. **It runs.** One command, no key, five scenarios, deliverables written.
+1. **It runs.** One command, no key, six scenarios, deliverables written.
 2. **The result is real.** Briefing, summary and chart are in the run sandbox, with a timestamped
    step journal and a downloadable ZIP export.
 3. **The agent learns.** Run `self-repair`: pass 2 does 4 steps where pass 1 did 6, and zero errors
@@ -142,19 +145,6 @@ is reproducible with `video/slides3.py` then `video/build3.py`.
 
 The voice-over of the first video is produced by a tool of the project (`tts_speak`), not by
 external software. The audio file and the narration script are in the repository.
-
-## Three projects, one submission
-
-This repository is my High-End entry. Two other projects exist, on other trades, with the same
-discipline: no dependency, a demo that runs, a verifiable result.
-
-| Level | Project | What it does |
-| --- | --- | --- |
-| AI Entry | [Archiviste](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---AI-Entry) | reads a local administrative folder, extracts deadlines, answers with sources, refuses out-of-scope requests |
-| Developer | [RGAA Agent](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---Developer) | audits a site, really patches the HTML, re-audits: 63.9 % to 100 % compliance on the demo site |
-
-The rules allow one entry per level, so I submit one. The other two are public and runnable, and
-show the same method applied to different problems.
 
 ## What I do not promise
 
@@ -225,7 +215,7 @@ These are not polish: they are the difference between a 7B that works and a 7B t
 
 The same scenario therefore runs in replay for a demo and in live mode to measure a model.
 
-## The five scenarios
+## The six scenarios
 
 | Scenario | Objective given to the agent | Real deliverables |
 | --- | --- | --- |
@@ -234,6 +224,7 @@ The same scenario therefore runs in replay for a demo and in live mode to measur
 | `dataset-report` | profile a CSV, draw a chart, produce a note with three findings | `synthese.md`, `graphique.svg` |
 | `delegation` | delegate three zones to three sub-agents, re-read, aggregate | `comparatif.md` + 3 deliverables |
 | `self-repair` | three passes on the same objective: break, learn, correct | `veille.md` + two procedure versions |
+| `local-audit` | audit auth logs, listening ports and SSH config on the machine | `RAPPORT-AUDIT.md` + two audit procedures |
 
 A scenario can also be created from the UI (button **new scenario**), run once in live mode, then
 recorded as a cassette. The trace only holds decisions; observations are reproduced at run time by
@@ -332,6 +323,92 @@ container: due task, fired in 20 s, run produced, history kept.
 - non-privileged container, UID 568, a single `/data` volume, no Docker socket;
 - CI builds the image, starts the container, hits `/healthz`, runs a scenario and downloads the
   deliverable before publishing.
+
+## Real runs, not only replays
+
+Replay mode serves the demo. It does not prove a real model does the work. Three runs are versioned
+in `docs/runs/`, each with its full journal, a readable transcript and metadata.
+
+The most interesting one is the first: the 7B asked for `feeds/*.xml`, a glob the tool refuses. The
+error message lists the feeds that are actually there, and the next step succeeds. That is what we
+want to show: a small model that guesses wrong, a tool that explains, an immediate correction.
+
+```bash
+python3 bench/run_real.py --scenario cyber-brief --model qwen2.5-coder-7b-instruct \
+  --base-url http://YOUR-IP:1234/v1
+```
+
+## Confined execution, network declared per scenario
+
+The `run` tool executes commands inside a sandbox whose level is written into the run report.
+
+| Level | What is isolated | When |
+| --- | --- | --- |
+| `bwrap` | read-only system, `/tmp` and `$HOME` in memory, network cut, only the run folder writable | bubblewrap installed |
+| `unshare -n` | network cut by the kernel | fallback without bwrap |
+| `none` | nothing, and it says so | refused by default, or declared by the scenario |
+
+Network is a capability of the scenario, not a global switch:
+
+```json
+"network": {"mode": "deny"}
+"network": {"mode": "allowlist", "hosts": ["www.cert.ssi.gouv.fr"]}
+"network": {"mode": "open", "justification": "..."}
+```
+
+`deny` is the default and the only mode of the shipped scenarios. A refusal is a readable
+observation plus an event in the journal, never a raw exception.
+
+## Local audit, the domain scenario
+
+`local-audit` reads an auth log, a listening-port list, an SSH configuration and a sudo rule, then
+writes `RAPPORT-AUDIT.md` with severity, remediation and the source line of every finding. Two
+things make it different from a generic demo: it runs in `deny` with the routing rule sending it to
+the local model, and it learns, with pass 2 doing 6 steps instead of 11 and zero errors instead of
+one.
+
+## MCP server
+
+The tools are exposed to an external client over JSON-RPC on stdio, no dependency:
+
+```bash
+python3 -m agentdemo mcp
+```
+
+`initialize`, `tools/list` and `tools/call` are implemented with the expected JSON-RPC error codes.
+Read, analysis and memory tools are exposed; **`mail_*`, `http_get` and `run` stay out**: a client
+that lists a catalogue must not be able to send mail, leak data or launch a command.
+
+## Human approval before writing
+
+`--interactive` (or `--confirm-writes` for writes only) asks for confirmation before `fs_write`,
+`fs_move`, `mail_move` and `run`. A refusal is not a crash: it becomes the step observation, the
+agent reorganises, and the decision is journaled.
+
+## Lifecycle: removing a scenario
+
+`scenario remove` prints what will disappear (scenario, runs, attached procedures) before deleting,
+refuses shipped scenarios without `--force`, and never writes outside `data/`.
+
+## Tool catalogue, no pip install
+
+The agent can extend its tooling without installing packages. A tool is a folder with a manifest, a
+Python entry point and its sha256. Installation verifies the hash, refuses an entry point escaping
+its folder, copies into `data/tools/<name>/` and reloads the registry.
+
+```bash
+python3 -m agentdemo tool list
+python3 -m agentdemo tool install csv_top --yes
+```
+
+**What we do not do, and it is an architecture decision**: no `pip install`, no remote registry, no
+code executed outside the data folder. Every refusal is a line in `data/tools/install.jsonl`.
+
+## Production evidence
+
+Three captures generated by `docs/production/make_captures.py` from facts read on the machine: uptime
+and scheduled jobs, a briefing produced by a real run, the journal of versioned runs. Details and
+what is deliberately redacted: [`docs/production/README.md`](docs/production/README.md).
 
 ## Measure, don't claim
 
@@ -458,7 +535,7 @@ agentdemo/
 +-- web/routing.html      # routing configuration page
 +-- web/settings.html     # operations page: inputs, IMAP, scheduling
 +-- scenarios/            # cyber-brief, inbox-triage, dataset-report, delegation, self-repair
-tests/test_demo.py        # 32 tests: scenarios, procedures, delegation, sandbox
+tests/test_demo.py        # 42 tests: scenarios, sandbox, network, MCP, catalogue, HITL
 bench/                    # measurement bench: tasks, prices, simulated endpoint
 video/                    # title cards, UI capture and narration script
 docs/                     # screenshots, architecture, comparison, scenarios, 3-minute path

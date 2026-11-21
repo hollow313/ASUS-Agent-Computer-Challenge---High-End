@@ -5,12 +5,15 @@
 [![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dépendances](https://img.shields.io/badge/d%C3%A9pendances-0-2ea043)
-![tests](https://img.shields.io/badge/tests-32%20passent-2ea043)
+![tests](https://img.shields.io/badge/tests-42%20passent-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **Français** · [English](README.en.md)
 
 Candidature à l'ASUS Agent Computer Challenge, catégorie **High-End**.
+
+Vigie est la version distribuable de l'agent qui tourne chez moi depuis plusieurs mois. Ce dépôt en
+publie le cœur, sans mes données et sans mes clés.
 
 ---
 
@@ -54,7 +57,7 @@ cd ASUS-Agent-Computer-Challenge---High-End
 python3 -m agentdemo scenarios                  # les cinq scénarios, sans rien installer
 python3 -m agentdemo run --scenario cyber-brief # un run complet, déterministe
 python3 -m agentdemo serve --port 8080          # la même chose avec l'interface
-python3 -m unittest discover -s tests           # 32 tests, un quart de seconde
+python3 -m unittest discover -s tests           # 42 tests, deux secondes
 ```
 
 Ou en conteneur, avec l'image utilisée pour toutes les captures de ce dépôt :
@@ -120,7 +123,7 @@ un caprice, c'est un dimensionnement vérifiable.
 
 ## Ce qu'un jury peut vérifier en dix minutes
 
-1. **Le projet tourne.** Une commande, pas de clé, cinq scénarios, des livrables écrits.
+1. **Le projet tourne.** Une commande, pas de clé, six scénarios, des livrables écrits.
 2. **Le résultat est vrai.** Le briefing, la synthèse et le graphique sont dans le bac à sable du
    run, avec un journal d'étapes horodaté et un export ZIP téléchargeable.
 3. **L'agent apprend.** Relancez `self-repair` : la deuxième passe fait 4 étapes là où la première
@@ -148,20 +151,6 @@ le montage est reproductible avec `video/slides3.py` puis `video/build3.py`.
 
 La voix off de la première vidéo est produite par un outil du projet (`tts_speak`), pas par un
 logiciel externe. Le fichier audio et le script de narration sont dans le dépôt.
-
-## Trois projets, un seul concours
-
-Ce dépôt est ma candidature à la catégorie High-End. Deux autres projets existent, sur d'autres
-métiers, avec la même discipline : pas de dépendance, une démonstration qui tourne, un résultat
-vérifiable.
-
-| Niveau | Projet | Ce qu'il fait |
-| --- | --- | --- |
-| AI Entry | [Archiviste](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---AI-Entry) | lit un classeur administratif local, relève les échéances, répond avec sources, refuse ce qui sort du périmètre |
-| Developer | [RGAA Agent](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---Developer) | audite un site, corrige réellement le HTML, ré-audite : 63,9 % à 100 % de conformité sur le site de démonstration |
-
-Le règlement n'autorise qu'une candidature par catégorie, donc je n'en présente qu'une. Les deux
-autres sont publiques, exécutables, et montrent la même méthode appliquée à d'autres problèmes.
 
 ## Ce que je ne promets pas
 
@@ -234,7 +223,7 @@ et un 7B qui tourne en rond.
 
 Un même scénario se lance donc en replay pour une démonstration et en live pour mesurer un modèle.
 
-## Les cinq scénarios
+## Les six scénarios
 
 | Scénario | Objectif donné à l'agent | Livrables réels |
 | --- | --- | --- |
@@ -243,6 +232,7 @@ Un même scénario se lance donc en replay pour une démonstration et en live po
 | `dataset-report` | profiler un CSV, tracer un graphique, produire une note à 3 constats | `synthese.md`, `graphique.svg` |
 | `delegation` | déléguer trois zones à trois sous-agents, relire, agréger | `comparatif.md` + 3 livrables |
 | `self-repair` | trois passes sur le même objectif : se casser, apprendre, se corriger | `veille.md` + deux versions de la procédure |
+| `local-audit` | auditer journaux, ports et configuration SSH sur place | `RAPPORT-AUDIT.md` + deux procédures d'audit |
 
 Un scénario se crée aussi depuis l'interface (bouton **nouveau scénario**), se lance une première
 fois en mode réel, puis s'enregistre comme cassette. La trace ne contient que les décisions, les
@@ -344,6 +334,136 @@ coupure. Vérifié en conteneur : tâche due, déclenchée en 20 s, run produit,
 - CI qui construit l'image, démarre le conteneur, appelle `/healthz`, lance un scénario et
   télécharge le livrable avant publication.
 
+## Des runs réels, pas seulement des rejeux
+
+Le mode replay sert la démonstration. Il ne prouve pas qu'un modèle réel fait le travail. Trois
+runs sont donc versionnés dans `docs/runs/`, avec leur journal complet, leur transcription lisible
+et leurs métadonnées :
+
+| Date | Scénario | Modèle | Statut | Étapes | Durée |
+| --- | --- | --- | --- | --- | --- |
+| 21/11 | cyber-brief | qwen2.5-coder-7b-instruct | done après une erreur corrigée | 4 | 9 s |
+| 21/11 | cyber-brief | qwen/qwen3-vl-8b | échec du modèle (HTTP 400 côté serveur), trace conservée | 2 | 14 s |
+| 21/11 | local-audit | qwen2.5-coder-7b-instruct | à lancer | | |
+
+Le premier run est le plus intéressant : le 7B a d'abord demandé `feeds/*.xml`, un joker que l'outil
+refuse. Le message d'erreur liste les flux réellement présents, et l'étape suivante passe. C'est ça
+qu'on veut montrer : un petit modèle qui se trompe, un outil qui explique, une correction immédiate.
+
+```bash
+python3 bench/run_real.py --scenario cyber-brief --model qwen2.5-coder-7b-instruct \
+  --base-url http://MON-IP:1234/v1
+```
+
+Chaque dossier contient `journal.json`, `transcript.md`, `meta.json` et le livrable produit.
+Aucun run n'est nettoyé : un échec publié vaut mieux qu'une capture arrangée.
+
+## Exécution confinée, réseau déclaré par scénario
+
+Un agent qui lit et écrit des fichiers laisse un doute : agit-il vraiment sur le système ? L'outil
+`run` exécute des commandes, dans un bac à sable dont le niveau est écrit dans le rapport du run.
+
+| Niveau | Ce qui est isolé | Quand |
+| --- | --- | --- |
+| `bwrap` | système en lecture seule, `/tmp` et `$HOME` en mémoire, réseau coupé, seul le dossier du run est inscriptible | si bubblewrap est installé |
+| `unshare -n` | réseau coupé par le noyau | repli si bwrap manque |
+| `aucune` | rien, et c'est écrit noir sur blanc | refusé par défaut, ou déclaré par le scénario |
+
+Le réseau n'est pas un réglage global, c'est une capacité du scénario :
+
+```json
+"network": {"mode": "deny"}
+"network": {"mode": "allowlist", "hosts": ["www.cert.ssi.gouv.fr"]}
+"network": {"mode": "open", "justification": "..."}
+```
+
+`deny` est le défaut et le seul mode des scénarios livrés. Un refus n'est pas une exception brute :
+c'est une observation lisible, plus une ligne `{"event": "network_denied", "host": ...}` dans le
+journal. Une exécution qui a eu le réseau ne ressemble jamais à une exécution hors ligne.
+
+## Audit local : le scénario qui parle métier
+
+`local-audit` lit un journal d'authentification, une liste de ports en écoute, une configuration SSH
+et une règle sudo, puis écrit `RAPPORT-AUDIT.md` avec la sévérité, la remédiation et la ligne source
+de chaque constat. Deux choses le rendent différent d'une démo générique :
+
+- il tourne en `deny`, aucun octet ne sort, et la règle de routage par défaut envoie cette tâche
+  vers le modèle local avec la raison écrite ;
+- il apprend : la seconde passe relit les deux procédures écrites pendant la première et fait
+  **6 étapes au lieu de 11, zéro erreur au lieu d'une**.
+
+```bash
+python3 -m agentdemo run --scenario local-audit   # deux passes, comparées en fin de run
+```
+
+## Serveur MCP
+
+Les outils de Vigie sont exposés à un client externe en JSON-RPC sur stdio, sans dépendance :
+
+```bash
+python3 -m agentdemo mcp
+```
+
+```json
+{"command": "python3", "args": ["-m", "agentdemo", "mcp"]}
+```
+
+`initialize`, `tools/list` et `tools/call` sont implémentés, avec les codes d'erreur JSON-RPC
+attendus. Les outils exposés sont ceux de lecture, d'analyse et de mémoire : `fs_*`, `csv_*`,
+`chart_bar`, `rss_rank`, `skill_*`, plus les outils installés depuis le catalogue. **`mail_*`,
+`http_get` et `run` restent dehors** : un client qui liste un catalogue ne doit pas pouvoir envoyer
+un mail, sortir des données ou lancer une commande.
+
+## Accord humain avant d'écrire
+
+`--interactive` (ou `--confirm-writes` pour les seules écritures) demande confirmation avant
+`fs_write`, `fs_move`, `mail_move` et `run`. Un refus n'est pas un crash : il devient l'observation
+de l'étape, l'agent se réorganise, et la décision est journalisée.
+
+```bash
+python3 -m agentdemo run --scenario local-audit --interactive
+```
+
+```json
+{"event": "approval", "tool": "fs_write", "decision": "refused", "ts": "..."}
+```
+
+## Cycle de vie : retirer un scénario
+
+Un agent qui sait ajouter doit savoir retirer. `scenario remove` affiche ce qui va disparaître
+(scénario, runs, procédures rattachées) avant de supprimer, refuse les scénarios livrés sans
+`--force`, et n'écrit jamais hors de `data/`.
+
+```bash
+python3 -m agentdemo scenario remove mon-scenario          # simulation, rien n'est supprimé
+python3 -m agentdemo scenario remove mon-scenario --yes    # confirmation
+```
+
+## Catalogue d'outils, pas de pip install
+
+L'agent peut étendre son outillage sans installer de paquets. Un outil est un dossier avec un
+manifeste, un point d'entrée Python et son empreinte sha256. L'installation vérifie l'empreinte,
+refuse un point d'entrée qui sort du dossier, copie dans `data/tools/<nom>/` et recharge le registre.
+
+```bash
+python3 -m agentdemo tool list
+python3 -m agentdemo tool install csv_top --yes
+```
+
+**Ce qu'on ne fait pas, et c'est une décision d'architecture** : pas de `pip install`, pas de
+registre distant, pas de code exécuté hors du dossier de données. Chaque refus est une ligne dans
+`data/tools/install.jsonl`. Un agent qui installe des paquets arbitraires est une faille, pas une
+fonctionnalité.
+
+## Preuves de production
+
+Trois captures, générées par `docs/production/make_captures.py` à partir de faits lus sur la
+machine, pas d'une maquette : la durée de fonctionnement et les tâches planifiées, un briefing
+produit par un run réel, le journal des runs versionnés. Détail et ce qui est volontairement
+caviardé : [`docs/production/README.md`](docs/production/README.md).
+
+![Preuves de production](docs/production/01-runtime.png)
+
 ## Mesurer au lieu d'affirmer
 
 `bench/bench.py` fait dix tâches à notation exacte sur n'importe quel endpoint compatible OpenAI,
@@ -429,6 +549,9 @@ l'erreur est expliquée au lieu de renvoyer un code brut.
 | `/api/jobs/<id>/run` | POST | lance une tâche planifiée maintenant |
 | `/api/llm/models` | GET | sonde un endpoint compatible OpenAI |
 
+Commandes : `run`, `serve`, `mcp`, `scenario remove`, `tool list|install|remove`, `route`, `doctor`,
+`export`, `fit`, `skills`, `maintain`, `validate`, `new`.
+
 ## Limites assumées
 
 - **Pas d'affinage.** L'agent n'apprend pas de nouveaux poids, il accumule des procédures écrites.
@@ -458,6 +581,10 @@ agentdemo/
 ├── skills.py             # mémoire procédurale : contrats, confiance, révision, arbitrage
 ├── maintenance.py        # entretien : réparer, arbitrer, retirer
 ├── routing.py            # politique de routage : cibles, règles, forçage, historique
+├── sandbox.py            # exécution confinée : bwrap, unshare, ou refus explicite
+├── mcp_server.py         # serveur MCP (JSON-RPC sur stdio)
+├── toolcatalog.py        # catalogue d'outils déclaratifs, empreinte vérifiée
+├── available_tools/      # outils installables (csv_top)
 ├── settings_store.py     # entrées réelles et planning (mot de passe jamais renvoyé)
 ├── mailbox.py            # lecture et tri d'une vraie boîte IMAP (imaplib)
 ├── fit.py                # dimensionnement mémoire : ce qui tient dans une carte
@@ -469,8 +596,8 @@ agentdemo/
 ├── web/index.html        # interface d'une page, aucune dépendance
 ├── web/routing.html      # page de configuration du routage
 ├── web/settings.html     # page d'exploitation : entrées, IMAP, planning
-└── scenarios/            # cyber-brief, inbox-triage, dataset-report, delegation, self-repair
-tests/test_demo.py        # 32 tests : scénarios, procédures, délégation, bac à sable
+└── scenarios/            # cyber-brief, inbox-triage, dataset-report, delegation, self-repair, local-audit
+tests/test_demo.py        # 42 tests : scénarios, sandbox, réseau, MCP, catalogue, HITL
 bench/                    # banc de mesure : tâches, prix, endpoint simulé
 video/                    # cartons, capture d'interface et script de narration
 docs/                     # captures, architecture, comparatif, scénarios, parcours 3 min

@@ -131,6 +131,11 @@ class OpenAICompatPlanner:
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:  # noqa: S310
                 body = json.loads(response.read().decode())
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode(errors="replace")[:300]
+            raise RuntimeError(
+                f"appel modèle impossible ({self.base_url}, modèle {self.model}) : HTTP {exc.code} — {detail}"
+            ) from exc
         except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
             raise RuntimeError(f"appel modèle impossible ({self.base_url}) : {exc}") from exc
         if "choices" not in body:

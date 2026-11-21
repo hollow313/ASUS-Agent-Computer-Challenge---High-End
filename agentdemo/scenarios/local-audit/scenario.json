@@ -1,0 +1,30 @@
+{
+  "slug": "local-audit",
+  "title": "Audit de sécurité locale",
+  "blurb": "Journaux d'authentification, ports en écoute et configuration SSH lus sur place, rapport daté avec sévérité et remédiation, sans sortie réseau.",
+  "objective": "Audite le dossier fixtures de la machine : relève les tentatives d'authentification suspectes, les ports exposés inutilement et les directives risquées, puis écris RAPPORT-AUDIT.md avec la sévérité, la remédiation et la ligne source de chaque constat.",
+  "max_steps": 12,
+  "tags": [
+    "sécurité",
+    "audit",
+    "local",
+    "confidentiel"
+  ],
+  "network": {
+    "mode": "deny"
+  },
+  "exec": {
+    "allow_unsandboxed": true,
+    "reason": "grep et wc sur des fichiers du run, sans réseau"
+  },
+  "passes": [
+    {
+      "label": "passe 1 · sans procédure",
+      "cassette": "cassette.json"
+    },
+    {
+      "label": "passe 2 · procédures relues",
+      "cassette": "cassette2.json"
+    }
+  ]
+}
