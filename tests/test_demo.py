@@ -938,6 +938,38 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(target.id, "local-rapide")
         self.assertEqual(target.api_key, "")
 
+    def test_planner_retries_a_transient_endpoint_error(self) -> None:
+        """Un 500 passager de l'endpoint ne doit pas tuer le run : une relance suffit."""
+        import urllib.error
+        from unittest import mock
+
+        from agentdemo.planners import OpenAICompatPlanner
+
+        planner = OpenAICompatPlanner(base_url="http://127.0.0.1:9/v1", model="test", timeout=5)
+        request = urllib.request.Request("http://127.0.0.1:9/v1/chat/completions", data=b"{}")
+
+        class Reply:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return json.dumps({"choices": [{"message": {"content": "{\"final\": \"ok\"}"}}]}).encode()
+
+        responses = [urllib.error.HTTPError("u", 500, "boom", {}, None), Reply()]
+        with mock.patch("urllib.request.urlopen", side_effect=responses), mock.patch("time.sleep"):
+            body = planner._post_with_retry(request)
+        self.assertIn("choices", body)
+
+        with mock.patch(
+            "urllib.request.urlopen", side_effect=urllib.error.HTTPError("u", 401, "nope", {}, None)
+        ):
+            with self.assertRaises(RuntimeError) as caught:
+                planner._post_with_retry(request)
+        self.assertIn("401", str(caught.exception))
+
     def test_mcp_client_handshakes_with_own_server(self) -> None:
         """Le client MCP démarre un vrai serveur, fait la poignée de main et liste ses outils."""
         from agentdemo.mcp_client import probe

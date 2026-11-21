@@ -54,7 +54,7 @@ cd ASUS-Agent-Computer-Challenge---High-End
 python3 -m agentdemo scenarios                  # les six scénarios, sans rien installer
 python3 -m agentdemo run --scenario cyber-brief # un run complet, déterministe
 python3 -m agentdemo serve --port 8080          # la même chose avec l'interface
-python3 -m unittest discover -s tests           # 51 tests, deux secondes
+python3 -m unittest discover -s tests           # 52 tests, deux secondes
 ```
 
 Ou en conteneur, avec l'image utilisée pour toutes les captures de ce dépôt :
@@ -708,7 +708,7 @@ agentdemo/
 ├── web/routing.html      # page de configuration du routage
 ├── web/settings.html     # page d'exploitation : entrées, IMAP, planning
 └── scenarios/            # cyber-brief, inbox-triage, dataset-report, delegation, self-repair, local-audit
-tests/test_demo.py        # 51 tests : scénarios, sandbox, réseau, MCP, catalogue, HITL
+tests/test_demo.py        # 52 tests : scénarios, sandbox, réseau, MCP, catalogue, HITL
 demo/inputs/              # fichiers de démonstration prêts à l'emploi (audit, CSV)
 bench/                    # banc de mesure : tâches, prix, endpoint simulé
 video/                    # cartons, capture d'interface et script de narration

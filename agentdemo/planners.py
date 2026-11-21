@@ -14,6 +14,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 import urllib.error
 import urllib.request
 from typing import Any, Protocol
@@ -90,6 +91,32 @@ class OpenAICompatPlanner:
             timeout=self.timeout,
         )
 
+    def _post_with_retry(self, request: urllib.request.Request, attempts: int = 2) -> dict[str, Any]:
+        """Un incident passager de l'endpoint ne doit pas tuer un run entier.
+
+        Les serveurs locaux renvoient parfois `HTTP 400 {"error":"terminated"}` quand un modèle sature
+        son contexte, et les passerelles distantes des 502. On retente une fois, puis on remonte
+        l'erreur telle quelle : un échec réel doit rester lisible.
+        """
+        last: Exception | None = None
+        for attempt in range(attempts):
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout) as response:  # noqa: S310
+                    return json.loads(response.read().decode())
+            except urllib.error.HTTPError as exc:
+                detail = exc.read().decode(errors="replace")[:300]
+                last = RuntimeError(
+                    f"appel modèle impossible ({self.base_url}, modèle {self.model}) : HTTP {exc.code} — {detail}"
+                )
+                transient = exc.code >= 500 or "terminated" in detail.lower() or exc.code == 429
+            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+                last = RuntimeError(f"appel modèle impossible ({self.base_url}) : {exc}")
+                transient = True
+            if not transient or attempt == attempts - 1:
+                raise last
+            time.sleep(1.5)
+        raise last  # pragma: no cover - boucle épuisée
+
     def next_action(self, objective: str, history: list[dict[str, Any]]) -> dict[str, Any]:
         messages = [{"role": "system", "content": self._system_prompt()}]
         messages.append({"role": "user", "content": f"Objectif : {objective}"})
@@ -128,16 +155,7 @@ class OpenAICompatPlanner:
                 **({"Authorization": f"Bearer {self.api_key}"} if self.api_key else {}),
             },
         )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:  # noqa: S310
-                body = json.loads(response.read().decode())
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode(errors="replace")[:300]
-            raise RuntimeError(
-                f"appel modèle impossible ({self.base_url}, modèle {self.model}) : HTTP {exc.code} — {detail}"
-            ) from exc
-        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
-            raise RuntimeError(f"appel modèle impossible ({self.base_url}) : {exc}") from exc
+        body = self._post_with_retry(request)
         if "choices" not in body:
             excerpt = json.dumps(body, ensure_ascii=False)[:300]
             raise RuntimeError(

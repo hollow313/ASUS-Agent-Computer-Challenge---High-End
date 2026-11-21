@@ -26,4 +26,4 @@ Côté production : un dossier de CSV, une boîte mail en IMAP, et un planning. 
 Les chiffres maintenant, mesurés sur la machine, dix tâches notées par correspondance exacte. Le sept B réussit soixante pour cent. Le huit B réussit quatre-vingt-dix pour cent. Gemini Flash réussit tout, pour sept centimes les mille tâches, et sort vos données au passage.
 
 9. La carte
-C'est le goulot, et c'est le sujet de cette candidature. Trente-deux gigas font tenir un trente-deux milliards de paramètres en quatre bits, avec un contexte long et des sous-agents en parallèle. Le dépôt est public, cinquante et un tests passent, une commande suffit pour lancer la démo, et les limites sont écrites noir sur blanc.
+C'est le goulot, et c'est le sujet de cette candidature. Trente-deux gigas font tenir un trente-deux milliards de paramètres en quatre bits, avec un contexte long et des sous-agents en parallèle. Le dépôt est public, cinquante-deux tests passent, une commande suffit pour lancer la démo, et les limites sont écrites noir sur blanc.
