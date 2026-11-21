@@ -400,6 +400,21 @@ class ScenarioTests(unittest.TestCase):
         self.assertIn("delegations/nord/resume.md", result.steps[0].observation)
         self.assertTrue((workspace / "delegations" / "nord" / "resume.md").exists())
 
+    def test_repeated_successful_call_stops_the_run(self) -> None:
+        """Un modèle qui relit dix fois le même fichier sans avancer ne doit pas brûler le budget."""
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "run" / "workspace"
+        workspace.mkdir(parents=True)
+        (workspace / "note.txt").write_text("contenu", encoding="utf-8")
+        call = {"thought": "je relis", "tool": "fs_read", "args": {"path": "note.txt"}}
+        agent = Agent(planner=ReplayPlanner([dict(call) for _ in range(10)]),
+                      workspace=workspace, runs_dir=root / "run", max_steps=10)
+        result = agent.run("lis le fichier")
+        self.assertEqual(result.status, "blocked")
+        self.assertLessEqual(len(result.steps), 6, "l'arrêt doit venir avant le budget")
+
     def test_string_arguments_are_parsed(self) -> None:
         """Un petit modèle renvoie parfois args en chaîne JSON : on l'accepte au lieu d'échouer."""
         tmp = tempfile.TemporaryDirectory()
@@ -445,7 +460,8 @@ class ScenarioTests(unittest.TestCase):
                       workspace=workspace, runs_dir=root / "run", max_steps=10)
         result = agent.run("lis un fichier absent")
         self.assertEqual(result.status, "blocked")
-        self.assertIn("trois fois", result.summary.lower())
+        self.assertIn("3 fois", result.summary)
+        self.assertIn("budget", result.summary.lower())
 
     def test_scenario_created_then_recorded_is_replayable(self) -> None:
         """Un scénario créé depuis l'interface devient rejouable une fois sa trace enregistrée."""

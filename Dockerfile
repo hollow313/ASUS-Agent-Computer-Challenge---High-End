@@ -12,6 +12,13 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 COPY agentdemo ./agentdemo
+COPY demo ./demo
+
+# bubblewrap : sans lui, l'outil `run` n'est pas exposé du tout (le bac à sable le refuse).
+# L'image reste rootless ensuite, l'agent tourne en 568.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends bubblewrap \
+    && rm -rf /var/lib/apt/lists/*
 
 # UID/GID 568 : identifiant des applications sur TrueNAS SCALE (et des volumes
 # partagés sur la plupart des NAS). Les fichiers écrits restent donc accessibles

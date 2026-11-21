@@ -132,7 +132,10 @@ def build_registry(
     def run(command: str) -> str:
         """Exécute une commande shell dans le dossier du run, sous bac à sable."""
         if runner is None:
-            raise ToolError("exécution de commandes désactivée dans ce run")
+            raise ToolError(
+                "commande refusée dans ce scénario : il n'autorise pas l'exécution (champ exec absent). "
+                "Utilise les outils d'analyse à disposition."
+            )
         from .sandbox import SandboxError
 
         try:
@@ -564,7 +567,7 @@ def build_registry(
             raise ToolError(f"échec réseau : {exc}") from exc
         return _clip(body, int(max_chars))
 
-    return {
+    registry = {
         "fs_list": Tool("fs_list", "fs_list(path)", "liste un dossier du bac à sable", fs_list),
         "mail_list": Tool(
             "mail_list",
@@ -606,12 +609,6 @@ def build_registry(
             "http_get(url, max_chars?)",
             "GET HTTP, soumis à la politique réseau du scénario (deny par défaut)",
             http_get,
-        ),
-        "run": Tool(
-            "run",
-            "run(command)",
-            "exécute une commande shell dans le dossier du run, sous bac à sable (bwrap, unshare)",
-            run,
         ),
         "tts_speak": Tool(
             "tts_speak",
@@ -670,6 +667,14 @@ def build_registry(
             skill_prune,
         ),
     }
+    if runner is not None:
+        registry["run"] = Tool(
+            "run",
+            "run(command)",
+            "exécute une commande shell dans le dossier du run, sous bac à sable (bwrap, unshare)",
+            run,
+        )
+    return registry
 
 
 def _is_number(value: Any) -> bool:

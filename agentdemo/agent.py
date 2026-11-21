@@ -192,28 +192,29 @@ class Agent:
             step = Step(index, thought, tool_name, args, observation, _ms(started), error)
             result.steps.append(step)
 
-            if error:
-                signature = json.dumps([tool_name, args], ensure_ascii=False, sort_keys=True)
-                repeats[signature] = repeats.get(signature, 0) + 1
-                if repeats[signature] >= 3:
-                    # trois fois le même appel en échec : insister ne sert à rien, on s'arrête net
-                    dead = Step(
-                        index,
-                        "Trois tentatives identiques, toutes en échec.",
-                        None,
-                        {},
-                        "run interrompu pour éviter d'épuiser le budget",
-                        _ms(started),
-                        True,
-                    )
-                    result.steps.append(dead)
-                    _notify(self.on_step, dead)
-                    result.status = "blocked"
-                    result.summary = (
-                        f"Bloqué : {tool_name} a échoué trois fois avec les mêmes arguments "
-                        f"({observation[:200]}). Le budget restant n'a pas été gaspillé."
-                    )
-                    break
+            signature = json.dumps([tool_name, args], ensure_ascii=False, sort_keys=True)
+            repeats[signature] = repeats.get(signature, 0) + 1
+            limite = 3 if error else 4
+            if repeats[signature] >= limite:
+                # insister ne sert à rien : même appel répété, on s'arrête net
+                dead = Step(
+                    index,
+                    f"{repeats[signature]} appels identiques à {tool_name}, sans progrès.",
+                    None,
+                    {},
+                    "run interrompu pour éviter d'épuiser le budget",
+                    _ms(started),
+                    True,
+                )
+                result.steps.append(dead)
+                _notify(self.on_step, dead)
+                result.status = "blocked"
+                result.summary = (
+                    f"Bloqué : {tool_name} a été appelé {repeats[signature]} fois avec les mêmes "
+                    f"arguments{', en échec' if error else ', sans avancer'}. "
+                    "Le budget restant n'a pas été gaspillé."
+                )
+                break
             history.append(
                 {"thought": thought, "tool": tool_name, "args": args, "observation": observation}
             )

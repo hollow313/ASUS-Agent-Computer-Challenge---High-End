@@ -18,7 +18,7 @@ from pathlib import Path
 from .agent import Agent
 from .planners import OpenAICompatPlanner, ReplayPlanner
 from .scenarios_loader import SCENARIOS_DIR, Scenario, get_scenario, list_scenarios
-from .sandbox import CommandSandbox
+from .sandbox import runner_for as _runner_for
 from .skills import SkillStore
 from .tools import build_registry
 from .scenarios_loader import Scenario
@@ -124,11 +124,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             skills=skills,
             children_dir=scenario.root / "children",
             network_config=scenario.network,
-            runner=CommandSandbox(
-                workspace,
-                network=str(scenario.network.get("mode", "deny")),
-                allow_unsandboxed=bool((scenario.exec_policy() or {}).get("allow_unsandboxed")),
-            ),
+            runner=_runner_for(workspace, scenario),
             approver=confirm,
             scenario=scenario.slug,
         )

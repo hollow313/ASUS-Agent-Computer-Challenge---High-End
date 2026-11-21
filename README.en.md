@@ -1,35 +1,34 @@
 # Vigie
 
-### The agent that takes the watch: it acts, it verifies, it learns from its mistakes.
+**An autonomous agent that runs on your machine. It takes an objective in plain language, acts on
+real files, verifies its own work, and remembers what it learned.**
+
+No API key, no network, no dependency. One command and it runs.
+
+[▶ Watch the presentation (2 min 35)](docs/video/agent-computer-presentation.mp4) · [Try it in 30 seconds](#in-thirty-seconds) · [The measured numbers](#the-numbers)
+
+![Interface capture](docs/screenshot-run.png)
 
 [![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
-![tests](https://img.shields.io/badge/tests-42%20passing-2ea043)
+![tests](https://img.shields.io/badge/tests-43%20passing-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 [Français](README.md) · **English**
 
-**ASUS Agent Computer Challenge submission, High-End category.**
+**ASUS Agent Computer Challenge submission, High-End category.** Vigie is the distributable version
+of the agent that has been running on my machine for months; this repository publishes its core,
+without my data and without my keys.
 
-Vigie is the distributable version of the agent that has been running on my machine for months.
-This repository publishes its core, without my data and without my keys.
+**In three sentences.** An agent is not a chat that answers: it is a program that picks tools, writes
+files, re-reads what it produced and starts again when something breaks. Vigie does that with six
+shipped scenarios, including a local security audit, and it learns by recording procedures it
+re-reads on the next run. All of it runs today on a 3 GB VRAM card, and that is where the project
+meets its ceiling.
 
----
-
-# Part 1. What it does, and why it needs compute
-
-An agent is not a chat that answers. It is a program that receives an objective, picks tools, acts
-on real files, re-reads what it produced and starts again when something breaks. The difference
-between a demo and a tool is that a demo only looks like it works.
-
-**Vigie** is a complete agent, runnable with one command, no key, no network, no GPU. It writes real
-deliverables: a dated briefing, a costed summary with its chart, a triaged mailbox. It learns
-procedures and re-reads them on the next run. It delegates to sub-agents with their own budget. It
-picks its model per task. It runs every morning at 8 if you ask it to.
-
-All of that runs today on a 3 GB VRAM card and a 7-billion-parameter model. That is where the
-project meets its ceiling, and where the Radeon AI PRO R9700 changes the nature of the work.
+The rest comes in two parts: the first sells the project, the second opens it up for an engineer,
+limits included.
 
 ## What is missing, and what the card unlocks
 
@@ -54,7 +53,7 @@ cd ASUS-Agent-Computer-Challenge---High-End
 python3 -m agentdemo scenarios                  # five scenarios, nothing to install
 python3 -m agentdemo run --scenario cyber-brief # one full, deterministic run
 python3 -m agentdemo serve --port 8080          # the same with the web UI
-python3 -m unittest discover -s tests           # 42 tests, two seconds
+python3 -m unittest discover -s tests           # 43 tests, two seconds
 ```
 
 Or in a container, the same image used for every screenshot here:
@@ -549,7 +548,8 @@ agentdemo/
 +-- web/routing.html      # routing configuration page
 +-- web/settings.html     # operations page: inputs, IMAP, scheduling
 +-- scenarios/            # cyber-brief, inbox-triage, dataset-report, delegation, self-repair
-tests/test_demo.py        # 42 tests: scenarios, sandbox, network, MCP, catalogue, HITL
+tests/test_demo.py        # 43 tests: scenarios, sandbox, network, MCP, catalogue, HITL
+demo/inputs/              # ready-to-use demo files (audit, CSV)
 bench/                    # measurement bench: tasks, prices, simulated endpoint
 video/                    # title cards, UI capture and narration script
 docs/                     # screenshots, architecture, comparison, scenarios, 3-minute path

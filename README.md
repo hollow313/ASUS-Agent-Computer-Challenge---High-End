@@ -1,37 +1,34 @@
 # Vigie
 
-### L'agent qui prend le quart : il agit, il vérifie, il apprend de ses erreurs.
+**Un agent autonome qui tourne sur votre machine. Il reçoit un objectif en français, agit sur de
+vrais fichiers, vérifie son travail, et garde la mémoire de ce qu'il a appris.**
+
+Pas de clé API, pas de réseau, pas de dépendance. Une commande et il tourne.
+
+[▶ Voir la vidéo de présentation (2 min 35)](docs/video/agent-computer-presentation.mp4) · [Essayer en 30 secondes](#en-trente-secondes) · [Les chiffres mesurés](#les-chiffres)
+
+![Capture de l'interface](docs/screenshot-run.png)
 
 [![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dépendances](https://img.shields.io/badge/d%C3%A9pendances-0-2ea043)
-![tests](https://img.shields.io/badge/tests-42%20passent-2ea043)
+![tests](https://img.shields.io/badge/tests-43%20passent-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **Français** · [English](README.en.md)
 
-Candidature à l'ASUS Agent Computer Challenge, catégorie **High-End**.
+Candidature à l'ASUS Agent Computer Challenge, catégorie **High-End**. Vigie est la version
+distribuable de l'agent qui tourne chez moi depuis plusieurs mois ; ce dépôt en publie le cœur,
+sans mes données et sans mes clés.
 
-Vigie est la version distribuable de l'agent qui tourne chez moi depuis plusieurs mois. Ce dépôt en
-publie le cœur, sans mes données et sans mes clés.
+**En trois phrases.** Un agent, ce n'est pas un chat qui répond : c'est un programme qui choisit des
+outils, écrit des fichiers, relit ce qu'il a produit et recommence quand ça casse. Vigie le fait
+avec six scénarios livrés, dont un audit de sécurité local, et il apprend de ses erreurs en
+enregistrant des procédures qu'il relit au run suivant. Tout tourne aujourd'hui sur une carte de
+3 Go de VRAM, et c'est là que le projet rencontre sa limite.
 
----
-
-# Partie 1. Le projet, et pourquoi il lui manque de la puissance
-
-Un agent, ce n'est pas un chat qui répond. C'est un programme qui reçoit un objectif, choisit des
-outils, agit sur de vrais fichiers, relit ce qu'il a produit et recommence quand ça casse. La
-différence entre une démonstration et un outil, c'est que la démonstration a l'air de marcher.
-
-**Vigie** est un agent complet, exécutable en une commande, sans clé, sans réseau, sans GPU. Il
-écrit des livrables réels : un briefing daté, une synthèse chiffrée avec son graphique, un tri de
-boîte mail. Il apprend des procédures et les relit au run suivant. Il délègue à des sous-agents qui
-ont leur propre budget. Il choisit son modèle selon la tâche. Il tourne tous les matins à 8h si on
-le lui demande.
-
-Tout cela, il le fait aujourd'hui sur une carte de 3 Go de VRAM et un modèle de 7 milliards de
-paramètres. C'est là que le projet rencontre sa limite, et c'est là que la Radeon AI PRO R9700
-change la nature du travail.
+Le reste du document, en deux parties : la première vend le projet et explique pourquoi il lui
+manque de la puissance de calcul, la seconde l'ouvre pour un ingénieur, avec ses limites écrites.
 
 ## Ce qui manque, et ce que la carte débloque
 
@@ -57,7 +54,7 @@ cd ASUS-Agent-Computer-Challenge---High-End
 python3 -m agentdemo scenarios                  # les cinq scénarios, sans rien installer
 python3 -m agentdemo run --scenario cyber-brief # un run complet, déterministe
 python3 -m agentdemo serve --port 8080          # la même chose avec l'interface
-python3 -m unittest discover -s tests           # 42 tests, deux secondes
+python3 -m unittest discover -s tests           # 43 tests, deux secondes
 ```
 
 Ou en conteneur, avec l'image utilisée pour toutes les captures de ce dépôt :
@@ -136,6 +133,13 @@ un caprice, c'est un dimensionnement vérifiable.
 6. **Le projet est exploitable.** `/settings` branche un dossier de CSV, une boîte IMAP et planifie
    les scénarios tous les matins. Le mot de passe n'est jamais renvoyé par l'API.
 7. **Les limites sont écrites.** Partie 2 plus bas, et [`docs/PRODUCTION.md`](docs/PRODUCTION.md).
+
+## La vidéo et la démo courte
+
+La visite guidée du projet, neuf cartons et une voix off continue, montre tout ce qui est décrit
+ici : [**vidéo de présentation, 2 min 35**](docs/video/agent-computer-presentation.mp4). La
+démonstration courte de 64 secondes montre l'agent en action pour qui préfère voir tourner avant de
+lire.
 
 ## Deux vidéos, deux usages
 
@@ -377,9 +381,13 @@ Un agent qui lit et écrit des fichiers laisse un doute : agit-il vraiment sur l
 
 | Niveau | Ce qui est isolé | Quand |
 | --- | --- | --- |
-| `bwrap` | système en lecture seule, `/tmp` et `$HOME` en mémoire, réseau coupé, seul le dossier du run est inscriptible | si bubblewrap est installé |
+| `bwrap` | système en lecture seule, `/tmp` et `$HOME` en mémoire, réseau coupé, seul le dossier du run est inscriptible | installé dans l'image Docker |
 | `unshare -n` | réseau coupé par le noyau | repli si bwrap manque |
 | `aucune` | rien, et c'est écrit noir sur blanc | refusé par défaut, ou déclaré par le scénario |
+
+Quand aucun des deux n'est disponible et que le scénario ne l'autorise pas, **l'outil `run` n'est pas
+exposé du tout** : le modèle ne peut pas le découvrir, l'appeler, se faire refuser et gaspiller son
+budget. C'était un défaut réel, corrigé après un run en conteneur.
 
 Le réseau n'est pas un réglage global, c'est une capacité du scénario :
 
@@ -609,7 +617,8 @@ agentdemo/
 ├── web/routing.html      # page de configuration du routage
 ├── web/settings.html     # page d'exploitation : entrées, IMAP, planning
 └── scenarios/            # cyber-brief, inbox-triage, dataset-report, delegation, self-repair, local-audit
-tests/test_demo.py        # 42 tests : scénarios, sandbox, réseau, MCP, catalogue, HITL
+tests/test_demo.py        # 43 tests : scénarios, sandbox, réseau, MCP, catalogue, HITL
+demo/inputs/              # fichiers de démonstration prêts à l'emploi (audit, CSV)
 bench/                    # banc de mesure : tâches, prix, endpoint simulé
 video/                    # cartons, capture d'interface et script de narration
 docs/                     # captures, architecture, comparatif, scénarios, parcours 3 min

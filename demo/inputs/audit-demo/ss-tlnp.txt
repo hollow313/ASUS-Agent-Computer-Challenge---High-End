@@ -1,0 +1,7 @@
+State  Recv-Q Send-Q Local Address:Port  Peer Address:Port Process
+LISTEN 0      128          0.0.0.0:22         0.0.0.0:*     users:(("sshd",pid=811,fd=3))
+LISTEN 0      128        127.0.0.1:631        0.0.0.0:*     users:(("cupsd",pid=902,fd=7))
+LISTEN 0      100          0.0.0.0:3306       0.0.0.0:*     users:(("mariadbd",pid=1204,fd=21))
+LISTEN 0      511          0.0.0.0:6379       0.0.0.0:*     users:(("redis-server",pid=1331,fd=6))
+LISTEN 0      128        127.0.0.1:8080       0.0.0.0:*     users:(("python3",pid=2210,fd=5))
+LISTEN 0      128          0.0.0.0:19999      0.0.0.0:*     users:(("netdata",pid=2402,fd=4))

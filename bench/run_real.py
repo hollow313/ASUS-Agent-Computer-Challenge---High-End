@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agentdemo.agent import Agent  # noqa: E402
 from agentdemo.planners import OpenAICompatPlanner  # noqa: E402
-from agentdemo.sandbox import CommandSandbox, isolation_level  # noqa: E402
+from agentdemo.sandbox import isolation_level, runner_for as _runner_for  # noqa: E402
 from agentdemo.scenarios_loader import get_scenario  # noqa: E402
 from agentdemo.skills import SkillStore  # noqa: E402
 
@@ -88,11 +88,7 @@ def main() -> int:
         skills=SkillStore(data_dir / "skills"),
         children_dir=scenario.root / "children",
         network_config=scenario.network,
-        runner=CommandSandbox(
-            workspace,
-            network=str(scenario.network.get("mode", "deny")),
-            allow_unsandboxed=bool(scenario.exec_policy().get("allow_unsandboxed")),
-        ),
+        runner=_runner_for(workspace, scenario),
         scenario=scenario.slug,
     )
     print(f"▸ {scenario.slug} · {args.model} · {args.base_url}", flush=True)

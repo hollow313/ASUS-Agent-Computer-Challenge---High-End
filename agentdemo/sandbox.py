@@ -81,6 +81,26 @@ def isolation_level() -> str:
     return _PROBE
 
 
+def runner_for(workspace: Path, scenario: object) -> "CommandSandbox | None":
+    """Un exécuteur seulement si l'exécution est possible : isolée, ou explicitement autorisée.
+
+    Sinon l'outil `run` n'est pas exposé du tout, ce qui évite qu'un modèle le découvre, l'appelle,
+    se fasse refuser et consomme son budget pour rien.
+    """
+    policy = {}
+    if hasattr(scenario, "exec_policy"):
+        try:
+            policy = scenario.exec_policy() or {}
+        except (TypeError, ValueError):
+            policy = {}
+    if isolation_level() == "aucune" and not policy.get("allow_unsandboxed"):
+        return None
+    network = "deny"
+    if hasattr(scenario, "network") and isinstance(getattr(scenario, "network"), dict):
+        network = str(scenario.network.get("mode", "deny"))
+    return CommandSandbox(workspace, network=network, allow_unsandboxed=bool(policy.get("allow_unsandboxed")))
+
+
 class CommandSandbox:
     """Lance une commande shell dans le dossier du run, avec la politique réseau du scénario."""
 
