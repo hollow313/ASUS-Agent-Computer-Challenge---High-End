@@ -887,6 +887,21 @@ class ScenarioTests(unittest.TestCase):
                 slug="sans-hote", title="x", objective="y", network={"mode": "allowlist", "hosts": []}
             )
 
+    def test_hidden_scenarios_are_remembered(self) -> None:
+        """Un scénario livré se masque au lieu d'être supprimé, et le réglage se relit."""
+        from agentdemo.settings_store import Settings
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        path = Path(tmp.name) / "settings.json"
+        settings = Settings()
+        settings.update({"hidden_scenarios": ["self-repair"]})
+        settings.save(path)
+        self.assertEqual(Settings.load(path).hidden_scenarios, ["self-repair"])
+        settings.update({"hidden_scenarios": []})
+        settings.save(path)
+        self.assertEqual(Settings.load(path).hidden_scenarios, [])
+
     def test_mcp_servers_are_stored_and_validated(self) -> None:
         from agentdemo.settings_store import Settings
 

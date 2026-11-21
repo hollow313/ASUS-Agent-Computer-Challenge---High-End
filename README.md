@@ -348,8 +348,9 @@ scénario, c'est une mauvaise interface.
 | --- | --- | --- |
 | créer un scénario | bouton **＋ nouveau scénario** | `agentdemo new --slug ...` |
 | le modifier | bouton **✎** sur la fiche | `agentdemo edit <nom> --network allowlist --hosts ...` |
+| modifier un scénario livré | **✎** crée la copie puis ouvre l'éditeur | `agentdemo scenario duplicate <nom> --to <copie>` |
 | le dupliquer | bouton **⧉** | `agentdemo scenario duplicate <nom> --to <copie>` |
-| le supprimer | bouton **×** | `agentdemo scenario remove <nom> --yes` |
+| le supprimer | bouton **×** (masquer pour un livré) | `agentdemo scenario remove <nom> --yes` |
 | voir son détail | clic sur l'éditeur | `agentdemo show <nom>` |
 | régler son réseau | sélecteur deny/allowlist/open + domaines | `agentdemo edit <nom> --network ...` |
 | autoriser les commandes | case à cocher | `--allow-exec` |
@@ -363,8 +364,9 @@ scénario, c'est une mauvaise interface.
 
 Trois détails qui font la différence à l'usage :
 
-- **un scénario livré ne se modifie pas, il se duplique.** La copie arrive dans le dossier
-  utilisateur, entièrement éditable, et l'original reste la référence de la démonstration ;
+- **un scénario livré ne se modifie ni ne se supprime : il se copie ou se masque.** Le bouton ✎
+  crée la copie puis ouvre directement son éditeur ; le bouton – le masque, et il se réaffiche depuis
+  les réglages. L'original reste la référence de la démonstration, et rien n'est perdu ;
 - **les domaines autorisés peuvent être déduits des flux** : un bouton lit les URL du champ flux et
   remplit l'allowlist, ce qui évite l'incohérence classique entre une source déclarée et un domaine
   oublié ;

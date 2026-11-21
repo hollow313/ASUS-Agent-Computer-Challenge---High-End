@@ -297,9 +297,13 @@ async function loadScenarios(preferred) {
     const flag = s.has_cassette === false ? '<span class="flag">trace à enregistrer</span>' : "";
     const net = (s.network && s.network.mode) || "deny";
     const actions = `<div class="scen-actions">
-        ${s.builtin ? "" : `<button class="mini" data-edit="${s.slug}" title="modifier">✎</button>`}
+        ${s.builtin
+          ? `<button class="mini" data-copy-edit="${s.slug}" title="modifier une copie">✎</button>`
+          : `<button class="mini" data-edit="${s.slug}" title="modifier">✎</button>`}
         <button class="mini" data-dup="${s.slug}" title="dupliquer">⧉</button>
-        ${s.builtin ? "" : `<button class="mini danger" data-del-scen="${s.slug}" title="supprimer">×</button>`}
+        ${s.builtin
+          ? `<button class="mini" data-hide="${s.slug}" title="masquer (réaffichable dans les réglages)">–</button>`
+          : `<button class="mini danger" data-del-scen="${s.slug}" title="supprimer">×</button>`}
       </div>`;
     el.innerHTML = `<strong>${escapeHtml(s.title)}</strong><span>${escapeHtml(s.blurb)}</span>
       <em>${escapeHtml(s.tags.join(" · "))} · ${s.steps} étapes · réseau ${escapeHtml(net)}</em>${flag}${actions}`;
@@ -621,8 +625,35 @@ async function openEditor(slug) {
 
 document.addEventListener("click", async (event) => {
   const el = event.target;
-  if (el.dataset.edit || el.dataset.dup || el.dataset.delScen) event.stopPropagation();
+  if (el.dataset.edit || el.dataset.dup || el.dataset.delScen || el.dataset.copyEdit || el.dataset.hide) {
+    event.stopPropagation();
+  }
   if (el.dataset.edit) { await openEditor(el.dataset.edit); }
+  if (el.dataset.copyEdit) {
+    const slug = prompt(
+      "Un scénario livré ne se modifie pas : on modifie une copie. Nom de la copie ?",
+      el.dataset.copyEdit + "-perso",
+    );
+    if (!slug) return;
+    const res = await fetch(`/api/scenarios/${encodeURIComponent(el.dataset.copyEdit)}/duplicate`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: slug.trim().toLowerCase() }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { setStatus(data.error || "copie impossible", "err"); return; }
+    await loadScenarios(data.scenario.slug);
+    await openEditor(data.scenario.slug);
+    setStatus(`copie ${data.scenario.slug} prête à modifier`, "ok");
+  }
+  if (el.dataset.hide) {
+    if (!confirm("Masquer ce scénario livré ? Il reste dans l'image et se réaffiche depuis les réglages.")) return;
+    const res = await fetch(`/api/scenarios/${encodeURIComponent(el.dataset.hide)}/hide`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hidden: true }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setStatus(res.ok ? "scénario masqué" : (data.error || "échec"), res.ok ? "ok" : "err");
+    if (res.ok) loadScenarios();
+  }
   if (el.dataset.dup) {
     const slug = prompt("Nouveau slug pour la copie", el.dataset.dup + "-copie");
     if (!slug) return;

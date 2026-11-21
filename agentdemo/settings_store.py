@@ -183,6 +183,7 @@ class Settings:
     mail: MailConfig = field(default_factory=MailConfig)
     jobs: list[Job] = field(default_factory=list)
     mcp_servers: list[McpServer] = field(default_factory=list)
+    hidden_scenarios: list[str] = field(default_factory=list)
 
     # ---------- persistance ----------
     @classmethod
@@ -200,6 +201,7 @@ class Settings:
                     if k in {"host", "port", "user", "password", "mailbox", "archive_mailbox", "ssl"}
                 }
             ),
+            hidden_scenarios=[str(slug) for slug in (raw.get("hidden_scenarios") or [])],
             mcp_servers=[
                 McpServer(
                     name=str(item.get("name") or ""),
@@ -242,6 +244,7 @@ class Settings:
                 "archive_mailbox": self.mail.archive_mailbox,
                 "ssl": self.mail.ssl,
             },
+            "hidden_scenarios": sorted(self.hidden_scenarios),
             "mcp_servers": [
                 {
                     "name": server.name,
@@ -295,6 +298,8 @@ class Settings:
         if password and password != SECRET_MASK:
             self.mail.password = password
 
+        if "hidden_scenarios" in raw:
+            self.hidden_scenarios = [str(slug) for slug in (raw.get("hidden_scenarios") or [])]
         if "mcp_servers" in raw:
             self.mcp_servers = [
                 McpServer(
@@ -351,4 +356,5 @@ class Settings:
             "mail": self.mail.as_public(),
             "jobs": [job.as_public(now) for job in self.jobs],
             "mcp_servers": [server.as_public() for server in self.mcp_servers],
+            "hidden_scenarios": sorted(self.hidden_scenarios),
         }

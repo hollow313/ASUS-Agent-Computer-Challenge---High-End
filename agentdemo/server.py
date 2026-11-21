@@ -225,7 +225,13 @@ def make_handler(store: RunStore):
             if path == "/healthz":
                 return self._send_json({"ok": True})
             if path == "/api/scenarios":
-                return self._send_json({"scenarios": [sc.as_summary() for sc in list_scenarios()]})
+                hidden = set(Settings.load(store.data_dir / "settings.json").hidden_scenarios)
+                scenarios = [
+                    {**sc.as_summary(), "hidden": sc.slug in hidden}
+                    for sc in list_scenarios()
+                    if sc.slug not in hidden
+                ]
+                return self._send_json({"scenarios": scenarios})
             if path == "/api/tools":
                 from .toolcatalog import CATALOG_DIR, installed
 
@@ -408,6 +414,18 @@ def make_handler(store: RunStore):
                 if target is None:
                     return self._send_json({"error": "cible inconnue"}, status=404)
                 return self._probe_models({"base_url": [target.base_url], "api_key": [target.api_key]})
+            if path and path.startswith("/api/scenarios/") and path.endswith("/hide"):
+                slug = path.split("/")[3]
+                settings_path = store.data_dir / "settings.json"
+                settings = Settings.load(settings_path)
+                hidden = set(settings.hidden_scenarios)
+                if bool(payload.get("hidden", True)):
+                    hidden.add(slug)
+                else:
+                    hidden.discard(slug)
+                settings.update({"hidden_scenarios": sorted(hidden)})
+                settings.save(settings_path)
+                return self._send_json({"ok": True, "hidden": sorted(hidden)})
             if path == "/api/tools/install":
                 from .toolcatalog import install
 
