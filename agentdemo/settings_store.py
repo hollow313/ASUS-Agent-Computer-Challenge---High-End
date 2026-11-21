@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import stat
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -62,6 +63,36 @@ class Inputs:
             "feeds": list(self.feeds),
             "csv_dir_exists": exists,
             "csv_files": sorted(p.name for p in Path(self.csv_dir).glob("*.csv"))[:20] if exists else [],
+        }
+
+
+@dataclass
+class McpServer:
+    name: str
+    command: str
+    args: list[str] = field(default_factory=list)
+    enabled: bool = True
+    description: str = ""
+    source: str = ""
+    env: dict[str, str] = field(default_factory=dict)
+
+    def validate(self) -> None:
+        if not self.name or not re.fullmatch(r"[a-z0-9][a-z0-9_-]{1,32}", self.name):
+            raise ValueError(f"nom de serveur MCP invalide : {self.name!r}")
+        if not self.command or " " in self.command:
+            raise ValueError(f"commande invalide pour {self.name} : une seule commande, sans espace")
+        if any(".." in str(a) for a in self.args):
+            raise ValueError(f"argument suspect pour {self.name} : remontée de dossier refusée")
+
+    def as_public(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "command": self.command,
+            "args": list(self.args),
+            "enabled": self.enabled,
+            "description": self.description,
+            "source": self.source,
+            "env_keys": sorted(self.env.keys()),
         }
 
 
@@ -151,6 +182,7 @@ class Settings:
     inputs: Inputs = field(default_factory=Inputs)
     mail: MailConfig = field(default_factory=MailConfig)
     jobs: list[Job] = field(default_factory=list)
+    mcp_servers: list[McpServer] = field(default_factory=list)
 
     # ---------- persistance ----------
     @classmethod
@@ -168,6 +200,18 @@ class Settings:
                     if k in {"host", "port", "user", "password", "mailbox", "archive_mailbox", "ssl"}
                 }
             ),
+            mcp_servers=[
+                McpServer(
+                    name=str(item.get("name") or ""),
+                    command=str(item.get("command") or ""),
+                    args=[str(a) for a in (item.get("args") or [])],
+                    enabled=bool(item.get("enabled", True)),
+                    description=str(item.get("description") or ""),
+                    source=str(item.get("source") or ""),
+                    env={str(k): str(v) for k, v in (item.get("env") or {}).items()},
+                )
+                for item in (raw.get("mcp_servers") or [])
+            ],
             jobs=[
                 Job(
                     id=str(item.get("id") or ""),
@@ -198,6 +242,18 @@ class Settings:
                 "archive_mailbox": self.mail.archive_mailbox,
                 "ssl": self.mail.ssl,
             },
+            "mcp_servers": [
+                {
+                    "name": server.name,
+                    "command": server.command,
+                    "args": server.args,
+                    "enabled": server.enabled,
+                    "description": server.description,
+                    "source": server.source,
+                    "env": server.env,
+                }
+                for server in self.mcp_servers
+            ],
             "jobs": [
                 {
                     "id": job.id,
@@ -239,6 +295,19 @@ class Settings:
         if password and password != SECRET_MASK:
             self.mail.password = password
 
+        if "mcp_servers" in raw:
+            self.mcp_servers = [
+                McpServer(
+                    name=str(item.get("name") or ""),
+                    command=str(item.get("command") or ""),
+                    args=[str(a) for a in (item.get("args") or [])],
+                    enabled=bool(item.get("enabled", True)),
+                    description=str(item.get("description") or ""),
+                    source=str(item.get("source") or ""),
+                    env={str(k): str(v) for k, v in (item.get("env") or {}).items()},
+                )
+                for item in raw["mcp_servers"]
+            ]
         if "jobs" in raw:
             self.jobs = [
                 Job(
@@ -254,6 +323,8 @@ class Settings:
                 )
                 for index, item in enumerate(raw["jobs"])
             ]
+        for server in self.mcp_servers:
+            server.validate()
         self.validate()
 
     def validate(self) -> None:
@@ -279,4 +350,5 @@ class Settings:
             "inputs": self.inputs.as_public(),
             "mail": self.mail.as_public(),
             "jobs": [job.as_public(now) for job in self.jobs],
+            "mcp_servers": [server.as_public() for server in self.mcp_servers],
         }

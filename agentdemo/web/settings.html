@@ -71,12 +71,14 @@
   <section>
     <h2>Entrées réelles</h2>
     <div class="grid2">
-      <label>dossier de CSV à traiter <span class="hint">(chemin absolu, monté dans le conteneur)</span>
+      <label>dossier de repli pour les CSV <span class="hint">(servira aux scénarios qui n'ont pas leur propre dossier)</span>
         <input id="csvDir" placeholder="/data/inputs/csv" spellcheck="false">
       </label>
-      <label>flux RSS, une URL par ligne
-        <textarea id="feeds" rows="3" placeholder="https://www.cert.ssi.gouv.fr/feed/"></textarea>
-      </label>
+      <div class="hint" style="align-self:end">
+        Les flux RSS et le dossier d'entrée se règlent maintenant <strong>par scénario</strong>, dans
+        l'éditeur de l'interface principale : un scénario de veille n'a pas besoin des mêmes sources
+        qu'un audit.
+      </div>
     </div>
     <p class="hint" id="csvInfo">—</p>
   </section>
@@ -101,6 +103,29 @@
     <div class="bar">
       <button id="testMail">tester la connexion</button>
       <span class="status" id="mailStatus"></span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Serveurs MCP</h2>
+    <p class="hint" style="margin-top:0">Le catalogue embarqué décrit des serveurs connus. « ajouter » écrit la
+    configuration, rien n'est installé ni téléchargé ici : la commande est celle que le client lancera.</p>
+    <div class="bar">
+      <label style="flex:1">rechercher dans le catalogue
+        <input id="mcpSearch" placeholder="git, sqlite, fetch, mémoire…" spellcheck="false">
+      </label>
+      <button id="mcpCatalogToggle">parcourir le catalogue</button>
+    </div>
+    <div id="mcpCatalog" class="grid2" hidden></div>
+    <table style="margin-top:14px">
+      <thead><tr><th>nom</th><th>commande</th><th>source</th><th>état</th><th></th></tr></thead>
+      <tbody id="mcpRows"></tbody>
+    </table>
+    <div class="bar">
+      <label style="flex:1">ajouter à la main <span class="hint">(nom et commande, arguments séparés par des virgules)</span>
+        <input id="mcpManual" placeholder="mon-serveur, python3, -m, mon_module" spellcheck="false">
+      </label>
+      <button id="mcpAddManual">ajouter</button>
     </div>
   </section>
 
@@ -141,7 +166,7 @@ function esc(v) { return String(v ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp
 function render() {
   const s = state.settings;
   $("csvDir").value = s.inputs.csv_dir || "";
-  $("feeds").value = (s.inputs.feeds || []).join("\n");
+
   const count = s.inputs.csv_files.length;
   $("csvInfo").className = "hint" + (s.inputs.csv_dir && !s.inputs.csv_dir_exists ? " warn" : "");
   $("csvInfo").textContent = s.inputs.csv_dir
@@ -163,6 +188,19 @@ function render() {
     : "aucun compte configuré : renseigne serveur, utilisateur et mot de passe, puis enregistre";
   $("mailStatus").className = "status " + (s.mail.configured ? "ok" : "");
   $("mailPassword").placeholder = s.mail.has_key ? "•••••••• (inchangé)" : "mot de passe IMAP";
+
+  const servers = s.mcp_servers || [];
+  $("mcpRows").innerHTML = servers.map((srv, i) => `
+    <tr>
+      <td>${esc(srv.name)}</td>
+      <td><code>${esc(srv.command)} ${esc((srv.args || []).join(" "))}</code></td>
+      <td>${esc(srv.source || "-")}</td>
+      <td><span class="tag ${srv.enabled ? "ok" : "off"}">${srv.enabled ? "actif" : "en pause"}</span></td>
+      <td>
+        <button class="mini" data-mcp-toggle="${i}" title="activer ou suspendre">${srv.enabled ? "❙❙" : "▶︎"}</button>
+        <button class="mini danger" data-mcp-del="${i}" title="retirer">×</button>
+      </td>
+    </tr>`).join("") || '<tr><td colspan="5" class="hint">aucun serveur configuré</td></tr>';
 
   const options = state.scenarios.map((sc) => `<option value="${esc(sc.slug)}">${esc(sc.title)}</option>`).join("");
   $("jobRows").innerHTML = (s.jobs || []).map((job, i) => `
@@ -195,19 +233,54 @@ function render() {
   });
 }
 
+let catalog = [];
+
+async function loadCatalog() {
+  const res = await fetch("/api/mcp/catalog");
+  catalog = (await res.json()).servers || [];
+  renderCatalog();
+}
+
+function renderCatalog() {
+  const query = ($("mcpSearch").value || "").toLowerCase();
+  const box = $("mcpCatalog");
+  const rows = catalog.filter((srv) =>
+    !query || srv.name.includes(query) || (srv.description || "").toLowerCase().includes(query));
+  box.innerHTML = rows.map((srv) => `
+    <div class="newform" style="margin:0">
+      <label style="margin:0"><strong>${esc(srv.name)}</strong> ${srv.installed ? '<span class="tag ok">configuré</span>' : ""}
+        <span class="hint" style="display:block;margin-top:4px">${esc(srv.description)}</span>
+        <code style="display:block;margin-top:6px;color:#9dbcff">${esc(srv.command)} ${esc(srv.args.join(" "))}</code>
+      </label>
+      <div class="formbar"><button class="ghost small" data-mcp-add="${esc(srv.name)}" ${srv.installed ? "disabled" : ""}>ajouter</button></div>
+    </div>`).join("") || '<p class="hint">aucun résultat</p>';
+}
+
 async function load() {
   const res = await fetch("/api/settings");
   const data = await res.json();
   state = { settings: data.settings, scenarios: data.scenarios };
   render();
+  if (!catalog.length) loadCatalog();
+}
+
+function mcpPayload(servers) {
+  return { mcp_servers: servers };
+}
+
+async function saveMcp(servers, message) {
+  const res = await fetch("/api/settings", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(mcpPayload(servers)),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok) { setStatus(message, "ok"); await load(); }
+  else setStatus(data.error || "refusé", "err");
 }
 
 function payload() {
   return {
-    inputs: {
-      csv_dir: $("csvDir").value.trim(),
-      feeds: $("feeds").value.split("\n").map((l) => l.trim()).filter(Boolean),
-    },
+    inputs: { csv_dir: $("csvDir").value.trim(), feeds: state.settings.inputs.feeds || [] },
     mail: {
       host: $("mailHost").value.trim(),
       port: Number($("mailPort").value) || 993,
@@ -230,6 +303,29 @@ document.addEventListener("input", (event) => {
 
 document.addEventListener("click", async (event) => {
   const el = event.target;
+  if (el.dataset.mcpAdd) {
+    const entry = catalog.find((srv) => srv.name === el.dataset.mcpAdd);
+    if (!entry) return;
+    const servers = [...(state.settings.mcp_servers || []), {
+      name: entry.name, command: entry.command, args: entry.args, enabled: true,
+      description: entry.description, source: "catalogue", env: {},
+    }];
+    await saveMcp(servers, `${entry.name} configuré`);
+    return;
+  }
+  if (el.dataset.mcpToggle !== undefined) {
+    const servers = [...state.settings.mcp_servers];
+    const index = Number(el.dataset.mcpToggle);
+    servers[index] = { ...servers[index], enabled: !servers[index].enabled };
+    await saveMcp(servers, "état mis à jour");
+    return;
+  }
+  if (el.dataset.mcpDel !== undefined) {
+    const servers = [...state.settings.mcp_servers];
+    servers.splice(Number(el.dataset.mcpDel), 1);
+    await saveMcp(servers, "serveur retiré");
+    return;
+  }
   if (el.dataset.del !== undefined) {
     state.settings.jobs.splice(Number(el.dataset.del), 1);
     render();
@@ -260,6 +356,24 @@ $("addJob").onclick = () => {
     last_status: "",
   });
   render();
+};
+
+$("mcpCatalogToggle").onclick = () => {
+  const box = $("mcpCatalog");
+  box.hidden = !box.hidden;
+  if (!box.hidden) renderCatalog();
+};
+$("mcpSearch").addEventListener("input", renderCatalog);
+$("mcpAddManual").onclick = async () => {
+  const parts = $("mcpManual").value.split(",").map((p) => p.trim()).filter(Boolean);
+  if (parts.length < 2) { setStatus("il faut au moins un nom et une commande", "err"); return; }
+  const [name, command, ...args] = parts;
+  const servers = [...(state.settings.mcp_servers || []), {
+    name: name.toLowerCase().replace(/[^a-z0-9_-]/g, "-"), command, args,
+    enabled: true, description: "ajouté à la main", source: "manuel", env: {},
+  }];
+  $("mcpManual").value = "";
+  await saveMcp(servers, "serveur ajouté");
 };
 
 $("testMail").onclick = async () => {

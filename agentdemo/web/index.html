@@ -103,6 +103,8 @@
   }
   .newform .two { display: grid; grid-template-columns: 1fr 90px; gap: 7px; }
   .formbar { display: flex; gap: 6px; margin-top: 4px; }
+  .scen-actions { display: flex; gap: 4px; margin-top: 7px; }
+  .scen-actions button { padding: 3px 7px; font-size: 11px; }
   .scenario .flag { display: inline-block; margin-top: 6px; font: 10px/1 var(--mono); color: var(--warn); border: 1px solid #5a4318; border-radius: 999px; padding: 3px 7px; }
   .dot.blocked { background: var(--err); }
   .status { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font: 12px/1 var(--mono); color: var(--muted); }
@@ -187,17 +189,45 @@
       </label>
       <div class="two">
         <label>tags <span class="opt">(virgules)</span><input id="nsTags" placeholder="audit, liens"></label>
-        <label>étapes max<input id="nsSteps" type="number" min="2" max="20" value="10"></label>
+        <label>étapes max<input id="nsSteps" type="number" min="2" max="24" value="10"></label>
       </div>
+
+      <label>accès réseau
+        <select id="nsNetwork">
+          <option value="deny">aucun réseau (deny, recommandé)</option>
+          <option value="allowlist">domaines listés seulement (allowlist)</option>
+          <option value="open">réseau libre (open, déconseillé)</option>
+        </select>
+      </label>
+      <p class="hint" id="nsNetworkHint" style="margin:0 0 8px">Aucune connexion sortante : le scénario lit ses fichiers locaux.</p>
+      <label id="nsHostsRow" hidden>domaines autorisés, un par ligne
+        <textarea id="nsHosts" rows="3" placeholder="www.cert.ssi.gouv.fr"></textarea>
+      </label>
+      <button id="nsHostsFromFeeds" class="ghost" style="margin-bottom:8px" hidden>ajouter les domaines des flux</button>
+
+      <label class="check" style="margin:10px 0"><input id="nsExec" type="checkbox">autoriser l'exécution de commandes (`run`)</label>
+
+      <label>dossier d'entrée <span class="opt">(copié dans inputs/ à chaque run)</span>
+        <input id="nsInputDir" placeholder="/app/demo/inputs/audit-demo" list="demoInputDirs" spellcheck="false">
+        <datalist id="demoInputDirs">
+          <option value="/app/demo/inputs/audit-demo"></option>
+          <option value="/app/demo/inputs/csv-demo"></option>
+        </datalist>
+      </label>
+      <button id="nsCheckInput" class="ghost" style="margin-bottom:8px">vérifier le dossier</button>
+      <p class="llmstatus" id="nsInputStatus"></p>
+      <label>flux à lire, une URL par ligne <span class="opt">(propre à ce scénario)</span>
+        <textarea id="nsFeeds" rows="3" placeholder="https://www.cert.ssi.gouv.fr/feed/"></textarea>
+      </label>
+
       <div class="formbar">
-        <button id="nsCreate" class="primary small">créer</button>
+        <button id="nsCreate" class="primary small">enregistrer</button>
         <button id="nsCancel" class="ghost small">annuler</button>
       </div>
       <p class="llmstatus" id="nsStatus"></p>
       <p class="hint" style="margin-top:6px">Un scénario créé n'a pas encore de cassette : lance-le en mode réel,
       puis enregistre la trace pour qu'il devienne rejouable sans modèle.</p>
     </div>
-
     <h2 style="margin-top:22px">Objectif</h2>
     <textarea id="objective" spellcheck="false"></textarea>
 
@@ -265,8 +295,14 @@ async function loadScenarios(preferred) {
     el.className = "scenario";
     el.setAttribute("aria-pressed", "false");
     const flag = s.has_cassette === false ? '<span class="flag">trace à enregistrer</span>' : "";
+    const net = (s.network && s.network.mode) || "deny";
+    const actions = `<div class="scen-actions">
+        ${s.builtin ? "" : `<button class="mini" data-edit="${s.slug}" title="modifier">✎</button>`}
+        <button class="mini" data-dup="${s.slug}" title="dupliquer">⧉</button>
+        ${s.builtin ? "" : `<button class="mini danger" data-del-scen="${s.slug}" title="supprimer">×</button>`}
+      </div>`;
     el.innerHTML = `<strong>${escapeHtml(s.title)}</strong><span>${escapeHtml(s.blurb)}</span>
-      <em>${escapeHtml(s.tags.join(" · "))} · ${s.steps} étapes</em>${flag}`;
+      <em>${escapeHtml(s.tags.join(" · "))} · ${s.steps} étapes · réseau ${escapeHtml(net)}</em>${flag}${actions}`;
     el.onclick = () => selectScenario(s, el);
     box.appendChild(el);
     if (s.slug === previous) selected = { scenario: s, element: el };
@@ -348,6 +384,11 @@ async function checkModels() {
     box.className = "llmstatus err";
     box.textContent = "échec réseau : " + e;
   }
+}
+
+function setStatus(text, kind = "") {
+  const box = $("statusText");
+  if (box) { box.textContent = text; box.className = kind ? "status " + kind : "status"; }
 }
 
 function escapeHtml(text) {
@@ -497,36 +538,152 @@ async function launch() {
   poll();
 }
 
+let editing = null;  // slug en cours d'édition, null en création
+
+function fillForm(detail) {
+  $("nsSlug").value = detail ? detail.slug : "";
+  $("nsSlug").disabled = Boolean(detail);
+  $("nsTitle").value = detail ? detail.title : "";
+  $("nsObjective").value = detail ? detail.objective : "";
+  $("nsBlurb").value = detail ? detail.blurb : "";
+  $("nsTags").value = detail ? (detail.tags || []).join(", ") : "";
+  $("nsSteps").value = detail ? detail.max_steps : 10;
+  $("nsNetwork").value = detail ? ((detail.network || {}).mode || "deny") : "deny";
+  $("nsHosts").value = detail ? ((detail.network || {}).hosts || []).join("\n") : "";
+  $("nsExec").checked = Boolean(detail && (detail.exec || {}).allow_unsandboxed);
+  $("nsInputDir").value = detail ? ((detail.inputs || {}).dir || "") : "";
+  $("nsFeeds").value = detail ? ((detail.inputs || {}).feeds || []).join("\n") : "";
+  syncNetworkFields();
+}
+
 $("newScenarioToggle").onclick = () => {
+  editing = null;
   const form = $("newScenarioForm");
   form.hidden = !form.hidden;
-  if (!form.hidden) $("nsSlug").focus();
+  if (!form.hidden) { fillForm(null); $("nsStatus").textContent = ""; $("nsSlug").focus(); }
 };
-$("nsCancel").onclick = () => { $("newScenarioForm").hidden = true; };
+
+const NETWORK_HINTS = {
+  deny: "Aucune connexion sortante : le scénario lit ses fichiers locaux.",
+  allowlist: "Seuls les domaines listés sont joignables ; tout autre hôte est refusé et journalisé.",
+  open: "Réseau libre. À éviter : une exécution ouverte ne ressemble plus à une exécution hors ligne.",
+};
+
+function syncNetworkFields() {
+  const mode = $("nsNetwork").value;
+  $("nsHostsRow").hidden = mode !== "allowlist";
+  $("nsHostsFromFeeds").hidden = mode !== "allowlist";
+  $("nsNetworkHint").textContent = NETWORK_HINTS[mode] || "";
+}
+
+$("nsNetwork").onchange = syncNetworkFields;
+
+$("nsHostsFromFeeds").onclick = () => {
+  const hosts = new Set($("nsHosts").value.split("\n").map((h) => h.trim()).filter(Boolean));
+  for (const line of $("nsFeeds").value.split("\n")) {
+    try { const url = new URL(line.trim()); if (url.hostname) hosts.add(url.hostname); } catch (e) { /* ligne vide */ }
+  }
+  $("nsHosts").value = [...hosts].join("\n");
+  syncNetworkFields();
+};
+
+$("nsCheckInput").onclick = async () => {
+  const box = $("nsInputStatus");
+  const dir = $("nsInputDir").value.trim();
+  if (!dir) { box.className = "llmstatus err"; box.textContent = "renseigne un chemin"; return; }
+  box.className = "llmstatus";
+  box.textContent = "vérification…";
+  const res = await fetch(`/api/inputs/check?path=${encodeURIComponent(dir)}`);
+  const data = await res.json().catch(() => ({}));
+  if (data.exists) {
+    box.className = "llmstatus ok";
+    box.textContent = `${data.count} fichier(s) : ${(data.files || []).slice(0, 6).join(", ")}`;
+  } else {
+    box.className = "llmstatus err";
+    box.textContent = data.error || "dossier introuvable";
+  }
+};
+$("nsCancel").onclick = () => { $("newScenarioForm").hidden = true; editing = null; };
+
+async function openEditor(slug) {
+  const res = await fetch(`/api/scenarios/${encodeURIComponent(slug)}`);
+  if (!res.ok) { setStatus("scénario illisible", "err"); return; }
+  const detail = await res.json();
+  editing = detail.builtin ? null : slug;
+  $("newScenarioForm").hidden = false;
+  fillForm(detail);
+  $("nsStatus").className = "llmstatus";
+  $("nsStatus").textContent = detail.builtin
+    ? "scénario livré : « enregistrer » créera une copie modifiable"
+    : "modification de " + slug;
+  $("nsTitle").focus();
+}
+
+document.addEventListener("click", async (event) => {
+  const el = event.target;
+  if (el.dataset.edit || el.dataset.dup || el.dataset.delScen) event.stopPropagation();
+  if (el.dataset.edit) { await openEditor(el.dataset.edit); }
+  if (el.dataset.dup) {
+    const slug = prompt("Nouveau slug pour la copie", el.dataset.dup + "-copie");
+    if (!slug) return;
+    const res = await fetch(`/api/scenarios/${encodeURIComponent(el.dataset.dup)}/duplicate`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: slug.trim().toLowerCase() }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setStatus(res.ok ? `copie créée : ${data.scenario.slug}` : (data.error || "échec"), res.ok ? "ok" : "err");
+    if (res.ok) loadScenarios(data.scenario.slug);
+  }
+  if (el.dataset.delScen) {
+    if (!confirm(`Supprimer le scénario « ${el.dataset.delScen} » et ses runs ?`)) return;
+    const res = await fetch(`/api/scenarios/${encodeURIComponent(el.dataset.delScen)}`, { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    setStatus(res.ok ? "scénario supprimé" : (data.error || "échec"), res.ok ? "ok" : "err");
+    if (res.ok) loadScenarios();
+  }
+});
+
+function scenarioPayload() {
+  const network = { mode: $("nsNetwork").value };
+  if (network.mode === "allowlist") {
+    network.hosts = $("nsHosts").value.split("\n").map((h) => h.trim()).filter(Boolean);
+  }
+  return {
+    slug: $("nsSlug").value.trim(),
+    title: $("nsTitle").value.trim(),
+    objective: $("nsObjective").value.trim(),
+    blurb: $("nsBlurb").value.trim(),
+    tags: $("nsTags").value.split(",").map((t) => t.trim()).filter(Boolean),
+    max_steps: Number($("nsSteps").value) || 10,
+    network: network,
+    exec: { allow_unsandboxed: $("nsExec").checked, reason: "déclaré dans l'interface" },
+    inputs: {
+      dir: $("nsInputDir").value.trim(),
+      feeds: $("nsFeeds").value.split("\n").map((f) => f.trim()).filter(Boolean),
+    },
+  };
+}
+
 $("nsCreate").onclick = async () => {
   const status = $("nsStatus");
+  const payload = scenarioPayload();
+  const url = editing ? `/api/scenarios/${encodeURIComponent(editing)}` : "/api/scenarios";
   status.className = "llmstatus";
-  status.textContent = "création…";
-  const res = await fetch("/api/scenarios", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      slug: $("nsSlug").value.trim(),
-      title: $("nsTitle").value.trim(),
-      objective: $("nsObjective").value.trim(),
-      blurb: $("nsBlurb").value.trim(),
-      tags: $("nsTags").value.split(",").map((t) => t.trim()).filter(Boolean),
-      max_steps: Number($("nsSteps").value) || 10,
-    }),
+  status.textContent = "enregistrement…";
+  const res = await fetch(url, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) { status.className = "llmstatus err"; status.textContent = data.error || "refusé"; return; }
   status.className = "llmstatus ok";
-  status.textContent = "scénario créé";
-  ["nsSlug", "nsTitle", "nsObjective", "nsBlurb", "nsTags"].forEach((id) => { $(id).value = ""; });
+  status.textContent = editing ? "scénario modifié" : "scénario créé";
+  const slug = (data.scenario && data.scenario.slug) || payload.slug;
+  editing = null;
   state.current = null;
-  await loadScenarios(data.scenario.slug);
-  if (state.mode === "replay") setMode("live");
   $("newScenarioForm").hidden = true;
+  await loadScenarios(slug);
+  if (state.mode === "replay") setMode("live");
+  setStatus("prêt", "ok");
 };
 
 $("run").onclick = launch;

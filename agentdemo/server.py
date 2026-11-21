@@ -66,6 +66,7 @@ class RunStore:
         workspace.mkdir(parents=True, exist_ok=True)
         scenario.stage(workspace)
         staged = self._stage_inputs(workspace)
+        staged += scenario.stage_inputs(workspace)
         # Store global : une procédure apprise au run N est disponible au run N+1.
         skills = SkillStore(self.data_dir / "skills")
         settings = Settings.load(self.data_dir / "settings.json")
@@ -225,6 +226,33 @@ def make_handler(store: RunStore):
                 return self._send_json({"ok": True})
             if path == "/api/scenarios":
                 return self._send_json({"scenarios": [sc.as_summary() for sc in list_scenarios()]})
+            if path == "/api/inputs/check":
+                query = parse_qs(urlparse(self.path).query)
+                raw = (query.get("path") or [""])[0].strip()
+                if not raw:
+                    return self._send_json({"error": "chemin vide"}, status=400)
+                target = Path(raw)
+                if not target.is_dir():
+                    return self._send_json({"exists": False, "error": "dossier introuvable côté serveur"})
+                files = sorted(str(p.relative_to(target)) for p in target.rglob("*") if p.is_file())[:20]
+                return self._send_json({"exists": True, "count": len(files), "files": files})
+            if path == "/api/mcp/catalog":
+                catalog = json.loads(
+                    (Path(__file__).resolve().parent / "mcp_catalog.json").read_text(encoding="utf-8")
+                )
+                configured = Settings.load(store.data_dir / "settings.json")
+                installed = {server.name for server in configured.mcp_servers}
+                for server in catalog["servers"]:
+                    server["installed"] = server["name"] in installed
+                return self._send_json(catalog)
+            if path.startswith("/api/scenarios/") and path.count("/") == 3:
+                slug = path.split("/")[3]
+                try:
+                    from .scenarios_loader import scenario_detail
+
+                    return self._send_json(scenario_detail(slug))
+                except KeyError:
+                    return self._send_json({"error": f"scénario inconnu : {slug}"}, status=404)
             if path == "/api/settings":
                 settings = Settings.load(store.data_dir / "settings.json")
                 return self._send_json(
@@ -273,6 +301,21 @@ def make_handler(store: RunStore):
                 if target is None:
                     return self._send_json({"error": "fichier inconnu"}, status=404)
                 return self._send_file(target, download="dl" in self.path)
+            return self._send_json({"error": "route inconnue"}, status=404)
+
+        def do_DELETE(self) -> None:  # noqa: N802
+            path = urlparse(self.path).path
+            if path.startswith("/api/scenarios/") and path.count("/") == 3:
+                slug = path.split("/")[3]
+                try:
+                    from .scenarios_loader import remove_scenario
+
+                    summary = remove_scenario(slug, store.data_dir)
+                except KeyError:
+                    return self._send_json({"error": f"scénario inconnu : {slug}"}, status=404)
+                except ValueError as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"ok": True, "removed": summary})
             return self._send_json({"error": "route inconnue"}, status=404)
 
         def do_POST(self) -> None:  # noqa: N802
@@ -399,6 +442,26 @@ def make_handler(store: RunStore):
                     return self._send_json({"error": f"action inconnue : {action}"}, status=400)
                 settings.save(store.data_dir / "settings.json")
                 return self._send_json({"ok": True, "settings": settings.as_public()})
+            if path.startswith("/api/scenarios/") and path.endswith("/duplicate"):
+                slug = path.split("/")[3]
+                try:
+                    from .scenarios_loader import duplicate_scenario
+
+                    copy = duplicate_scenario(slug, str(payload.get("slug", "")))
+                except (ValueError, KeyError, OSError) as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"ok": True, "scenario": copy.as_summary()}, status=201)
+            if path.startswith("/api/scenarios/") and path.count("/") == 3:
+                slug = path.split("/")[3]
+                try:
+                    from .scenarios_loader import update_scenario
+
+                    updated = update_scenario(slug, payload)
+                except KeyError:
+                    return self._send_json({"error": f"scénario inconnu : {slug}"}, status=404)
+                except (ValueError, TypeError) as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"ok": True, "scenario": updated.as_summary()})
             if path == "/api/scenarios":
                 try:
                     from .scenarios_loader import create_scenario
@@ -410,6 +473,9 @@ def make_handler(store: RunStore):
                         blurb=str(payload.get("blurb", "")),
                         tags=list(payload.get("tags") or []),
                         max_steps=int(payload.get("max_steps") or 10),
+                        network=payload.get("network") or None,
+                        exec_config=payload.get("exec") or None,
+                        inputs=payload.get("inputs") or None,
                     )
                 except (ValueError, KeyError, OSError) as exc:
                     return self._send_json({"error": str(exc)}, status=400)

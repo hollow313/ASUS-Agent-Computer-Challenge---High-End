@@ -797,6 +797,125 @@ class ScenarioTests(unittest.TestCase):
         self.assertFalse(created.root.exists())
         self.assertNotIn("a-supprimer", [sc.slug for sc in loader.list_scenarios()])
 
+    def test_scenario_editing_and_duplication(self) -> None:
+        """Un scénario utilisateur s'édite, un scénario livré se duplique au lieu de s'éditer."""
+        import os
+
+        from agentdemo import scenarios_loader as loader
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        previous = os.environ.get("AGENTDEMO_DATA_DIR")
+        os.environ["AGENTDEMO_DATA_DIR"] = tmp.name
+        self.addCleanup(
+            lambda: os.environ.pop("AGENTDEMO_DATA_DIR", None)
+            if previous is None
+            else os.environ.__setitem__("AGENTDEMO_DATA_DIR", previous)
+        )
+        created = loader.create_scenario(slug="editable", title="Éditable", objective="écris x.md")
+        self.assertFalse(created.builtin)
+
+        updated = loader.update_scenario(
+            "editable",
+            {
+                "title": "Éditable v2",
+                "max_steps": 7,
+                "network": {"mode": "allowlist", "hosts": ["Exemple.Local"]},
+                "exec": {"allow_unsandboxed": True, "reason": "test"},
+                "inputs": {"dir": str(tmp.name), "feeds": ["https://exemple.local/feed"]},
+            },
+        )
+        self.assertEqual(updated.title, "Éditable v2")
+        self.assertEqual(updated.max_steps, 7)
+        self.assertEqual(updated.network["hosts"], ["exemple.local"], "les hôtes sont normalisés")
+        self.assertTrue(updated.exec_config["allow_unsandboxed"])
+        self.assertEqual(updated.inputs["feeds"], ["https://exemple.local/feed"])
+
+        with self.assertRaises(ValueError):
+            loader.update_scenario("editable", {"network": {"mode": "allowlist", "hosts": []}})
+        with self.assertRaises(ValueError):
+            loader.update_scenario("cyber-brief", {"title": "tentative"})
+
+        copy = loader.duplicate_scenario("cyber-brief", "veille-copie")
+        self.assertEqual(copy.slug, "veille-copie")
+        self.assertFalse(copy.builtin)
+        self.assertIn("copie", copy.title)
+        detail = loader.scenario_detail("veille-copie")
+        self.assertTrue(detail["editable"])
+        self.assertTrue(detail["fixtures"])
+
+    def test_scenario_created_with_network_and_inputs(self) -> None:
+        """La création depuis l'interface accepte le réseau, l'exécution et un dossier d'entrée."""
+        import os
+
+        from agentdemo import scenarios_loader as loader
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        previous = os.environ.get("AGENTDEMO_DATA_DIR")
+        os.environ["AGENTDEMO_DATA_DIR"] = tmp.name
+        self.addCleanup(
+            lambda: os.environ.pop("AGENTDEMO_DATA_DIR", None)
+            if previous is None
+            else os.environ.__setitem__("AGENTDEMO_DATA_DIR", previous)
+        )
+        source = Path(tmp.name) / "entrees"
+        (source / "sudoers.d").mkdir(parents=True)
+        (source / "auth.log").write_text("ligne", encoding="utf-8")
+        (source / "sudoers.d" / "webadmin").write_text("regle", encoding="utf-8")
+
+        scenario = loader.create_scenario(
+            slug="avec-entrees",
+            title="Avec entrées",
+            objective="lis les entrées et écris un rapport",
+            network={"mode": "allowlist", "hosts": ["Exemple.Local"]},
+            exec_config={"allow_unsandboxed": True},
+            inputs={"dir": str(source), "feeds": ["https://exemple.local/feed"]},
+        )
+        self.assertEqual(scenario.network["hosts"], ["exemple.local"])
+        self.assertTrue(scenario.exec_config["allow_unsandboxed"])
+
+        workspace = Path(tmp.name) / "run"
+        workspace.mkdir()
+        copied = scenario.stage_inputs(workspace)
+        self.assertIn("inputs/auth.log", copied)
+        self.assertIn("inputs/sudoers.d/webadmin", copied)
+        self.assertTrue((workspace / "inputs" / "sudoers.d" / "webadmin").exists())
+
+        with self.assertRaises(ValueError):
+            loader.create_scenario(
+                slug="sans-hote", title="x", objective="y", network={"mode": "allowlist", "hosts": []}
+            )
+
+    def test_mcp_servers_are_stored_and_validated(self) -> None:
+        from agentdemo.settings_store import Settings
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        path = Path(tmp.name) / "settings.json"
+        settings = Settings()
+        settings.update(
+            {
+                "mcp_servers": [
+                    {"name": "vigie", "command": "python3", "args": ["-m", "agentdemo", "mcp"]},
+                    {"name": "git", "command": "npx", "args": ["-y", "server-git"], "enabled": False},
+                ]
+            }
+        )
+        settings.save(path)
+        reloaded = Settings.load(path)
+        self.assertEqual([srv.name for srv in reloaded.mcp_servers], ["vigie", "git"])
+        self.assertFalse(reloaded.mcp_servers[1].enabled)
+        public = reloaded.as_public()
+        self.assertEqual(len(public["mcp_servers"]), 2)
+        self.assertIn("args", public["mcp_servers"][0])
+
+        bad = Settings()
+        with self.assertRaises(ValueError):
+            bad.update({"mcp_servers": [{"name": "mauvais nom!", "command": "python3"}]})
+        with self.assertRaises(ValueError):
+            bad.update({"mcp_servers": [{"name": "ok", "command": "python3", "args": ["../../etc/passwd"]}]})
+
     def test_tool_install_verifies_hash_and_traversal(self) -> None:
         import os
         import shutil as sh

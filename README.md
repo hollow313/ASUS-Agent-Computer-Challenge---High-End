@@ -12,7 +12,7 @@ Pas de clé API, pas de réseau, pas de dépendance. Une commande et il tourne.
 [![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dépendances](https://img.shields.io/badge/d%C3%A9pendances-0-2ea043)
-![tests](https://img.shields.io/badge/tests-43%20passent-2ea043)
+![tests](https://img.shields.io/badge/tests-46%20passent-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **Français** · [English](README.en.md)
@@ -54,7 +54,7 @@ cd ASUS-Agent-Computer-Challenge---High-End
 python3 -m agentdemo scenarios                  # les cinq scénarios, sans rien installer
 python3 -m agentdemo run --scenario cyber-brief # un run complet, déterministe
 python3 -m agentdemo serve --port 8080          # la même chose avec l'interface
-python3 -m unittest discover -s tests           # 43 tests, deux secondes
+python3 -m unittest discover -s tests           # 46 tests, deux secondes
 ```
 
 Ou en conteneur, avec l'image utilisée pour toutes les captures de ce dépôt :
@@ -338,6 +338,43 @@ coupure. Vérifié en conteneur : tâche due, déclenchée en 20 s, run produit,
 - CI qui construit l'image, démarre le conteneur, appelle `/healthz`, lance un scénario et
   télécharge le livrable avant publication.
 
+## Tout se règle depuis l'interface
+
+Chaque capacité a son équivalent graphique, et la ligne de commande garde les mêmes options. C'était
+un reproche juste : régler les flux RSS dans une page globale alors qu'ils ne servent qu'à un
+scénario, c'est une mauvaise interface.
+
+| Ce qu'on veut faire | Interface | Ligne de commande |
+| --- | --- | --- |
+| créer un scénario | bouton **＋ nouveau scénario** | `agentdemo new --slug ...` |
+| le modifier | bouton **✎** sur la fiche | `agentdemo edit <nom> --network allowlist --hosts ...` |
+| le dupliquer | bouton **⧉** | `agentdemo scenario duplicate <nom> --to <copie>` |
+| le supprimer | bouton **×** | `agentdemo scenario remove <nom> --yes` |
+| voir son détail | clic sur l'éditeur | `agentdemo show <nom>` |
+| régler son réseau | sélecteur deny/allowlist/open + domaines | `agentdemo edit <nom> --network ...` |
+| autoriser les commandes | case à cocher | `--allow-exec` |
+| son dossier d'entrée | champ + bouton de vérification | `--input-dir` |
+| ses flux RSS | champ propre au scénario | même chose par `scenario.json` |
+| configurer un serveur MCP | section **Serveurs MCP** dans `/settings` | `agentdemo mcp-servers add/list/remove` |
+| installer un outil du catalogue | `tool list/install/remove` | idem |
+| choisir le modèle | page `/routing` | `agentdemo route` |
+| planifier un scénario | `/settings` | `settings.json` |
+
+Trois détails qui font la différence à l'usage :
+
+- **un scénario livré ne se modifie pas, il se duplique.** La copie arrive dans le dossier
+  utilisateur, entièrement éditable, et l'original reste la référence de la démonstration ;
+- **les domaines autorisés peuvent être déduits des flux** : un bouton lit les URL du champ flux et
+  remplit l'allowlist, ce qui évite l'incohérence classique entre une source déclarée et un domaine
+  oublié ;
+- **le dossier d'entrée se vérifie** avant d'enregistrer, côté serveur, avec la liste des fichiers
+  qu'il contient. Pas de chemin tapé à l'aveugle.
+
+Le catalogue MCP embarqué décrit sept serveurs connus (filesystem, git, sqlite, fetch, github,
+memory, et celui de ce dépôt). « ajouter » écrit la configuration, **rien n'est installé ni
+téléchargé** : la commande enregistrée est celle que le client lancera, et elle reste visible dans la
+liste.
+
 ## Des runs réels, pas seulement des rejeux
 
 Le mode replay sert la démonstration. Il ne prouve pas qu'un modèle réel fait le travail. Trois
@@ -605,6 +642,7 @@ agentdemo/
 ├── mcp_server.py         # serveur MCP (JSON-RPC sur stdio)
 ├── toolcatalog.py        # catalogue d'outils déclaratifs, empreinte vérifiée
 ├── available_tools/      # outils installables (csv_top)
+├── mcp_catalog.json      # catalogue de serveurs MCP proposés dans /settings
 ├── settings_store.py     # entrées réelles et planning (mot de passe jamais renvoyé)
 ├── mailbox.py            # lecture et tri d'une vraie boîte IMAP (imaplib)
 ├── fit.py                # dimensionnement mémoire : ce qui tient dans une carte
@@ -617,7 +655,7 @@ agentdemo/
 ├── web/routing.html      # page de configuration du routage
 ├── web/settings.html     # page d'exploitation : entrées, IMAP, planning
 └── scenarios/            # cyber-brief, inbox-triage, dataset-report, delegation, self-repair, local-audit
-tests/test_demo.py        # 43 tests : scénarios, sandbox, réseau, MCP, catalogue, HITL
+tests/test_demo.py        # 46 tests : scénarios, sandbox, réseau, MCP, catalogue, HITL
 demo/inputs/              # fichiers de démonstration prêts à l'emploi (audit, CSV)
 bench/                    # banc de mesure : tâches, prix, endpoint simulé
 video/                    # cartons, capture d'interface et script de narration

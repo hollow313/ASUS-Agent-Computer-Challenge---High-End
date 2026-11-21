@@ -40,6 +40,11 @@ class Scenario:
     passes: list[dict[str, Any]]
     network: dict[str, Any] = field(default_factory=lambda: {"mode": "deny"})
     exec_config: dict[str, Any] = field(default_factory=dict)
+    inputs: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def builtin(self) -> bool:
+        return str(self.root).startswith(str(SCENARIOS_DIR))
 
     def exec_policy(self) -> dict[str, Any]:
         return dict(self.exec_config or {})
@@ -72,6 +77,26 @@ class Scenario:
                 applied.append(f"{move[0]} -> {move[1]}")
         return applied
 
+    def stage_inputs(self, workspace: Path) -> list[str]:
+        """Copie le dossier d'entrée déclaré par le scénario dans `inputs/`."""
+        directory = str(self.inputs.get("dir") or "").strip()
+        if not directory:
+            return []
+        source = Path(directory)
+        if not source.is_dir():
+            return []
+        target = workspace / "inputs"
+        target.mkdir(parents=True, exist_ok=True)
+        copied = []
+        for item in sorted(source.rglob("*")):
+            if item.is_file():
+                relative = item.relative_to(source)
+                destination = target / relative
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(item, destination)
+                copied.append(f"inputs/{relative}")
+        return copied
+
     def stage(self, workspace: Path) -> None:
         """Copy the scenario fixtures into the run workspace."""
         fixtures = self.root / "fixtures"
@@ -101,6 +126,8 @@ class Scenario:
             "has_cassette": self.has_cassette(),
             "network": self.network,
             "exec": self.exec_config,
+            "inputs": self.inputs,
+            "builtin": self.builtin,
             "user": str(self.root).startswith(str(user_scenarios_dir())),
         }
 
@@ -131,6 +158,7 @@ def list_scenarios(dirs: list[Path] | None = None) -> list[Scenario]:
                 passes=list(meta.get("passes", [{"label": "", "cassette": "cassette.json"}])),
                 network=dict(meta.get("network") or {"mode": "deny"}),
                 exec_config=dict(meta.get("exec") or {}),
+                inputs=dict(meta.get("inputs") or {}),
             )
         )
     return scenarios
@@ -227,6 +255,9 @@ def create_scenario(
     tags: list[str] | None = None,
     max_steps: int = 10,
     passes: list[dict[str, Any]] | None = None,
+    network: dict[str, Any] | None = None,
+    exec_config: dict[str, Any] | None = None,
+    inputs: dict[str, Any] | None = None,
 ) -> Scenario:
     """Crée un scénario utilisateur, sans cassette : il se lance en mode réel, puis s'enregistre."""
     slug = str(slug or "").strip().lower()
@@ -247,7 +278,21 @@ def create_scenario(
         "tags": [str(t) for t in (tags or [])],
         "passes": passes or [{"label": "", "cassette": "cassette.json"}],
     }
-    meta["network"] = {"mode": "deny"}
+    mode = str((network or {}).get("mode") or "deny")
+    hosts = [str(h).strip().lower() for h in ((network or {}).get("hosts") or []) if str(h).strip()]
+    if mode not in ("deny", "allowlist", "open"):
+        raise ValueError(f"mode réseau inconnu : {mode}")
+    if mode == "allowlist" and not hosts:
+        raise ValueError("allowlist sans hôte : ajoute au moins un domaine")
+    meta["network"] = {"mode": mode, "hosts": hosts}
+    meta["exec"] = {
+        "allow_unsandboxed": bool((exec_config or {}).get("allow_unsandboxed")),
+        "reason": str((exec_config or {}).get("reason") or ""),
+    }
+    meta["inputs"] = {
+        "dir": str((inputs or {}).get("dir") or "").strip(),
+        "feeds": [str(f).strip() for f in ((inputs or {}).get("feeds") or []) if str(f).strip()],
+    }
     (folder / "scenario.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     scenario = get_scenario(slug)
     return scenario
@@ -275,3 +320,92 @@ def record_cassette(scenario: Scenario, steps: list[dict[str, Any]], summary: st
     target = scenario.root / (scenario.passes[0].get("cassette", "cassette.json") if scenario.passes else "cassette.json")
     target.write_text(json.dumps(tape, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return target
+
+
+def scenario_detail(slug: str) -> dict[str, Any]:
+    """Tout ce qu'il faut pour éditer un scénario dans l'interface."""
+    scenario = get_scenario(slug)
+    fixtures = []
+    fixture_dir = scenario.root / "fixtures"
+    if fixture_dir.is_dir():
+        fixtures = sorted(str(p.relative_to(fixture_dir)) for p in fixture_dir.rglob("*") if p.is_file())
+    return {
+        **scenario.as_summary(),
+        "fixtures": fixtures,
+        "passes_detail": scenario.passes,
+        "editable": not scenario.builtin,
+        "network": scenario.network,
+        "exec": scenario.exec_config,
+        "inputs": scenario.inputs,
+        "max_steps": scenario.max_steps,
+        "objective": scenario.objective,
+        "title": scenario.title,
+        "blurb": scenario.blurb,
+        "tags": scenario.tags,
+    }
+
+
+EDITABLE_FIELDS = ("title", "blurb", "objective", "max_steps", "tags", "network", "exec", "inputs")
+
+
+def update_scenario(slug: str, payload: dict[str, Any]) -> Scenario:
+    """Édite un scénario utilisateur. Un scénario livré n'est pas modifiable : on le duplique."""
+    scenario = get_scenario(slug)
+    if scenario.builtin:
+        raise ValueError(
+            "scénario livré : duplication nécessaire. Utilise « dupliquer » puis modifie la copie."
+        )
+    meta_path = scenario.root / "scenario.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    network = payload.get("network")
+    if isinstance(network, dict):
+        mode = str(network.get("mode") or "deny")
+        if mode not in ("deny", "allowlist", "open"):
+            raise ValueError(f"mode réseau inconnu : {mode}")
+        hosts = [str(h).strip().lower() for h in (network.get("hosts") or []) if str(h).strip()]
+        if mode == "allowlist" and not hosts:
+            raise ValueError("allowlist sans hôte : ajoute au moins un domaine")
+        meta["network"] = {"mode": mode, "hosts": hosts} if mode != "open" else {
+            "mode": "open",
+            "justification": str(network.get("justification") or "déclaré dans l'interface"),
+        }
+    if isinstance(payload.get("exec"), dict):
+        meta["exec"] = {
+            "allow_unsandboxed": bool(payload["exec"].get("allow_unsandboxed")),
+            "reason": str(payload["exec"].get("reason") or ""),
+        }
+    if isinstance(payload.get("inputs"), dict):
+        meta["inputs"] = {
+            "dir": str(payload["inputs"].get("dir") or "").strip(),
+            "feeds": [str(f).strip() for f in (payload["inputs"].get("feeds") or []) if str(f).strip()],
+        }
+    for key in ("title", "blurb", "objective"):
+        if key in payload:
+            value = str(payload[key]).strip()
+            if not value:
+                raise ValueError(f"{key} ne peut pas être vide")
+            meta[key] = value
+    if "max_steps" in payload:
+        meta["max_steps"] = max(2, min(int(payload["max_steps"] or 10), 24))
+    if "tags" in payload:
+        meta["tags"] = [str(t).strip() for t in payload["tags"] if str(t).strip()]
+    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return get_scenario(slug)
+
+
+def duplicate_scenario(slug: str, new_slug: str) -> Scenario:
+    """Copie un scénario (y compris livré) vers le dossier utilisateur, à modifier ensuite."""
+    source = get_scenario(slug)
+    new_slug = str(new_slug or "").strip().lower()
+    if not SLUG_RE.match(new_slug):
+        raise ValueError("slug invalide : lettres minuscules, chiffres et tirets, 2 à 41 caractères")
+    target_dir = user_scenarios_dir() / new_slug
+    if target_dir.exists():
+        raise ValueError(f"le scénario « {new_slug} » existe déjà")
+    shutil.copytree(source.root, target_dir)
+    meta_path = target_dir / "scenario.json"
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    meta["slug"] = new_slug
+    meta["title"] = f"{meta.get('title', new_slug)} (copie)"
+    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return get_scenario(new_slug)

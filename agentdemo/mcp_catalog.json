@@ -1,0 +1,80 @@
+{
+  "source": "catalogue embarqué, aucune installation automatique",
+  "servers": [
+    {
+      "name": "filesystem",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/data"
+      ],
+      "description": "lecture et écriture de fichiers dans un dossier autorisé",
+      "requires": "node"
+    },
+    {
+      "name": "git",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-git",
+        "--repository",
+        "."
+      ],
+      "description": "historique, diff et branches d'un dépôt local",
+      "requires": "node"
+    },
+    {
+      "name": "sqlite",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sqlite",
+        "/data/demo.db"
+      ],
+      "description": "requêtes SQL en lecture sur une base locale",
+      "requires": "node"
+    },
+    {
+      "name": "fetch",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-fetch"
+      ],
+      "description": "récupération d'une page web et conversion en markdown",
+      "requires": "node"
+    },
+    {
+      "name": "github",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "description": "issues, pull requests et recherche de code",
+      "requires": "node, GITHUB_TOKEN"
+    },
+    {
+      "name": "memory",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "description": "mémoire persistante en graphe de connaissances",
+      "requires": "node"
+    },
+    {
+      "name": "vigie",
+      "command": "python3",
+      "args": [
+        "-m",
+        "agentdemo",
+        "mcp"
+      ],
+      "description": "les outils de ce dépôt, exposés en MCP (lecture, analyse, mémoire)",
+      "requires": "python"
+    }
+  ]
+}

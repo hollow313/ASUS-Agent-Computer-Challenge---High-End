@@ -331,8 +331,18 @@ def cmd_scenario(args: argparse.Namespace) -> int:
     from .scenarios_loader import remove_scenario
 
     root = Path(args.out or DEFAULT_DATA_DIR)
+    if args.action == "duplicate":
+        from .scenarios_loader import duplicate_scenario
+
+        try:
+            copy = duplicate_scenario(args.name, args.to or f"{args.name}-copie")
+        except (ValueError, KeyError) as exc:
+            print(f"refusé : {exc}", file=sys.stderr)
+            return 1
+        print(f"▸ copie créée : {copy.slug} ({copy.root})")
+        return 0
     if args.action != "remove":
-        print("usage : agentdemo scenario remove <nom> [--force] [--yes]", file=sys.stderr)
+        print("usage : agentdemo scenario remove|duplicate <nom>", file=sys.stderr)
         return 2
     try:
         preview = remove_scenario(args.name, root, force=args.force, dry_run=not args.yes)
@@ -349,6 +359,93 @@ def cmd_scenario(args: argparse.Namespace) -> int:
         print("\nRien n'a été supprimé. Relance avec --yes pour confirmer.")
         return 0
     print("\nSupprimé.")
+    return 0
+
+
+def cmd_scenario_show(args: argparse.Namespace) -> int:
+    """Détail d'un scénario : ce que l'interface affiche, en texte."""
+    from .scenarios_loader import scenario_detail
+
+    try:
+        detail = scenario_detail(args.name)
+    except KeyError as exc:
+        print(f"refusé : {exc}", file=sys.stderr)
+        return 1
+    print(f"▸ {detail['slug']} · {detail['title']}{' (livré)' if detail['builtin'] else ''}")
+    print(f"  objectif   : {detail['objective']}")
+    print(f"  étapes max : {detail['max_steps']} · cassette : {detail['steps']} étapes")
+    print(f"  réseau     : {detail['network']}")
+    print(f"  exec       : {detail['exec'] or 'désactivé'}")
+    print(f"  entrées    : {detail['inputs'] or 'aucune'}")
+    print(f"  fixtures   : {', '.join(detail['fixtures']) or 'aucune'}")
+    print(f"  éditable   : {'oui' if detail['editable'] else 'non, à dupliquer'}")
+    return 0
+
+
+def cmd_scenario_edit(args: argparse.Namespace) -> int:
+    """Modifie un scénario utilisateur : réseau, exécution, entrées, budget."""
+    from .scenarios_loader import update_scenario
+
+    payload: dict[str, object] = {}
+    if args.title:
+        payload["title"] = args.title
+    if args.objective:
+        payload["objective"] = args.objective
+    if args.steps:
+        payload["max_steps"] = args.steps
+    if args.network:
+        payload["network"] = {
+            "mode": args.network,
+            "hosts": [h.strip() for h in (args.hosts or "").split(",") if h.strip()],
+        }
+    if args.allow_exec:
+        payload["exec"] = {"allow_unsandboxed": True, "reason": "déclaré en CLI"}
+    if args.input_dir:
+        payload["inputs"] = {"dir": args.input_dir, "feeds": []}
+    try:
+        updated = update_scenario(args.name, payload)
+    except (ValueError, KeyError) as exc:
+        print(f"refusé : {exc}", file=sys.stderr)
+        return 1
+    print(f"▸ {updated.slug} mis à jour : réseau {updated.network.get('mode')}, "
+          f"{updated.max_steps} étapes max, entrées {updated.inputs or 'aucune'}")
+    return 0
+
+
+def cmd_mcp_servers(args: argparse.Namespace) -> int:
+    """Liste, ajoute ou retire un serveur MCP dans les réglages."""
+    from .settings_store import McpServer, Settings
+
+    path = Path(args.out or DEFAULT_DATA_DIR) / "settings.json"
+    settings = Settings.load(path)
+    if args.action == "list":
+        if not settings.mcp_servers:
+            print("aucun serveur MCP configuré")
+        for server in settings.mcp_servers:
+            state = "actif" if server.enabled else "en pause"
+            print(f"- {server.name} [{state}] {server.command} {' '.join(server.args)}".rstrip())
+        return 0
+    if args.action == "add":
+        if not args.name or not args.command:
+            print("usage : agentdemo mcp-servers add --name X --command python3 --args '-m,module'", file=sys.stderr)
+            return 2
+        settings.mcp_servers.append(
+            McpServer(name=args.name, command=args.command,
+                      args=[a.strip() for a in (args.args or "").split(",") if a.strip()],
+                      description="ajouté en CLI", source="cli")
+        )
+    if args.action == "remove":
+        before = len(settings.mcp_servers)
+        settings.mcp_servers = [srv for srv in settings.mcp_servers if srv.name != args.name]
+        if len(settings.mcp_servers) == before:
+            print(f"serveur inconnu : {args.name}", file=sys.stderr)
+            return 1
+    try:
+        settings.save(path)
+    except ValueError as exc:
+        print(f"refusé : {exc}", file=sys.stderr)
+        return 1
+    print(f"▸ {len(settings.mcp_servers)} serveur(s) MCP configuré(s)")
     return 0
 
 
@@ -529,11 +626,35 @@ def build_parser() -> argparse.ArgumentParser:
     mcp.add_argument("--out", help="dossier de données")
     mcp.set_defaults(func=cmd_mcp)
 
+    mcp_servers = sub.add_parser("mcp-servers", help="serveurs MCP configurés")
+    mcp_servers.add_argument("action", choices=["list", "add", "remove"])
+    mcp_servers.add_argument("--name")
+    mcp_servers.add_argument("--command")
+    mcp_servers.add_argument("--args", help="arguments séparés par des virgules")
+    mcp_servers.add_argument("--out", help="dossier de données")
+    mcp_servers.set_defaults(func=cmd_mcp_servers)
+
+    scenario_show = sub.add_parser("show", help="détail d'un scénario")
+    scenario_show.add_argument("name")
+    scenario_show.set_defaults(func=cmd_scenario_show)
+
+    scenario_edit = sub.add_parser("edit", help="modifie un scénario utilisateur")
+    scenario_edit.add_argument("name")
+    scenario_edit.add_argument("--title")
+    scenario_edit.add_argument("--objective")
+    scenario_edit.add_argument("--steps", type=int)
+    scenario_edit.add_argument("--network", choices=["deny", "allowlist", "open"])
+    scenario_edit.add_argument("--hosts", help="domaines autorisés, séparés par des virgules")
+    scenario_edit.add_argument("--allow-exec", action="store_true")
+    scenario_edit.add_argument("--input-dir")
+    scenario_edit.set_defaults(func=cmd_scenario_edit)
+
     scenario = sub.add_parser("scenario", help="cycle de vie d'un scénario")
-    scenario.add_argument("action", choices=["remove"], help="action à effectuer")
+    scenario.add_argument("action", choices=["remove", "duplicate"], help="action à effectuer")
     scenario.add_argument("name", help="slug du scénario")
     scenario.add_argument("--force", action="store_true", help="autorise un scénario livré")
     scenario.add_argument("--yes", action="store_true", help="confirme la suppression")
+    scenario.add_argument("--to", help="slug de la copie (duplicate)")
     scenario.add_argument("--out", help="dossier de données")
     scenario.set_defaults(func=cmd_scenario)
 

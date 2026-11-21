@@ -194,6 +194,13 @@ class Agent:
 
             signature = json.dumps([tool_name, args], ensure_ascii=False, sort_keys=True)
             repeats[signature] = repeats.get(signature, 0) + 1
+            if repeats[signature] == 2 and not error:
+                # petit coup de coude avant de bloquer : le modèle tourne en rond sur un résultat connu
+                observation = (
+                    f"[relance] même appel que l'étape précédente, résultat identique. "
+                    f"Avance : écris le livrable ou conclus.\n{observation}"
+                )
+                step.observation = observation
             limite = 3 if error else 4
             if repeats[signature] >= limite:
                 # insister ne sert à rien : même appel répété, on s'arrête net
