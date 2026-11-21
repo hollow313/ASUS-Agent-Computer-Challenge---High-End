@@ -138,7 +138,8 @@ class Agent:
         if hasattr(self.planner, "tools") and not getattr(self.planner, "tools", None):
             self.planner.tools = tools
         history: list[dict[str, Any]] = []
-        repeats: dict[str, int] = {}  # anti-boucle : mêmes arguments, même erreur
+        repeats: dict[str, int] = {}
+        nudges = 0  # relances « tu n'as pas écrit le livrable », avant de bloquer  # anti-boucle : mêmes arguments, même erreur
 
         for index in range(1, self.max_steps + 1):
             started = time.perf_counter()
@@ -160,6 +161,18 @@ class Agent:
                     for p in self.workspace.rglob("*")
                     if p.is_file() and p.name not in {"cassette.json"} and p.suffix in {".md", ".txt", ".json", ".csv", ".svg"}
                 )
+                if expected and not any(name.endswith(expected) for name in produced) and nudges < 2:
+                    nudges += 1
+                    message = (
+                        f"Tu as répondu final, mais {expected} n'existe pas dans le bac à sable. "
+                        f"Écris-le maintenant avec fs_write, puis réponds final. "
+                        f"Fichiers présents : {', '.join(produced) or 'aucun'}."
+                    )
+                    step = Step(index, thought or "Le modèle a conclu trop tôt.", None, {}, message, _ms(started), True)
+                    result.steps.append(step)
+                    _notify(self.on_step, step)
+                    history.append({"thought": thought, "tool": None, "args": {}, "observation": message})
+                    continue
                 if expected and not any(name.endswith(expected) for name in produced):
                     step = Step(
                         index,
@@ -213,6 +226,8 @@ class Agent:
                     observation, error = str(exc), True
                 except TypeError as exc:
                     observation, error = f"arguments invalides pour {tool_name} : {exc}", True
+                except Exception as exc:  # un outil qui plante ne doit pas emporter le run
+                    observation, error = f"échec interne de {tool_name} : {type(exc).__name__}: {exc}"[:400], True
             observation = observation if isinstance(observation, str) else json.dumps(observation, ensure_ascii=False)
 
             step = Step(index, thought, tool_name, args, observation, _ms(started), error)

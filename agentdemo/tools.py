@@ -461,7 +461,15 @@ def build_registry(
         if not source.exists():
             raise ToolError(f"source introuvable : {src}")
         dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.move(str(source), str(dest))
+        if dest.exists():
+            raise ToolError(
+                f"destination déjà présente : {dst}. Choisis un autre nom, ou fs_write pour remplacer le contenu."
+            )
+        try:
+            shutil.move(str(source), str(dest))
+        except (OSError, shutil.Error) as exc:
+            raise ToolError(f"déplacement impossible de {src} vers {dst} : {exc}") from exc
+        note(dest)
         return f"déplacé {src} → {dst}"
 
     def csv_profile(path: str) -> str:
