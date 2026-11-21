@@ -56,6 +56,27 @@ python3 -m agentdemo serve --port 8080          # the same with the web UI
 python3 -m unittest discover -s tests           # 52 tests, two seconds
 ```
 
+Replay mode needs no model at all. For live mode, the agent embeds no model: it speaks the
+OpenAI-compatible API, so **Ollama, LM Studio, vLLM or a remote API are interchangeable**. Nothing
+gets installed inside the image.
+
+```bash
+# Ollama already running on the machine
+ollama pull qwen2.5-coder:7b
+python3 -m agentdemo run --scenario cyber-brief --live \
+  --base-url http://localhost:11434/v1 --model qwen2.5-coder:7b
+
+# Ollama on another machine of the network
+python3 -m agentdemo run --scenario cyber-brief --live \
+  --base-url http://192.168.1.50:11434/v1 --model qwen2.5-coder:7b
+```
+
+With Docker and nothing installed, `docker-compose.yml` ships an Ollama service behind a profile:
+`docker compose --profile ollama up -d`, then `docker compose exec ollama ollama pull
+qwen2.5-coder:7b`. The URL to enter in the interface is then `http://ollama:11434/v1`, or
+`http://MACHINE-IP:11434/v1` when Ollama runs elsewhere. The **test** button on the routing page
+queries `/models` and tells you at once whether the path is right.
+
 Or in a container, the same image used for every screenshot here:
 
 ```bash

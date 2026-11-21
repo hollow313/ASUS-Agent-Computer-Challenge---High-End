@@ -24,17 +24,19 @@ services:
       # - /mnt/<pool>/apps/agent-computer-demo:/data
     restart: unless-stopped
 
-  # Décommentez ce service (et `docker compose --profile ollama up`) pour
-  # tester le mode live entièrement hors ligne, sans clé API.
-  #
-  # ollama:
-  #   image: ollama/ollama:latest
-  #   profiles: ["ollama"]
-  #   ports:
-  #     - "11434:11434"
-  #   volumes:
-  #     - ollama:/root/.ollama
+  # Modèle local, optionnel : `docker compose --profile ollama up -d` puis
+  # `docker compose exec ollama ollama pull qwen2.5-coder:7b`.
+  # L'agent ne contient aucun modèle : il parle l'API compatible OpenAI, donc
+  # Ollama, LM Studio, vLLM ou une API distante se valent.
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    restart: unless-stopped
 
 volumes:
   demo-data:
-  # ollama:
+  ollama-models:

@@ -57,6 +57,27 @@ python3 -m agentdemo serve --port 8080          # la même chose avec l'interfac
 python3 -m unittest discover -s tests           # 52 tests, deux secondes
 ```
 
+Le mode replay ne demande aucun modèle. Pour le mode live, l'agent ne contient pas de modèle : il
+parle l'API compatible OpenAI, donc **Ollama, LM Studio, vLLM ou une API distante se valent**. Rien
+n'est à installer dans l'image.
+
+```bash
+# Ollama déjà présent sur la machine
+ollama pull qwen2.5-coder:7b
+python3 -m agentdemo run --scenario cyber-brief --live \
+  --base-url http://localhost:11434/v1 --model qwen2.5-coder:7b
+
+# Ollama sur une autre machine du réseau
+python3 -m agentdemo run --scenario cyber-brief --live \
+  --base-url http://192.168.1.50:11434/v1 --model qwen2.5-coder:7b
+```
+
+Avec Docker et rien d'installé, le fichier `docker-compose.yml` contient un service Ollama derrière
+un profil : `docker compose --profile ollama up -d`, puis `docker compose exec ollama ollama pull
+qwen2.5-coder:7b`. L'URL à renseigner dans l'interface est alors `http://ollama:11434/v1`, ou
+`http://IP-DE-LA-MACHINE:11434/v1` si Ollama tourne ailleurs. Le bouton **tester** de la page de
+routage interroge `/models` et te dit tout de suite si le chemin est bon.
+
 Ou en conteneur, avec l'image utilisée pour toutes les captures de ce dépôt :
 
 ```bash
