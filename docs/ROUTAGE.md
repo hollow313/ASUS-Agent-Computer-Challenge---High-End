@@ -23,8 +23,7 @@ cloud : deux instances LM Studio, deux clouds, ou un mélange.
 ```json
 {"id": "lm-7b",  "label": "LM Studio 7B",  "base_url": "http://IP:1234/v1", "model": "qwen2.5-coder-7b-instruct", "kind": "local"}
 {"id": "lm-32b", "label": "LM Studio 32B", "base_url": "http://IP:1234/v1", "model": "qwen2.5-coder-32b", "kind": "local"}
-{"id": "ds",     "label": "DeepSeek",      "base_url": "https://api.deepseek.com/v1", "model": "deepseek-flash", "kind": "cloud"}
-{"id": "gem",    "label": "Gemini",        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai", "model": "gemini-2.5-flash", "kind": "cloud"}
+{"id": "gem",    "label": "Gemini Flash",  "base_url": "https://generativelanguage.googleapis.com/v1beta/openai", "model": "gemini-3.8-flash", "kind": "cloud"}
 ```
 
 Le bouton **tester** interroge `/models` sur la cible et renvoie la liste des modèles chargés.

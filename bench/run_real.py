@@ -67,7 +67,7 @@ def main() -> int:
     parser.add_argument("--scenario", required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--base-url", default="http://192.168.1.153:1234/v1")
-    parser.add_argument("--api-key", default=os.environ.get("DEEPSEEK_API_KEY", ""))
+    parser.add_argument("--api-key", default=os.environ.get("GEMINI_API_KEY", ""))
     parser.add_argument("--out", default=str(Path(__file__).resolve().parent.parent / "docs" / "runs"))
     parser.add_argument("--data", default=str(DATA_DIR))
     args = parser.parse_args()

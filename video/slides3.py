@@ -143,11 +143,11 @@ SLIDES["08-chiffres"] = base(
   <h1>Ce que 3 Go permettent</h1>
   <table>
     <tr><th>cible</th><th>où</th><th>réussite</th><th>p50</th><th>p95</th><th>coût / 1 000</th></tr>
-    <tr><td>Qwen 2.5 Coder 7B, Q4</td><td>local</td><td>60 %</td><td>0,40 s</td><td>0,64 s</td><td>0 €</td></tr>
-    <tr><td>Qwen3 VL 8B, Q4</td><td>local</td><td class=ok>90 %</td><td>11,6 s</td><td>28,7 s</td><td>0 €</td></tr>
-    <tr><td>DeepSeek Chat</td><td>cloud</td><td class=ok>100 %</td><td>0,93 s</td><td>1,25 s</td><td class=warn>0,02 €</td></tr>
+    <tr><td>Qwen 2.5 Coder 7B, Q4</td><td>local</td><td>60 %</td><td>0,75 s</td><td>3,98 s</td><td>0 €</td></tr>
+    <tr><td>Qwen3 VL 8B, Q4</td><td>local</td><td class=ok>90 %</td><td>0,67 s</td><td>4,63 s</td><td>0 €</td></tr>
+    <tr><td>Gemini 3.8 Flash</td><td>cloud</td><td class=ok>100 %</td><td>4,17 s</td><td>5,23 s</td><td class=warn>0,07 €</td></tr>
   </table>
-  <p style="margin-top:24px">Le local est gratuit mais se trompe ou coûte trente fois plus de temps.
+  <p style="margin-top:24px">Le local est gratuit mais se trompe une fois sur deux.
   Le cloud est juste mais sort vos données. Le modèle intermédiaire n'existe pas dans 3 Go.</p>
   <div class=foot>dix tâches, température 0, notation exacte · rapport complet dans docs/mesures/</div>
 """

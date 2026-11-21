@@ -1,5 +1,5 @@
 {
-  "_comment": "Prix indicatifs en EUR par million de tokens. deepseek-flash : 0,15 $ entrée et 0,60 $ sortie hors pointe, convertis à 0,92 (la pointe double ces tarifs). Ajuster avant de publier un chiffre.",
+  "_comment": "Prix indicatifs en EUR par million de tokens, convertis au taux de 0,92. Gemini 3.8 Flash : 0,75 $ entrée et 3,75 $ sortie (tarif de lancement Google AI Studio, vérifié le 21/11/2026). GPT-5.5 Pro : 30 $ et 180 $. Claude Opus 5.5 : 4 $ et 20 $.",
   "qwen2.5-coder:7b": {
     "in": 0.0,
     "out": 0.0
@@ -16,12 +16,20 @@
     "in": 0.14,
     "out": 0.55
   },
-  "deepseek-chat": {
-    "in": 0.25,
-    "out": 1.0
+  "gemini-3.8-flash": {
+    "in": 0.69,
+    "out": 3.45
   },
-  "deepseek-flash": {
-    "in": 0.138,
-    "out": 0.552
+  "gemini-3-flash": {
+    "in": 0.46,
+    "out": 2.76
+  },
+  "gpt-5.5-pro": {
+    "in": 27.6,
+    "out": 165.6
+  },
+  "claude-opus-5-5": {
+    "in": 3.68,
+    "out": 18.4
   }
 }

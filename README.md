@@ -5,7 +5,7 @@ vrais fichiers, vérifie son travail, et garde la mémoire de ce qu'il a appris.
 
 Pas de clé API, pas de réseau, pas de dépendance. Une commande et il tourne.
 
-[▶ Voir la vidéo de présentation (2 min 35)](docs/video/agent-computer-presentation.mp4) · [Essayer en 30 secondes](#en-trente-secondes) · [Les chiffres mesurés](#les-chiffres)
+[▶ Voir la vidéo de présentation (2 min 31)](docs/video/agent-computer-presentation.mp4) · [Essayer en 30 secondes](#en-trente-secondes) · [Les chiffres mesurés](#les-chiffres)
 
 ![Capture de l'interface](docs/screenshot-run.png)
 
@@ -51,7 +51,7 @@ blanc en partie 2. Personne n'a besoin de me croire sur parole : il suffit de la
 ```bash
 git clone https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End
 cd ASUS-Agent-Computer-Challenge---High-End
-python3 -m agentdemo scenarios                  # les cinq scénarios, sans rien installer
+python3 -m agentdemo scenarios                  # les six scénarios, sans rien installer
 python3 -m agentdemo run --scenario cyber-brief # un run complet, déterministe
 python3 -m agentdemo serve --port 8080          # la même chose avec l'interface
 python3 -m unittest discover -s tests           # 51 tests, deux secondes
@@ -77,16 +77,30 @@ VRAM qui tourne aujourd'hui dans ma machine.
 
 | Cible | Où | Réussite | p50 | p95 | Coût / 1 000 tâches |
 | --- | --- | --- | --- | --- | --- |
-| Qwen 2.5 Coder 7B, Q4 | local, 3 Go de VRAM | 60 % | 0,40 s | 0,64 s | 0 € |
-| Qwen3 VL 8B, Q4 | local, 3 Go de VRAM | 90 % | 11,6 s | 28,7 s | 0 € |
-| DeepSeek Chat | cloud | 100 % | 0,93 s | 1,25 s | 0,02 € |
+| Qwen 2.5 Coder 7B, Q4 | local, 3 Go de VRAM | 60 % | 0,75 s | 3,98 s | 0 € |
+| Qwen3 VL 8B, Q4 | local, 3 Go de VRAM | 90 % | 0,67 s | 4,63 s | 0 € |
+| Gemini 3.8 Flash | cloud | 100 % | 4,17 s | 5,23 s | 0,07 € |
 
-Mesure du 20/11/2026 15:39 UTC, dix tâches, une passe. Rapport brut et JSON :
-[`docs/mesures/mesures-20261120.md`](docs/mesures/mesures-20261120.md).
+Mesure du 21/11/2026 13:37 UTC, dix tâches, une passe. Rapport brut et JSON :
+[`docs/mesures/mesures-20261121.md`](docs/mesures/mesures-20261121.md).
 
-Trois lignes, une conclusion : le local est gratuit mais se trompe une fois sur deux ou coûte trente
-fois plus de temps, le cloud est juste mais sort vos données, et le modèle intermédiaire qui ferait
-les deux n'existe pas dans 3 Go. C'est exactement le trou que la carte comble.
+Les mêmes 1 000 tâches, aux prix publics du 21/11/2026 et avec la consommation de tokens réellement
+mesurée (791 tokens d'entrée et 50 de sortie pour 10 tâches) :
+
+| Modèle | Entrée / M tokens | Sortie / M tokens | 1 000 tâches |
+| --- | --- | --- | --- |
+| local, 8B Q4 | 0 € | 0 € | 0 € |
+| Gemini 3.8 Flash | 0,69 € | 3,45 € | 0,07 € |
+| Claude Opus 5.5 | 3,68 € | 18,40 € | 0,38 € |
+| GPT-5.5 Pro | 27,60 € | 165,60 € | 3,01 € |
+
+Ce tableau ne classe pas les modèles par qualité, il chiffre la facture : à consommation égale, le
+modèle le plus cher de la liste coûte quarante-trois fois le tarif d'entrée de gamme.
+
+Trois lignes, une conclusion : le local est gratuit mais se trompe une fois sur deux ou prend six
+fois plus de temps sur les cas lents, le cloud est juste mais sort vos données, et le modèle
+intermédiaire qui ferait les deux n'existe pas dans 3 Go. C'est exactement le trou que la carte
+comble.
 
 Méthode, tâches, prix et fichiers bruts : [`bench/README.md`](bench/README.md) et
 [`docs/comparatif-local-cloud.md`](docs/comparatif-local-cloud.md).
@@ -137,7 +151,7 @@ un caprice, c'est un dimensionnement vérifiable.
 ## La vidéo et la démo courte
 
 La visite guidée du projet, neuf cartons et une voix off continue, montre tout ce qui est décrit
-ici : [**vidéo de présentation, 2 min 35**](docs/video/agent-computer-presentation.mp4). La
+ici : [**vidéo de présentation, 2 min 31**](docs/video/agent-computer-presentation.mp4). La
 démonstration courte de 64 secondes montre l'agent en action pour qui préfère voir tourner avant de
 lire.
 
@@ -145,7 +159,7 @@ lire.
 
 | Vidéo | Durée | Ce qu'elle montre |
 | --- | --- | --- |
-| [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4) | 2 min 35 | le projet complet : la limite des 3 Go, les six scénarios, la mémoire procédurale, la délégation, le routage, le planning, les runs réels avec leur audit incomplet, les mesures et le dimensionnement de la carte |
+| [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4) | 2 min 31 | le projet complet : la limite des 3 Go, les six scénarios, la mémoire procédurale, la délégation, le routage, le planning, les runs réels avec leur audit incomplet, les mesures et le dimensionnement de la carte |
 | [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4) | 64 s | la boucle agentique en action, du scénario au livrable |
 
 La première est la visite guidée : neuf cartons, une voix off continue, les captures réelles du
@@ -158,7 +172,7 @@ logiciel externe. Le fichier audio et le script de narration sont dans le dépô
 
 ## Ce que je ne promets pas
 
-Le coût n'est pas l'argument. À 0,05 € les mille tâches, le cloud est moins cher que l'électricité
+Le coût n'est pas l'argument. À 0,07 € les mille tâches, le cloud est moins cher que l'électricité
 de la carte. Une démonstration honnête ne peut pas vendre du local sur le prix.
 
 Trois arguments tiennent la route :

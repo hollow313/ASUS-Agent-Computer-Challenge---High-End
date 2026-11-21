@@ -10,24 +10,24 @@ via LM Studio en Q4 ; le modèle cloud est appelé sur son API publique.
 
 | Cible | Modèle | Réussite | p50 | p95 | Coût / 1 000 tâches |
 | --- | --- | --- | --- | --- | --- |
-| Local 7B | qwen2.5-coder-7b, Q4 | 60 % | 0,48 s | 0,93 s | 0 € |
-| Local 8B vision | qwen3-vl-8b, Q4 | 90 % | 18,9 s | 38,2 s | 0 € |
-| Cloud | deepseek-flash | 100 % | 1.02 s | 1.61 s | 0.05 € |
+| Local 7B | qwen2.5-coder-7b-instruct, Q4 | 60 % | 0,75 s | 3,98 s | 0 € |
+| Local 8B vision | qwen3-vl-8b, Q4 | 90 % | 0,67 s | 4,63 s | 0 € |
+| Cloud | gemini-3.8-flash | 100 % | 4,17 s | 5,23 s | 0,07 € |
 
 ## Ce que ces chiffres disent vraiment
 
 Trois constats, dont deux qui ne vont pas dans le sens du discours habituel.
 
-1. **Le cloud gagne sur la justesse et la latence.** 100 % des tâches, une seconde de médiane.
-   Aucun modèle de 7-8B sur 3 Go de VRAM n'approche ça : soit il est rapide et faux, soit il est
-   juste et trente-neuf fois plus lent.
-2. **Le coût n'est pas l'argument à mon volume.** À 5 centimes les 1 000 exécutions, une
-   installation qui ferait 4 000 appels par mois dépenserait 0,20 €. Dire « la carte s'amortit sur
+1. **Le cloud gagne sur la justesse.** 100 % des tâches, contre 60 et 90 % en local. Aucun modèle
+   de 7-8B sur 3 Go de VRAM n'approche ça : soit il est rapide et faux, soit il est juste et lent
+   sur les cas difficiles.
+2. **Le coût n'est pas l'argument à mon volume.** À 7 centimes les 1 000 exécutions, une
+   installation qui ferait 4 000 appels par mois dépenserait 0,28 €. Dire « la carte s'amortit sur
    le coût des tokens » serait malhonnête à cette échelle, et un reviewer fera le calcul.
-3. **DeepSeek est l'hypothèse la plus favorable au cloud.** C'est aujourd'hui l'un des tarifs les
-   plus bas du marché. Sur les modèles de gamme supérieure (OpenAI, Anthropic, Gemini), la même
-   charge coûte de l'ordre de dix à quarante fois plus : le chiffre ci-dessus est donc un plancher,
-   pas une moyenne.
+3. **Le tarif retenu est celui d'entrée de gamme.** Gemini 3.8 Flash est l'une des offres les moins
+   chères du marché cloud. Sur les modèles de gamme supérieure, la même charge coûte beaucoup plus :
+   0,38 € les 1 000 tâches avec Claude Opus 5.5 et 3,01 € avec GPT-5.5 Pro, aux prix publics du
+   21/11/2026. Le chiffre ci-dessus est donc un plancher, pas une moyenne.
 
 ## Alors pourquoi 32 Go ?
 

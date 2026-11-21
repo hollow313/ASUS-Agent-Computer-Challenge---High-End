@@ -5,7 +5,7 @@ real files, verifies its own work, and remembers what it learned.**
 
 No API key, no network, no dependency. One command and it runs.
 
-[▶ Watch the presentation (2 min 35)](docs/video/agent-computer-presentation.mp4) · [Try it in 30 seconds](#in-thirty-seconds) · [The measured numbers](#the-numbers)
+[▶ Watch the presentation (2 min 31)](docs/video/agent-computer-presentation.mp4) · [Try it in 30 seconds](#in-thirty-seconds) · [The measured numbers](#the-numbers)
 
 ![Interface capture](docs/screenshot-run.png)
 
@@ -50,7 +50,7 @@ written down in part 2. Nobody has to take my word for it: run the bench.
 ```bash
 git clone https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End
 cd ASUS-Agent-Computer-Challenge---High-End
-python3 -m agentdemo scenarios                  # five scenarios, nothing to install
+python3 -m agentdemo scenarios                  # six scenarios, nothing to install
 python3 -m agentdemo run --scenario cyber-brief # one full, deterministic run
 python3 -m agentdemo serve --port 8080          # the same with the web UI
 python3 -m unittest discover -s tests           # 51 tests, two seconds
@@ -74,15 +74,29 @@ test that passes or fails. Hardware: the 3 GB VRAM card currently in my machine.
 
 | Target | Where | Success | p50 | p95 | Cost / 1 000 tasks |
 | --- | --- | --- | --- | --- | --- |
-| Qwen 2.5 Coder 7B, Q4 | local, 3 GB VRAM | 60 % | 0.40 s | 0.64 s | 0 € |
-| Qwen3 VL 8B, Q4 | local, 3 GB VRAM | 90 % | 11.6 s | 28.7 s | 0 € |
-| DeepSeek Chat | cloud | 100 % | 0.93 s | 1.25 s | 0.02 € |
+| Qwen 2.5 Coder 7B, Q4 | local, 3 GB VRAM | 60 % | 0.75 s | 3.98 s | 0 € |
+| Qwen3 VL 8B, Q4 | local, 3 GB VRAM | 90 % | 0.67 s | 4.63 s | 0 € |
+| Gemini 3.8 Flash | cloud | 100 % | 4.17 s | 5.23 s | 0.07 € |
 
-Measured 2026-11-20 15:39 UTC, ten tasks, one pass. Raw report and JSON:
-[`docs/mesures/mesures-20261120.md`](docs/mesures/mesures-20261120.md).
+Measured 2026-11-21 13:37 UTC, ten tasks, one pass. Raw report and JSON:
+[`docs/mesures/mesures-20261121.md`](docs/mesures/mesures-20261121.md).
 
-Three lines, one conclusion: local is free but wrong one time in two, or thirty times slower; cloud
-is right but sends your data out; and the middle model that would do both does not exist in 3 GB.
+The same 1 000 tasks, at public prices as of 2026-11-21 and with the token usage actually measured
+(791 input and 50 output tokens for ten tasks):
+
+| Model | Input / M tokens | Output / M tokens | 1 000 tasks |
+| --- | --- | --- | --- |
+| local, 8B Q4 | 0 € | 0 € | 0 € |
+| Gemini 3.8 Flash | 0.69 € | 3.45 € | 0.07 € |
+| Claude Opus 5.5 | 3.68 € | 18.40 € | 0.38 € |
+| GPT-5.5 Pro | 27.60 € | 165.60 € | 3.01 € |
+
+This table does not rank models by quality, it prices the bill: at equal usage, the most expensive
+model in the list costs forty-three times the entry-level rate.
+
+Three lines, one conclusion: local is free but wrong one time in two, or six times slower on the
+slow cases; cloud is right but sends your data out; and the middle model that would do both does not
+exist in 3 GB.
 That is exactly the gap the card fills.
 
 Method, tasks, prices and raw files: [`bench/README.md`](bench/README.md) and
@@ -134,7 +148,7 @@ whim, it is a sizing decision you can verify.
 
 | Video | Length | What it shows |
 | --- | --- | --- |
-| [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4) | 2 min 35 | the whole project: the 3 GB ceiling, the five scenarios, procedural memory, delegation, routing, scheduling, the measurements and the card sizing |
+| [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4) | 2 min 31 | the whole project: the 3 GB ceiling, the six scenarios, procedural memory, delegation, routing, scheduling, the measurements and the card sizing |
 | [`docs/video/agent-computer-demo.mp4`](docs/video/agent-computer-demo.mp4) | 64 s | the agentic loop in action, from objective to deliverable |
 
 The first is the guided tour: nine slides, a continuous voice-over, the real screenshots of the
