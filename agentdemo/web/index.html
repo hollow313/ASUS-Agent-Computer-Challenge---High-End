@@ -504,6 +504,8 @@ async function poll() {
     ? ` · repli : ${fallbacks.map((e) => `${e.from} → ${e.to}`).join(", ")}`
     : "";
   $("statusText").textContent = `${run.status} · ${run.steps.length} étapes · ${run.mode}${route}${fallbackNote} · ${run.title}`;
+  const resumeBtn = $("resumeRun");
+  if (resumeBtn) resumeBtn.hidden = !run.resumable;
   if (run.status !== "running") {
     clearInterval(state.polling);
     state.polling = null;
@@ -717,6 +719,17 @@ $("nsCreate").onclick = async () => {
 };
 
 $("run").onclick = launch;
+
+$("resumeRun").onclick = async () => {
+  if (!state.current || !state.lastRun) return;
+  const res = await fetch(`/api/runs/${encodeURIComponent(state.lastRun)}/resume`, { method: "POST" });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { setStatus(data.error || "reprise impossible", "err"); return; }
+  state.runId = data.run_id;
+  state.lastRun = data.run_id;
+  setStatus("run repris", "ok");
+  poll();
+};
 $("modeReplay").onclick = () => setMode("replay");
 $("modeLive").onclick = () => setMode("live");
 $("checkModels").onclick = checkModels;

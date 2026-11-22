@@ -39,6 +39,24 @@ def run_checks(data_dir: Path, base_url: str | None = None, model: str | None = 
 
     version = sys.version_info
     ok_python = (version.major, version.minor) >= MIN_PYTHON
+    states = sorted((data_dir / "runs").glob("*/state.json")) if (data_dir / "runs").is_dir() else []
+    resumable = []
+    for state in states:
+        try:
+            payload = json.loads(state.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if payload.get("status") != "done":
+            resumable.append(state.parent.name)
+    checks.append(
+        Check(
+            "Runs reprenables",
+            "ok",
+            f"{len(resumable)} état(s) disponible(s)" + (f" : {', '.join(resumable[:3])}" if resumable else ""),
+            required=False,
+        )
+    )
+
     checks.append(
         Check(
             "Python 3.10 ou plus",

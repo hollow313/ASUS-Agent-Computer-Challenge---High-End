@@ -55,6 +55,10 @@ class ReplayPlanner:
         """Un replay n'a pas de successeur : le sous-agent doit avoir sa propre cassette."""
         return None
 
+    def skip(self, steps: int) -> None:
+        """Reprise : la cassette reprend là où le run s'est arrêté."""
+        self.cursor = max(self.cursor, min(int(steps), len(self.trace)))
+
     def next_action(self, objective: str, history: list[dict[str, Any]]) -> dict[str, Any]:
         if self.cursor >= len(self.trace):
             return {"thought": "Trace épuisée.", "final": "Scénario terminé."}

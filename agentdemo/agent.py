@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 import uuid
@@ -15,6 +16,10 @@ from .skills import SkillStore
 from .tools import Sandbox, ToolError, NetworkPolicy, build_registry
 
 APPROVAL_TOOLS = ("fs_write", "fs_move", "mail_move", "run")
+
+
+class ResumeError(RuntimeError):
+    """Reprise impossible, avec une raison lisible plutôt qu'une trace."""
 
 
 @dataclass
@@ -92,6 +97,9 @@ class Agent:
         runner: Any = None,
         approver: Callable[[str, dict[str, Any]], bool] | None = None,
         scenario: str = "",
+        resume: Path | None = None,
+        save_state: bool = False,
+        reviewer: Any = None,
     ) -> None:
         self.planner = planner
         self.workspace = Path(workspace)
@@ -107,6 +115,37 @@ class Agent:
         self.runner = runner
         self.approver = approver
         self.scenario = scenario
+        self.resume = Path(resume) if resume else None
+        self.save_state = save_state
+        self.reviewer = reviewer
+
+    def _state_path(self, run_id: str) -> Path:
+        return Path(self.runs_dir) / run_id / "state.json"
+
+    def _write_state(self, run_id: str, payload: dict[str, Any]) -> None:
+        """Écriture atomique : un kill -9 ne doit pas laisser un JSON tronqué."""
+        path = self._state_path(run_id)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=1), encoding="utf-8")
+        os.replace(tmp, path)
+
+    def _load_state(self, resume: Path, planner_label: str) -> dict[str, Any]:
+        try:
+            state = json.loads(Path(resume).read_text(encoding="utf-8"))
+        except FileNotFoundError as exc:
+            raise ResumeError(f"état de reprise introuvable : {resume}") from exc
+        except json.JSONDecodeError as exc:
+            raise ResumeError(
+                f"état de reprise illisible (JSON tronqué ?) : {resume} — {exc.msg} ligne {exc.lineno}"
+            ) from exc
+        recorded = str(state.get("planner") or "")
+        wanted = "replay" if planner_label == "replay" else "live"
+        if recorded and not recorded.startswith(wanted) and not wanted.startswith(recorded.split(":")[0]):
+            raise ResumeError(
+                f"reprise refusée : l'état a été écrit en {recorded}, le run demandé est en {wanted}"
+            )
+        return state
 
     def run(self, objective: str, run_id: str | None = None) -> RunResult:
         run_id = run_id or uuid.uuid4().hex[:10]
@@ -119,6 +158,17 @@ class Agent:
             scenario=self.scenario,
         )
         artifacts: list[str] = []
+        resumed_from = 0
+        restored: dict[str, Any] = {}
+        if self.resume:
+            restored = self._load_state(self.resume, result.planner)
+            result.objective = str(restored.get("objective") or objective)
+            artifacts.extend(str(name) for name in (restored.get("artifacts") or []))
+            result.artifacts = list(artifacts)
+            resumed_from = int(restored.get("step_index") or 0)
+            result.events.append({"event": "resumed", "from_step": resumed_from})
+            if hasattr(self.planner, "skip"):
+                self.planner.skip(resumed_from)
         network = NetworkPolicy(self.network_config, result.events)
         result.network = network.as_dict()
         tools = build_registry(
@@ -137,11 +187,33 @@ class Agent:
         # le planner réel reçoit le catalogue de ce run (et non celui du parent)
         if hasattr(self.planner, "tools") and not getattr(self.planner, "tools", None):
             self.planner.tools = tools
-        history: list[dict[str, Any]] = []
-        repeats: dict[str, int] = {}
+        history: list[dict[str, Any]] = [dict(item) for item in (restored.get("history") or [])]
+        repeats: dict[str, int] = {str(k): int(v) for k, v in (restored.get("repeats") or {}).items()}
+
+        def snapshot(status_value: str = "running", step_index: int = 0) -> None:
+            """État reprenable : objectif, historique, artefacts, numérotation."""
+            if not self.save_state:
+                return
+            self._write_state(
+                run_id,
+                {
+                    "run_id": run_id,
+                    "objective": result.objective,
+                    "scenario": self.scenario,
+                    "planner": result.planner,
+                    "max_steps": self.max_steps,
+                    "step_index": step_index,
+                    "status": status_value,
+                    "history": history,
+                    "repeats": repeats,
+                    "artifacts": list(artifacts),
+                    "resumed_at": list(restored.get("resumed_at") or [])
+                    + ([time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())] if restored else []),
+                },
+            )
         nudges = 0  # relances « tu n'as pas écrit le livrable », avant de bloquer  # anti-boucle : mêmes arguments, même erreur
 
-        for index in range(1, self.max_steps + 1):
+        for index in range(resumed_from + 1, self.max_steps + 1):
             started = time.perf_counter()
             try:
                 action = self.planner.next_action(objective, history)
@@ -267,6 +339,7 @@ class Agent:
                 {"thought": thought, "tool": tool_name, "args": args, "observation": observation}
             )
             _notify(self.on_step, step)
+            snapshot("running", index)
         else:
             result.status = "budget"
             result.summary = f"Budget de {self.max_steps} étapes atteint sans conclusion."
@@ -276,6 +349,7 @@ class Agent:
         result.artifacts = artifacts
         result.finished_at = time.time()
         self._write_log(result)
+        snapshot(result.status, len(result.steps) + resumed_from)
         return result
 
     def _write_log(self, result: RunResult) -> None:

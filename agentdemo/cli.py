@@ -72,8 +72,31 @@ def cmd_run(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
         return 1
-    run_id = uuid.uuid4().hex[:10]
     root = Path(args.out or DEFAULT_DATA_DIR)
+    resume_state: Path | None = None
+    if getattr(args, "resume", None):
+        candidate = root / "runs" / str(args.resume) / "state.json"
+        if not candidate.exists():
+            candidate = root / "runs" / f"{args.resume}-p1" / "state.json"
+        if not candidate.exists():
+            print(f"reprise impossible : aucun état pour {args.resume} dans {root / 'runs'}", file=sys.stderr)
+            return 2
+        try:
+            recorded = json.loads(candidate.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"reprise impossible : état illisible ({exc})", file=sys.stderr)
+            return 2
+        if not args.live and str(recorded.get("planner", "")).startswith("live"):
+            print("reprise refusée : cet état vient d'un run réel, relance avec --live", file=sys.stderr)
+            return 2
+        if args.live and str(recorded.get("planner", "")) == "replay":
+            print("reprise refusée : cet état vient d'un run replay, retire --live", file=sys.stderr)
+            return 2
+        resume_state = candidate
+        run_id = str(args.resume).replace("-p1", "")
+        print(f"▸ reprise    : {candidate} (étape {recorded.get('step_index')})")
+    else:
+        run_id = uuid.uuid4().hex[:10]
     workspace = root / "runs" / run_id / "workspace"
     workspace.mkdir(parents=True, exist_ok=True)
     scenario.stage(workspace)
@@ -127,6 +150,8 @@ def cmd_run(args: argparse.Namespace) -> int:
             runner=_runner_for(workspace, scenario),
             approver=confirm,
             scenario=scenario.slug,
+            resume=resume_state if index == 0 else None,
+            save_state=True,
         )
         result = agent.run(scenario.objective, run_id=f"{run_id}-p{index + 1}")
         errors = sum(1 for s in result.steps if s.error)
@@ -641,6 +666,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run.add_argument("--api-key", help="clé API si l'endpoint en exige une (ou AGENTDEMO_LLM_API_KEY)")
     run.add_argument("--max-steps", type=int)
+    run.add_argument("--resume", metavar="RUN_ID", help="reprend un run interrompu depuis son état")
     run.set_defaults(func=cmd_run)
 
     validate = sub.add_parser("validate", help="vérifie les cassettes contre les outils réels")

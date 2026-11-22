@@ -938,6 +938,107 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(target.id, "local-rapide")
         self.assertEqual(target.api_key, "")
 
+    def test_run_resumes_after_budget_without_replaying_steps(self) -> None:
+        """Un run arrêté sur budget reprend à l'étape suivante et termine."""
+        import json as _json
+        import tempfile
+
+        from agentdemo.agent import Agent
+        from agentdemo.planners import ReplayPlanner
+        from agentdemo.scenarios_loader import get_scenario
+
+        scenario = get_scenario("cyber-brief")
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "runs" / "r1" / "workspace"
+        workspace.mkdir(parents=True)
+        scenario.stage(workspace)
+
+        first = Agent(
+            planner=ReplayPlanner(scenario.cassette(0)),
+            workspace=workspace,
+            runs_dir=root / "runs",
+            max_steps=2,
+            save_state=True,
+        ).run(scenario.objective, run_id="r1")
+
+        self.assertEqual(first.status, "budget")
+        self.assertEqual([step.index for step in first.steps], [1, 2])
+        state_file = root / "runs" / "r1" / "state.json"
+        self.assertTrue(state_file.exists(), "un état reprenable doit être écrit")
+        state = _json.loads(state_file.read_text(encoding="utf-8"))
+        self.assertEqual(state["step_index"], 2)
+        self.assertNotIn(str(root), _json.dumps(state), "aucun chemin absolu hors bac à sable")
+
+        second = Agent(
+            planner=ReplayPlanner(scenario.cassette(0)),
+            workspace=workspace,
+            runs_dir=root / "runs",
+            max_steps=14,
+            save_state=True,
+            resume=state_file,
+        ).run(scenario.objective, run_id="r2")
+
+        self.assertEqual(second.status, "done")
+        self.assertEqual(second.steps[0].index, 3, "la numérotation continue, elle ne repart pas à 1")
+        self.assertTrue(any(event.get("event") == "resumed" for event in second.events))
+        self.assertIn("briefing.md", second.artifacts)
+
+    def test_resume_refuses_a_corrupted_state(self) -> None:
+        import tempfile
+
+        from agentdemo.agent import Agent, ResumeError
+        from agentdemo.planners import ReplayPlanner
+        from agentdemo.scenarios_loader import get_scenario
+
+        scenario = get_scenario("cyber-brief")
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "runs" / "r1" / "workspace"
+        workspace.mkdir(parents=True)
+        broken = root / "runs" / "r1" / "state.json"
+        broken.write_text('{"run_id": "r1", "history": [', encoding="utf-8")
+
+        agent = Agent(
+            planner=ReplayPlanner(scenario.cassette(0)),
+            workspace=workspace,
+            runs_dir=root / "runs",
+            resume=broken,
+            save_state=True,
+        )
+        with self.assertRaises(ResumeError) as caught:
+            agent.run(scenario.objective, run_id="r1")
+        self.assertIn("illisible", str(caught.exception))
+
+    def test_resume_refuses_a_mode_mismatch(self) -> None:
+        import json as _json
+        import tempfile
+
+        from agentdemo.agent import Agent, ResumeError
+        from agentdemo.planners import ReplayPlanner
+        from agentdemo.scenarios_loader import get_scenario
+
+        scenario = get_scenario("cyber-brief")
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "runs" / "r1" / "workspace"
+        workspace.mkdir(parents=True)
+        state = root / "runs" / "r1" / "state.json"
+        state.write_text(_json.dumps({"run_id": "r1", "planner": "live:qwen"}), encoding="utf-8")
+
+        agent = Agent(
+            planner=ReplayPlanner(scenario.cassette(0)),
+            workspace=workspace,
+            runs_dir=root / "runs",
+            resume=state,
+        )
+        with self.assertRaises(ResumeError) as caught:
+            agent.run(scenario.objective, run_id="r1")
+        self.assertIn("reprise refusée", str(caught.exception))
+
     def test_fallback_chain_switches_once_on_transport_error(self) -> None:
         """Une cible muette fait basculer sur la suivante, une seule fois, avec un événement."""
         from agentdemo.planners import FallbackPlanner

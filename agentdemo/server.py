@@ -38,6 +38,7 @@ class RunStore:
     def __init__(self, data_dir: Path) -> None:
         self.data_dir = Path(data_dir)
         self.runs: dict[str, dict[str, Any]] = {}
+        self.pending_resume: dict[str, Path] = {}
         self.lock = threading.Lock()
 
     def _stage_inputs(self, workspace: Path) -> list[str]:
@@ -54,7 +55,15 @@ class RunStore:
             copied.append(f"inputs/{item.name}")
         return copied
 
-    def start(self, slug: str, mode: str, objective: str | None, llm: dict[str, Any] | None = None) -> str:
+    def start(
+        self,
+        slug: str,
+        mode: str,
+        objective: str | None,
+        llm: dict[str, Any] | None = None,
+        resume_from: Path | None = None,
+        workspace: Path | None = None,
+    ) -> str:
         scenario = get_scenario(slug)
         if mode == "replay" and not scenario.has_cassette():
             raise ValueError(
@@ -62,11 +71,16 @@ class RunStore:
                 "puis enregistre la trace depuis l'interface (ou la CLI)"
             )
         run_id = uuid.uuid4().hex[:10]
-        workspace = self.data_dir / "runs" / run_id / "workspace"
-        workspace.mkdir(parents=True, exist_ok=True)
-        scenario.stage(workspace)
-        staged = self._stage_inputs(workspace)
-        staged += scenario.stage_inputs(workspace)
+        if workspace is None:
+            workspace = self.data_dir / "runs" / run_id / "workspace"
+            workspace.mkdir(parents=True, exist_ok=True)
+            scenario.stage(workspace)
+            staged = self._stage_inputs(workspace)
+            staged += scenario.stage_inputs(workspace)
+        else:
+            workspace = Path(workspace)
+            workspace.mkdir(parents=True, exist_ok=True)
+            staged = []
         # Store global : une procédure apprise au run N est disponible au run N+1.
         skills = SkillStore(self.data_dir / "skills")
         settings = Settings.load(self.data_dir / "settings.json")
@@ -115,11 +129,14 @@ class RunStore:
             "network": scenario.network,
             "events": [],
             "isolation": isolation_level(),
+            "llm": dict(llm or {}),
+            "resumable": False,
         }
         with self.lock:
             self.runs[run_id] = state
 
         fallback_events: list[dict[str, Any]] = []
+        resume_state = resume_from
 
         def worker() -> None:
             try:
@@ -152,6 +169,8 @@ class RunStore:
                         network_config=scenario.network,
                         runner=_runner_for(workspace, scenario),
                         scenario=slug,
+                        resume=resume_state if index == 0 else None,
+                        save_state=True,
                     )
                     result = agent.run(state["objective"], run_id=f"{run_id}-p{index + 1}")
                     if fallback_events:
@@ -179,6 +198,36 @@ class RunStore:
 
         threading.Thread(target=worker, daemon=True).start()
         return run_id
+
+    def state_path(self, run_id: str) -> Path:
+        """L'état est écrit par passe : la première est celle qui porte la reprise."""
+        direct = self.data_dir / "runs" / run_id / "state.json"
+        if direct.exists():
+            return direct
+        return self.data_dir / "runs" / f"{run_id}-p1" / "state.json"
+
+    def resume(self, run_id: str) -> str:
+        """Relance un run interrompu dans son propre espace de travail."""
+        state = self.runs.get(run_id)
+        if state is None:
+            raise KeyError(f"run inconnu : {run_id}")
+        if state.get("status") == "running":
+            raise ValueError("ce run tourne encore : attends qu'il s'arrête")
+        source = self.state_path(run_id)
+        if not source.exists():
+            raise ValueError("aucun état enregistré pour ce run : rien à reprendre")
+        new_id = self.start(
+            slug=str(state.get("scenario") or ""),
+            mode=str(state.get("mode") or "replay"),
+            objective=str(state.get("objective") or "") or None,
+            llm=state.get("llm") or {},
+            resume_from=source,
+            workspace=Path(str(state.get("workspace"))) if state.get("workspace") else None,
+        )
+        with self.lock:
+            self.runs[new_id]["steps"] = list(state.get("steps") or [])
+            self.runs[new_id]["resumed_from"] = run_id
+        return new_id
 
     def get(self, run_id: str) -> dict[str, Any] | None:
         with self.lock:
@@ -367,7 +416,11 @@ def make_handler(store: RunStore):
                 state = store.get(run_id)
                 if state is None:
                     return self._send_json({"error": "run inconnu"}, status=404)
-                return self._send_json(state)
+                payload = dict(state)
+                payload["resumable"] = (
+                    state.get("status") != "running" and store.state_path(run_id).exists()
+                )
+                return self._send_json(payload)
             if path.startswith("/api/artifacts/"):
                 _, _, _, run_id, *rest = path.split("/")
                 target = store.artifact_path(run_id, unquote("/".join(rest)))
@@ -475,6 +528,15 @@ def make_handler(store: RunStore):
                 except ValueError as exc:
                     return self._send_json({"error": str(exc)}, status=400)
                 return self._send_json({"ok": True, "scenario": restored.as_summary()})
+            if path.startswith("/api/runs/") and path.endswith("/resume"):
+                run_id = path.split("/")[3]
+                try:
+                    new_id = store.resume(run_id)
+                except KeyError:
+                    return self._send_json({"error": f"run inconnu : {run_id}"}, status=404)
+                except ValueError as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"run_id": new_id, "resumed_from": run_id}, status=202)
             if path == "/api/mcp/test":
                 from .mcp_client import McpClientError, call_tool, probe
 
