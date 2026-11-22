@@ -51,6 +51,8 @@ docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:l
 For live mode, the agent embeds no model: it speaks the OpenAI-compatible API, so Ollama, LM Studio,
 vLLM or a remote API are interchangeable. Nothing gets installed inside the image.
 
+![Vigie after a watch run, with its trace and its deliverable](docs/screenshot-run.png)
+
 ```bash
 ollama pull qwen2.5-coder:7b
 python3 -m agentdemo run --scenario cyber-brief --live \

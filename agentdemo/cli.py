@@ -685,7 +685,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="agentdemo", description="Agent Computer, demo agentique")
+    parser = argparse.ArgumentParser(prog="agentdemo", description="Vigie, agent autonome")
     parser.add_argument("--out", help="répertoire de travail (défaut : ./data)")
     sub = parser.add_subparsers(dest="command", required=True)
 

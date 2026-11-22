@@ -52,6 +52,8 @@ docker run --rm -p 8080:8080 holloow313/asus-agent-computer-challenge-high-end:l
 Pour le mode réel, l'agent ne contient aucun modèle : il parle l'API compatible OpenAI, donc Ollama,
 LM Studio, vLLM ou une API distante se valent. Rien n'est à installer dans l'image.
 
+![Interface de Vigie après un run de veille, la trace et le livrable](docs/screenshot-run.png)
+
 ```bash
 ollama pull qwen2.5-coder:7b
 python3 -m agentdemo run --scenario cyber-brief --live \

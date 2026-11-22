@@ -1,4 +1,4 @@
-"""Agent Computer Demo, a small, self-contained agentic loop.
+"""Vigie, a small, self-contained agentic loop.
 
 Public entry points:
 
