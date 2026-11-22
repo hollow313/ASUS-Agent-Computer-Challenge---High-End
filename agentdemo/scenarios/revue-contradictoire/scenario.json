@@ -1,0 +1,23 @@
+{
+  "slug": "revue-contradictoire",
+  "title": "Revue contradictoire avant conclusion",
+  "blurb": "Un premier jet est rejeté par un relecteur, puis corrigé : la revue sert vraiment.",
+  "objective": "Lis notes.txt, retiens les trois risques les plus graves, et écris synthese.md en français : une ligne par risque, avec sa gravité (critique, élevée, moyenne) puis la conséquence concrète. Termine par une phrase de recommandation.",
+  "tags": [
+    "revue",
+    "relecture",
+    "second modèle"
+  ],
+  "max_steps": 12,
+  "network": {
+    "mode": "deny"
+  },
+  "exec": {},
+  "inputs": {},
+  "passes": [
+    {
+      "label": "",
+      "cassette": "cassette.json"
+    }
+  ]
+}

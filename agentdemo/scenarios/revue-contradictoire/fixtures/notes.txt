@@ -1,0 +1,5 @@
+Réunion du 19 novembre, équipe infra.
+1. Le serveur de sauvegarde n'a pas été testé en restauration depuis mars.
+2. Deux comptes de service partagent le même mot de passe.
+3. Le pare-feu laisse passer SSH depuis tout le réseau invité.
+4. Les journaux d'accès sont conservés sept jours, sans copie hors site.

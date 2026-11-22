@@ -211,7 +211,8 @@ class Agent:
                     + ([time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())] if restored else []),
                 },
             )
-        nudges = 0  # relances « tu n'as pas écrit le livrable », avant de bloquer  # anti-boucle : mêmes arguments, même erreur
+        nudges = 0  # relances « tu n'as pas écrit le livrable », avant de bloquer
+        reviews = 0  # relectures contradictoires, deux au maximum  # anti-boucle : mêmes arguments, même erreur
 
         for index in range(resumed_from + 1, self.max_steps + 1):
             started = time.perf_counter()
@@ -245,6 +246,16 @@ class Agent:
                     _notify(self.on_step, step)
                     history.append({"thought": thought, "tool": None, "args": {}, "observation": message})
                     continue
+                if self.reviewer is not None and reviews >= 2:
+                    result.status = "blocked"
+                    result.summary = (
+                        "bloqué : le relecteur a refusé le livrable deux fois, "
+                        "arrêt au lieu de consommer le budget restant."
+                    )
+                    step = Step(index, thought or "Relecture refusée.", None, {}, result.summary, _ms(started), True)
+                    result.steps.append(step)
+                    _notify(self.on_step, step)
+                    break
                 if expected and not any(name.endswith(expected) for name in produced):
                     step = Step(
                         index,
@@ -263,7 +274,60 @@ class Agent:
                         f"Fichiers présents : {', '.join(produced) or 'aucun'}."
                     )
                     break
-                step = Step(index, thought or "Objectif atteint.", None, {}, "run terminé", _ms(started))
+                reviewed_now = False
+                if self.reviewer is not None and reviews < 2:
+                    reviews += 1
+                    reviewed_now = True
+                    contents = {}
+                    for name in result.artifacts or produced:
+                        candidate = self.workspace / name
+                        if candidate.is_file():
+                            contents[name] = candidate.read_text(encoding="utf-8", errors="replace")[:4000]
+                    try:
+                        verdict = self.reviewer.review(result.objective, contents, history)
+                    except Exception as exc:  # noqa: BLE001 - un relecteur absent ne doit pas tuer le run
+                        verdict = {
+                            "verdict": "rejette",
+                            "motifs": [f"revue impossible : {exc}"],
+                            "corrections": [],
+                        }
+                    decision = str(verdict.get("verdict") or "rejette")
+                    result.events.append(
+                        {
+                            "event": "review",
+                            "verdict": decision,
+                            "model": getattr(self.reviewer, "label", "review"),
+                            "motifs": list(verdict.get("motifs") or []),
+                        }
+                    )
+                    detail = " ; ".join(verdict.get("motifs") or []) or "sans motif"
+                    if verdict.get("corrections"):
+                        detail += " | à corriger : " + " ; ".join(verdict["corrections"])
+                    step = Step(index, thought or "Relecture du livrable.", "review", {}, f"{decision} : {detail}", _ms(started))
+                    result.steps.append(step)
+                    _notify(self.on_step, step)
+                    if decision != "accepte":
+                        history.append(
+                            {
+                                "thought": "Relecture refusée.",
+                                "tool": None,
+                                "args": {},
+                                "observation": (
+                                    f"Le relecteur rejette le livrable. Motifs : {detail}. "
+                                    f"Corrige puis réponds final."
+                                ),
+                            }
+                        )
+                        snapshot("running", index)
+                        continue
+                step = Step(
+                    index + (1 if reviewed_now else 0),
+                    thought or "Objectif atteint.",
+                    None,
+                    {},
+                    "run terminé",
+                    _ms(started),
+                )
                 result.steps.append(step)
                 _notify(self.on_step, step)
                 result.status = "done"

@@ -40,7 +40,16 @@ class ScenarioTests(unittest.TestCase):
     def test_scenarios_are_discoverable(self) -> None:
         slugs = {s.slug for s in list_scenarios()}
         self.assertEqual(
-            {"cyber-brief", "inbox-triage", "dataset-report", "self-repair", "delegation", "local-audit"}, slugs
+            {
+            "cyber-brief",
+            "inbox-triage",
+            "dataset-report",
+            "self-repair",
+            "delegation",
+            "local-audit",
+            "revue-contradictoire",
+        },
+        slugs
         )
 
     def test_cyber_brief(self) -> None:
@@ -937,6 +946,64 @@ class ScenarioTests(unittest.TestCase):
         )
         self.assertEqual(target.id, "local-rapide")
         self.assertEqual(target.api_key, "")
+
+    def test_review_rejects_then_accepts_and_the_run_finishes(self) -> None:
+        """Le relecteur rejette le premier jet, le rédacteur corrige, puis le relecteur accepte."""
+        import json as _json
+        import tempfile
+
+        from agentdemo.agent import Agent
+        from agentdemo.planners import ReplayPlanner
+        from agentdemo.review import ReplayReviewer
+        from agentdemo.scenarios_loader import get_scenario
+
+        scenario = get_scenario("revue-contradictoire")
+        reviewer = ReplayReviewer.from_file(scenario.root / "reviewer.json")
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "runs" / "rv" / "workspace"
+        workspace.mkdir(parents=True)
+        scenario.stage(workspace)
+
+        result = Agent(
+            planner=ReplayPlanner(scenario.cassette(0)),
+            workspace=workspace,
+            runs_dir=root / "runs",
+            max_steps=scenario.max_steps,
+            reviewer=reviewer,
+        ).run(scenario.objective, run_id="rv")
+
+        reviews = [event for event in result.events if event.get("event") == "review"]
+        self.assertEqual([event["verdict"] for event in reviews], ["rejette", "accepte"])
+        self.assertEqual(result.status, "done")
+        self.assertIn("synthese.md", result.artifacts)
+        final = (workspace / "synthese.md").read_text(encoding="utf-8")
+        self.assertIn("gravité", final)
+        self.assertIn("Recommandation", final)
+        self.assertEqual([step.index for step in result.steps], sorted({step.index for step in result.steps}))
+
+    def test_review_without_verdicts_accepts(self) -> None:
+        import tempfile
+
+        from agentdemo.review import ReplayReviewer, ReviewError
+
+        empty = ReplayReviewer([])
+        self.assertEqual(empty.review("objectif", {}, [])["verdict"], "accepte")
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        with self.assertRaises(ReviewError):
+            ReplayReviewer.from_file(Path(tmp.name) / "absent.json")
+
+    def test_review_verdict_parsing_is_strict(self) -> None:
+        from agentdemo.review import ReplayReviewer
+
+        reviewer = ReplayReviewer([{"verdict": "peut-être"}, {"verdict": ""}])
+        first = reviewer.review("objectif", {}, [])
+        self.assertEqual(first["verdict"], "rejette")
+        self.assertTrue(first["motifs"], "un rejet sans motif doit être motivé par défaut")
+        self.assertEqual(reviewer.review("objectif", {}, [])["verdict"], "rejette")
 
     def test_run_resumes_after_budget_without_replaying_steps(self) -> None:
         """Un run arrêté sur budget reprend à l'étape suivante et termine."""

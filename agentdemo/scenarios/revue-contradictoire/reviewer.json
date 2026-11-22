@@ -1,0 +1,22 @@
+{
+  "verdicts": [
+    {
+      "verdict": "rejette",
+      "motifs": [
+        "aucune gravité indiquée",
+        "les conséquences concrètes manquent"
+      ],
+      "corrections": [
+        "ajouter critique, élevée ou moyenne sur chaque ligne",
+        "dire ce qui se passe si le risque se réalise"
+      ]
+    },
+    {
+      "verdict": "accepte",
+      "motifs": [
+        "les trois risques sont qualifiés et la recommandation est actionnable"
+      ],
+      "corrections": []
+    }
+  ]
+}

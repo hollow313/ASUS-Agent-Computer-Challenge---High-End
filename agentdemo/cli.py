@@ -63,8 +63,35 @@ def cmd_scenarios(_args: argparse.Namespace) -> int:
     return 0
 
 
+def _make_reviewer(args: argparse.Namespace, scenario) -> object | None:
+    """Relecteur : verdicts enregistrés en replay, second modèle en live."""
+    from .review import ModelReviewer, ReplayReviewer, ReviewError
+
+    if getattr(args, "review_model", None):
+        if not args.live:
+            raise ReviewError("--review-model demande un run en mode live")
+        return ModelReviewer(
+            base_url=args.base_url or "http://localhost:11434/v1",
+            model=str(args.review_model),
+            api_key=args.api_key,
+        )
+    if getattr(args, "review", False):
+        path = scenario.root / "reviewer.json"
+        if not path.exists():
+            raise ReviewError(
+                f"le scénario « {scenario.slug} » n'a pas de reviewer.json : rien à rejouer"
+            )
+        return ReplayReviewer.from_file(path)
+    return None
+
+
 def cmd_run(args: argparse.Namespace) -> int:
     scenario = get_scenario(args.scenario)
+    try:
+        reviewer = _make_reviewer(args, scenario)
+    except Exception as exc:  # noqa: BLE001 - message clair, code 2, pas de trace
+        print(f"revue impossible : {exc}", file=sys.stderr)
+        return 2
     if not args.live and not scenario.has_cassette():
         print(
             f"le scénario « {args.scenario} » n'a pas de cassette : lance-le en mode réel "
@@ -152,6 +179,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             scenario=scenario.slug,
             resume=resume_state if index == 0 else None,
             save_state=True,
+            reviewer=reviewer,
         )
         result = agent.run(scenario.objective, run_id=f"{run_id}-p{index + 1}")
         errors = sum(1 for s in result.steps if s.error)
@@ -667,6 +695,8 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--api-key", help="clé API si l'endpoint en exige une (ou AGENTDEMO_LLM_API_KEY)")
     run.add_argument("--max-steps", type=int)
     run.add_argument("--resume", metavar="RUN_ID", help="reprend un run interrompu depuis son état")
+    run.add_argument("--review", action="store_true", help="rejoue la revue enregistrée du scénario")
+    run.add_argument("--review-model", metavar="NOM", help="second modèle qui relit, en live")
     run.set_defaults(func=cmd_run)
 
     validate = sub.add_parser("validate", help="vérifie les cassettes contre les outils réels")
