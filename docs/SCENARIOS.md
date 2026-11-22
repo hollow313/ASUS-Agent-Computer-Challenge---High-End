@@ -140,3 +140,13 @@ Champ `network` du `scenario.json`, obligatoire dans les faits puisque le défau
 
 `http_get` et `rss_rank` consultent cette politique avant tout appel. Un refus écrit
 `{"event": "network_denied", "tool": ..., "url": ..., "reason": ...}` dans le journal du run.
+
+## revue-contradictoire
+
+Un premier jet est écrit, un relecteur le refuse (gravités absentes, conséquences non dites), le
+rédacteur corrige, le relecteur accepte. Le livrable final contient les trois risques qualifiés et une
+recommandation.
+
+Ce scénario sert à montrer la revue : `reviewer.json` porte deux verdicts, rejoués dans l'ordre. Lancez
+`python3 -m agentdemo run --scenario revue-contradictoire --review` et regardez deux étapes `review`
+dans le journal, une rejetée puis une acceptée.

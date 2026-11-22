@@ -67,3 +67,18 @@ varient).
 - État des runs en mémoire (les journaux, eux, sont sur disque).
 - Aucune parallélisation des appels d'outils : un agent qui agit sur un disque doit d'abord
   rester lisible et débogable.
+
+## Robustesse
+
+Quatre mécanismes, chacun avec son test.
+
+- **Repli** : `Target.fallback` déclare des cibles de secours, `FallbackPlanner` bascule une seule fois
+  par étape sur une erreur de transport, et journalise `from`, `to`, `reason`.
+- **Reprise** : `runs/<id>/state.json` est écrit en atomique après chaque étape ; `Agent.run(resume=...)`
+  restaure historique, compteurs, artefacts et numérotation. Un état tronqué donne un message clair,
+  jamais une trace.
+- **Revue** : `agentdemo/review.py` fournit `ReplayReviewer` (verdicts enregistrés) et `ModelReviewer`
+  (second modèle). Un verdict inconnu vaut rejet, deux relectures au maximum.
+- **Autorisations** : le serveur tient une file de demandes par run, l'agent attend la décision avec une
+  expiration à 120 secondes, et les valeurs sensibles sont masquées dans les pensées, les observations
+  et le bilan.
