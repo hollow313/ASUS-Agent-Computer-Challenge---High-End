@@ -215,8 +215,8 @@ def cmd_validate(args: argparse.Namespace) -> int:
     """Vérifie chaque cassette contre les outils réels : nom d'outil et arguments."""
     from .tools import Sandbox
 
-    sandbox = Sandbox(Path(args.out or DEFAULT_DATA_DIR) / "_validate")
-    tools = build_registry(sandbox, [])
+    root = Path(args.out or DEFAULT_DATA_DIR) / "_validate"
+    sandbox = Sandbox(root)
     problems = 0
     for scenario in list_scenarios():
         if args.slug and scenario.slug != args.slug:
@@ -230,6 +230,10 @@ def cmd_validate(args: argparse.Namespace) -> int:
                 continue
             if not any(step.get("final") for step in steps):
                 errors.append(f"passe {index + 1} : aucune étape 'final'")
+            # même catalogue que le run : le scénario peut autoriser l'exécution de commandes
+            workspace = root / scenario.slug
+            workspace.mkdir(parents=True, exist_ok=True)
+            tools = build_registry(sandbox, [], runner=_runner_for(workspace, scenario))
             for number, step in enumerate(steps, 1):
                 tool_name = step.get("tool")
                 if not tool_name:
@@ -439,6 +443,7 @@ def cmd_scenario_show(args: argparse.Namespace) -> int:
     print(f"  étapes max : {detail['max_steps']} · cassette : {detail['steps']} étapes")
     print(f"  réseau     : {detail['network']}")
     print(f"  exec       : {detail['exec'] or 'désactivé'}")
+    print(f"  accord     : {'demandé avant chaque écriture' if detail['require_approval'] else 'aucune demande'}")
     print(f"  entrées    : {detail['inputs'] or 'aucune'}")
     print(f"  fixtures   : {', '.join(detail['fixtures']) or 'aucune'}")
     print(f"  éditable   : {'oui' if detail['editable'] else 'non, à dupliquer'}")
@@ -473,7 +478,8 @@ def cmd_scenario_edit(args: argparse.Namespace) -> int:
         print(f"refusé : {exc}", file=sys.stderr)
         return 1
     print(f"▸ {updated.slug} mis à jour : réseau {updated.network.get('mode')}, "
-          f"{updated.max_steps} étapes max, entrées {updated.inputs or 'aucune'}")
+          f"{updated.max_steps} étapes max, entrées {updated.inputs or 'aucune'}, "
+          f"accord {'demandé' if updated.require_approval else 'non demandé'}")
     return 0
 
 

@@ -626,7 +626,7 @@ def build_registry(
         ),
         "spawn_agent": Tool(
             "spawn_agent",
-            "spawn_agent(objective, name?, max_steps?)",
+            "spawn_agent(objective, name?, source?, max_steps?)",
             "délègue une sous-tâche à un sous-agent qui a son propre budget, sa propre trace et "
             "son dossier delegations/<nom>/ ; n'importe quel nom en mode réel",
             spawn_agent,
