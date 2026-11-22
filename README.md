@@ -5,7 +5,7 @@
 **Un agent qui prend le quart 24 heures sur 24.** Il reçoit un objectif, choisit ses outils, écrit
 des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son travail après un crash.
 
-[La démo en vidéo](https://www.youtube.com/watch?v=rUKwZeVePNs) · [Démo en 30 secondes](#en-trente-secondes) · [Les chiffres](#les-chiffres-mesurés) · [Les limites](#limites-assumées)
+[La présentation en vidéo](https://youtu.be/YmQbnhEh1Ps) · [Démo en 30 secondes](#en-trente-secondes) · [Les chiffres](#les-chiffres-mesurés) · [Les limites](#limites-assumées)
 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
@@ -40,11 +40,12 @@ python3 -m agentdemo serve --port 8080          # la même chose avec l'interfac
 python3 -m unittest discover -s tests           # 63 tests, trois secondes
 ```
 
-[![Lancer la démo sur YouTube, 1 min 03](https://img.youtube.com/vi/rUKwZeVePNs/maxresdefault.jpg)](https://www.youtube.com/watch?v=rUKwZeVePNs)
+[![Lancer la présentation sur YouTube, 2 min 25](https://img.youtube.com/vi/YmQbnhEh1Ps/maxresdefault.jpg)](https://youtu.be/YmQbnhEh1Ps)
 
-La démo, 1 min 03 : trois flux à agréger, le briefing écrit puis relu, et la leçon enregistrée pour la
-seconde passe. La présentation longue, 2 min 25, couvre les sept scénarios, la robustesse, le routage et le
-dimensionnement de la carte : [`docs/video/vigie-presentation.mp4`](docs/video/vigie-presentation.mp4).
+La présentation, 2 min 25, montre les sept scénarios, la mémoire procédurale, la délégation, le routage
+avec repli, la reprise après crash, la revue par un second modèle, l'accord manuel et le dimensionnement
+de la carte. La démo courte, 1 min 03, est aussi en ligne : [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs).
+Le fichier reste dans le dépôt : [`docs/video/vigie-presentation.mp4`](docs/video/vigie-presentation.mp4).
 
 Aucune dépendance, aucune clé, aucun accès réseau : le mode replay rejoue des décisions enregistrées,
 mais les outils s'exécutent pour de vrai. Les fichiers sont écrits, le CSV est calculé, le graphique

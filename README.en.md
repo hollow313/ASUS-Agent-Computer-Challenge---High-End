@@ -5,7 +5,7 @@
 **An agent that stands the watch 24 hours a day.** It receives an objective, picks its tools, writes
 files, re-reads what it produced, learns from its mistakes and resumes its work after a crash.
 
-[The demo on video](https://www.youtube.com/watch?v=rUKwZeVePNs) · [30-second demo](#in-thirty-seconds) · [The numbers](#the-measured-numbers) · [The limits](#limits-we-accept)
+[Watch the presentation](https://youtu.be/YmQbnhEh1Ps) · [30-second demo](#in-thirty-seconds) · [The numbers](#the-measured-numbers) · [The limits](#limits-we-accept)
 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
@@ -40,11 +40,12 @@ python3 -m agentdemo serve --port 8080          # the same thing with the interf
 python3 -m unittest discover -s tests           # 63 tests, three seconds
 ```
 
-[![Watch the demo on YouTube, 1 min 03](https://img.youtube.com/vi/rUKwZeVePNs/maxresdefault.jpg)](https://www.youtube.com/watch?v=rUKwZeVePNs)
+[![Watch the presentation on YouTube, 2 min 25](https://img.youtube.com/vi/YmQbnhEh1Ps/maxresdefault.jpg)](https://youtu.be/YmQbnhEh1Ps)
 
-The demo, 1 min 03: three feeds merged, the briefing written then re-read, and the lesson recorded for
-the second pass. The long presentation, 2 min 25, covers the seven scenarios, robustness, routing and the card
-sizing: [`docs/video/vigie-presentation.mp4`](docs/video/vigie-presentation.mp4).
+The presentation, 2 min 25, shows the seven scenarios, procedural memory, delegation, routing with
+fallback, crash resume, the second-model review, manual approval and the card sizing. The short demo,
+1 min 03, is online too: [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs). The file also lives in the
+repository: [`docs/video/vigie-presentation.mp4`](docs/video/vigie-presentation.mp4).
 
 No dependency, no key, no network access: replay mode plays recorded decisions, but the tools really
 run. Files are written, the CSV is computed, the chart is generated.
