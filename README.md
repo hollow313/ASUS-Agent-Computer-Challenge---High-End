@@ -28,6 +28,7 @@ des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son tr
 - [Sécurité et données](#sécurité-et-données)
 - [Limites assumées](#limites-assumées)
 - [Construire, tester, étendre](#construire-tester-étendre)
+- [Licence](#licence)
 
 ## En trente secondes
 
@@ -122,8 +123,14 @@ Trois lignes, une conclusion : le local est gratuit mais se trompe une fois sur 
 plus de temps sur les cas lents, le cloud est juste mais sort vos données, et le modèle intermédiaire
 qui ferait les deux n'existe pas dans 3 Go.
 
-Le coût n'est pas l'argument : à 7 centimes les mille tâches, le cloud est moins cher que l'électricité
-de la carte. Ce qui se vend ici, c'est la souveraineté et la disponibilité, pas le prix.
+Le coût dépend du modèle, et il faut le dire précisément. À l'entrée de gamme, Gemini 3.8 Flash à
+7 centimes les mille tâches, le cloud est moins cher que l'électricité de la carte : le prix n'est pas
+l'argument. Sur un modèle de tête, GPT-5.5 Pro à 3,01 euros les mille tâches, soit quarante-trois fois
+plus, la facture devient réelle : 12 euros par mois à 4 000 exécutions, contre 0,28 euro avec Gemini.
+Elle reste loin du prix d'une carte de 32 Go, donc la conclusion tient, mais elle n'est plus « gratuit ».
+
+Ce qui se vend ici n'est donc pas le prix : c'est la souveraineté, les données ne sortent pas ;
+la disponibilité, pas de quota ni de coupure ; et une latence qui ne dépend pas d'un voisin.
 
 Mesure du 21/11/2026 13:37 UTC, dix tâches, une passe. Rapport brut et JSON :
 [`docs/mesures/mesures-20261121.md`](docs/mesures/mesures-20261121.md). Méthode, prix et fichiers :
@@ -147,7 +154,7 @@ fixtures. Le même code rejoue ou exécute.
 
 Détail, cassettes et critères : [`docs/SCENARIOS.md`](docs/SCENARIOS.md).
 
-## Un cas réel, sur internet
+### Un cas réel, sur internet
 
 Le scénario livré `cyber-brief` lit des flux locaux, pour que la démonstration marche sans réseau.
 Rien n'empêche l'agent d'aller sur internet quand le scénario y est autorisé : trois domaines en
@@ -245,5 +252,10 @@ installer un outil du catalogue, choisir le modèle et forcer une cible. Détail
 Pour ajouter un scénario : un dossier avec `scenario.json`, une cassette, des fixtures. Le chargeur
 refuse un slug invalide, un doublon ou une cassette absente, et le mode réel sert à produire la trace.
 
-Licence MIT. Les contributions sont bienvenues, surtout les retours sur ce qui casse : un scénario qui
-échoue en réel est plus utile qu'une étoile.
+Les contributions sont bienvenues, surtout les retours sur ce qui casse : un scénario qui échoue en
+réel est plus utile qu'une étoile.
+
+## Licence
+
+MIT. Utilisez-le, modifiez-le, vendez ce que vous construisez avec, sans demander la permission. Le
+texte complet est dans [`LICENSE`](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/blob/main/LICENSE).

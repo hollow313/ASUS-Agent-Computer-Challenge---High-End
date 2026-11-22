@@ -28,6 +28,7 @@ files, re-reads what it produced, learns from its mistakes and resumes its work 
 - [Security and data](#security-and-data)
 - [Limits we accept](#limits-we-accept)
 - [Build, test, extend](#build-test-extend)
+- [Licence](#licence)
 
 ## In thirty seconds
 
@@ -119,8 +120,14 @@ Three lines, one conclusion: local is free but wrong one time in two or six time
 cases, cloud is right but sends your data out, and the middle model that would do both does not exist
 in 3 GB.
 
-Cost is not the argument: at 7 cents per thousand tasks, cloud is cheaper than the card's electricity.
-What this sells is sovereignty and availability, not price.
+Cost depends on the model, and it deserves a precise sentence. At the entry level, Gemini 3.8 Flash at
+7 cents per thousand tasks, cloud is cheaper than the card's electricity: price is not the argument. On a
+flagship, GPT-5.5 Pro at 3.01 euros per thousand tasks, forty-three times more, the bill becomes real:
+12 euros a month at 4 000 runs, against 0.28 euro with Gemini. It stays far below the price of a 32 GB
+card, so the conclusion holds, but it is no longer "free".
+
+What this sells is therefore not price: it is sovereignty, the data does not leave; availability, no
+quota and no outage; and a latency that does not depend on a neighbour.
 
 Measured 2026-11-21 13:37 UTC, ten tasks, one pass. Raw report and JSON:
 [`docs/mesures/mesures-20261121.md`](docs/mesures/mesures-20261121.md). Method, prices and files:
@@ -143,7 +150,7 @@ replays or runs live.
 
 Detail, cassettes and criteria: [`docs/SCENARIOS.md`](docs/SCENARIOS.md).
 
-## A real case, on the internet
+### A real case, on the internet
 
 The shipped `cyber-brief` scenario reads local feeds, so the demonstration works without a network.
 Nothing stops the agent from going online when the scenario allows it: three domains in the allowlist,
@@ -239,5 +246,10 @@ the model and force a target. Detail: [`docs/EXPLOITATION.md`](docs/EXPLOITATION
 To add a scenario: a folder with `scenario.json`, a cassette, fixtures. The loader refuses an invalid
 slug, a duplicate or a missing cassette, and live mode is how you produce the trace.
 
-MIT licence. Contributions welcome, especially reports of what breaks: a scenario that fails live is
-worth more than a star.
+Contributions welcome, especially reports of what breaks: a scenario that fails live is worth more than
+a star.
+
+## Licence
+
+MIT. Use it, modify it, sell what you build with it, no permission needed. The full text is in
+[`LICENSE`](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/blob/main/LICENSE).
