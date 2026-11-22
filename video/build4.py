@@ -1,4 +1,4 @@
-"""Assemble la vidéo de présentation : cartons synchronisés sur la voix off.
+"""Assemble la vidéo finale : cartons synchronisés sur la voix off.
 
 Une piste par paragraphe : chaque carton reste affiché le temps exact de sa phrase, plus une demi
 seconde de respiration. Le montage est reproductible : mêmes cartons, même audio, même résultat.
@@ -13,22 +13,22 @@ import subprocess
 from pathlib import Path
 
 AUDIO_DIR = Path("/opt/data/audio_cache")
-SLIDES_DIR = Path("/data/agent-computer-challenge/video/slides3")
-OUT_DIR = Path("/data/agent-computer-challenge/video/build3")
-DEST = Path(__file__).resolve().parent.parent / "docs" / "video" / "agent-computer-presentation.mp4"
+SLIDES_DIR = Path("/data/agent-computer-challenge/video/slides4")
+OUT_DIR = Path("/data/agent-computer-challenge/video/build4")
+DEST = Path(__file__).resolve().parent.parent / "docs" / "video" / "vigie-presentation.mp4"
 
 PADDING = 0.0  # pas de respiration : la durée cible est de deux minutes trente
 SEGMENTS = [
-    ("01-titre", "vigie-seg01.mp3"),
-    ("02-limite", "vigie-seg02.mp3"),
-    ("03-scenarios", "vigie-seg03.mp3"),
-    ("04-memoire", "vigie-seg04.mp3"),
-    ("05-delegation", "vigie-seg05.mp3"),
-    ("06-routage", "vigie-seg06.mp3"),
-    ("07-exploitation", "vigie-seg07.mp3"),
-    ("08-runs-audit", "vigie-seg08b.mp3"),
-    ("08-chiffres", "vigie-seg08.mp3"),
-    ("09-fin", "vigie-seg09.mp3"),
+    ("01-titre", "vigie4-seg01.mp3"),
+    ("02-limite", "vigie4-seg02.mp3"),
+    ("03-scenarios", "vigie4-seg03.mp3"),
+    ("04-memoire", "vigie4-seg04.mp3"),
+    ("05-delegation", "vigie4-seg05.mp3"),
+    ("06-routage", "vigie4-seg06.mp3"),
+    ("07-robustesse", "vigie4-seg07.mp3"),
+    ("08-exploitation", "vigie4-seg08.mp3"),
+    ("09-chiffres", "vigie4-seg09.mp3"),
+    ("10-carte", "vigie4-seg10.mp3"),
 ]
 
 

@@ -43,8 +43,8 @@ python3 -m unittest discover -s tests           # 63 tests, three seconds
 [![Watch the demo on YouTube, 1 min 03](https://img.youtube.com/vi/rUKwZeVePNs/maxresdefault.jpg)](https://www.youtube.com/watch?v=rUKwZeVePNs)
 
 The demo, 1 min 03: three feeds merged, the briefing written then re-read, and the lesson recorded for
-the second pass. The long presentation, 2 min 31, covers the seven scenarios, routing and the card
-sizing: [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4).
+the second pass. The long presentation, 2 min 25, covers the seven scenarios, robustness, routing and the card
+sizing: [`docs/video/vigie-presentation.mp4`](docs/video/vigie-presentation.mp4).
 
 No dependency, no key, no network access: replay mode plays recorded decisions, but the tools really
 run. Files are written, the CSV is computed, the chart is generated.

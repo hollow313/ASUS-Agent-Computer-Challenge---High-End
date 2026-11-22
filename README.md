@@ -43,8 +43,8 @@ python3 -m unittest discover -s tests           # 63 tests, trois secondes
 [![Lancer la démo sur YouTube, 1 min 03](https://img.youtube.com/vi/rUKwZeVePNs/maxresdefault.jpg)](https://www.youtube.com/watch?v=rUKwZeVePNs)
 
 La démo, 1 min 03 : trois flux à agréger, le briefing écrit puis relu, et la leçon enregistrée pour la
-seconde passe. La présentation longue, 2 min 31, couvre les sept scénarios, le routage et le
-dimensionnement de la carte : [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4).
+seconde passe. La présentation longue, 2 min 25, couvre les sept scénarios, la robustesse, le routage et le
+dimensionnement de la carte : [`docs/video/vigie-presentation.mp4`](docs/video/vigie-presentation.mp4).
 
 Aucune dépendance, aucune clé, aucun accès réseau : le mode replay rejoue des décisions enregistrées,
 mais les outils s'exécutent pour de vrai. Les fichiers sont écrits, le CSV est calculé, le graphique

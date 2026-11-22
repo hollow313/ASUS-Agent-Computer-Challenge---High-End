@@ -1,29 +1,32 @@
-Vigie, vidéo de présentation. Voix off générée par l'agent lui-même (outil tts_speak, fr-FR).
-Montage : video/slides3.py (cartons) puis video/build3.py (assemblage et synchronisation).
+1|Vigie, vidéo de présentation finale. Voix off générée par l'agent lui-même (outil tts_speak, fr-FR).
+2|Montage : video/slides4.py (cartons) puis video/build4.py (assemblage et synchronisation).
 
 1. Accroche
-Vigie. Un agent qui reçoit un objectif, choisit ses outils, agit sur de vrais fichiers, relit ce qu'il a produit, et apprend de ses erreurs.
+Vigie. Un agent qui prend le quart vingt-quatre heures sur vingt-quatre. Il reçoit un objectif, choisit ses outils, agit sur de vrais fichiers, relit ce qu'il a produit, apprend de ses erreurs, et reprend après un crash.
 
 2. Le point de départ
-Aujourd'hui, il tourne sur une carte de trois gigas de mémoire vidéo. Le plus gros modèle qui rentre fait sept milliards de paramètres. Il est rapide, il est gratuit, et il se trompe une fois sur deux. Le modèle qui comprend les tâches ambiguës, lui, ne rentre pas.
+Aujourd'hui, il tourne sur une carte de trois gigas. Le plus gros modèle qui rentre fait sept milliards de paramètres : rapide, gratuit, et faux une fois sur deux. Celui qui comprend les tâches ambiguës ne rentre pas.
 
-3. Cinq scénarios
-Cinq scénarios, cinq livrables réels. Un briefing daté, une synthèse chiffrée avec son graphique, un tri de boîte mail, une auto-réparation, une orchestration de sous-agents. Les fichiers existent sur le disque, le journal d'étapes est horodaté, et rien ici n'est une capture d'écran.
+3. Sept scénarios
+Sept scénarios, sept livrables réels : briefing daté, synthèse chiffrée avec son graphique, tri de boîte mail, audit de sécurité local, auto-réparation, sous-agents, et une revue contradictoire où un relecteur refuse le premier jet.
 
 4. Mémoire procédurale
-Quand une étape casse, il écrit la leçon dans une procédure, avec un contrat de vérification. Deuxième passe : quatre étapes au lieu de six, zéro erreur. Et si le fichier change de nom, le contrat casse, la procédure est retirée au lieu d'être appliquée. Une leçon morte ne pollue pas le run suivant.
+Quand une étape casse, il écrit la leçon dans une procédure, avec un contrat de vérification. Deuxième passe : quatre étapes au lieu de six. Et si le fichier change de nom, la procédure est retirée au lieu d'être appliquée.
 
 5. Orchestration
-Il sait aussi déléguer. Trois zones, trois sous-agents, chacun avec son budget, son journal et son dossier. Le parent relit les trois livrables avant d'agréger. La confiance se vérifie, elle ne se déclare pas.
+Il sait déléguer. Trois zones, trois sous-agents, chacun avec son budget et son journal. Le parent relit les trois livrables avant d'agréger. La confiance se vérifie, elle ne se déclare pas.
 
-6. Routage
-Et il choisit son modèle. La page de routage déclare les cibles : deux instances locales, deux clouds, ou un mélange. Les règles s'évaluent dans l'ordre, la première qui matche gagne, et chaque exécution journalise sa décision avec sa raison.
+6. Routage et repli
+Il choisit son modèle : les règles s'évaluent dans l'ordre, chaque décision est journalisée avec sa raison. Une cible peut en déclarer une autre en secours : si la première ne répond pas, il bascule une fois et continue.
 
-7. Exploitation
-Côté production : un dossier de CSV, une boîte mail en IMAP, et un planning. Chaque matin à huit heures, la veille se prépare toute seule. Le mot de passe reste dans le volume, en six cents, et n'est jamais renvoyé par l'interface.
+7. Robustesse
+Après chaque étape, il écrit son état : un processus tué reprend sans rejouer ce qui est fait. Un second modèle relit le livrable et peut le refuser avec ses motifs. Et l'accord manuel, scénario par scénario, décoché par défaut pour les tâches planifiées.
 
-8. Les chiffres
-Les chiffres maintenant, mesurés sur la machine, dix tâches notées par correspondance exacte. Le sept B réussit soixante pour cent. Le huit B réussit quatre-vingt-dix pour cent. Gemini Flash réussit tout, pour sept centimes les mille tâches, et sort vos données au passage.
+8. Exploitation
+Côté production : un dossier de CSV, une boîte mail en IMAP, un planning, et un catalogue MCP qu'on ajoute depuis l'interface. Le mot de passe reste dans le volume, et les valeurs sensibles sont masquées dans les journaux.
 
-9. La carte
-C'est le goulot, et c'est le sujet de cette candidature. Trente-deux gigas font tenir un trente-deux milliards de paramètres en quatre bits, avec un contexte long et des sous-agents en parallèle. Le dépôt est public, cinquante-deux tests passent, une commande suffit pour lancer la démo, et les limites sont écrites noir sur blanc.
+9. Les chiffres
+Les chiffres, mesurés sur dix tâches notées exactement. Le sept B réussit soixante pour cent, le huit B quatre-vingt-dix, Gemini Flash tout, pour sept centimes les mille tâches. Opus, trente-huit centimes. GPT cinq point cinq Pro, trois euros. Le coût n'est pas l'argument : la souveraineté, si.
+
+10. La carte
+C'est le goulot, et le sujet de cette candidature. Trente-deux gigas font tenir un trente-deux milliards en quatre bits, avec de la marge. Le dépôt est public, soixante-quatre tests passent, deux commandes suffisent, sans clé et sans réseau.
