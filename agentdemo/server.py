@@ -169,6 +169,15 @@ class RunStore:
                         with self.lock:
                             state["steps"].append(payload)
 
+                    reviewer = None
+                    reviewer_file = scenario.root / "reviewer.json"
+                    if reviewer_file.is_file():
+                        from .review import ReplayReviewer, ReviewError
+
+                        try:
+                            reviewer = ReplayReviewer.from_file(reviewer_file)
+                        except ReviewError as exc:
+                            state.setdefault("warnings", []).append(str(exc))
                     agent = Agent(
                         planner=planner,
                         workspace=workspace,
@@ -183,6 +192,7 @@ class RunStore:
                         scenario=slug,
                         resume=resume_state if index == 0 else None,
                         save_state=True,
+                        reviewer=reviewer,
                         secrets=_known_secrets(settings, self.data_dir),
                         approver=(
                             (lambda tool, wanted, base=run_id: self.ask_approval(base, tool, wanted))
@@ -752,6 +762,7 @@ def make_handler(store: RunStore):
                         network=payload.get("network") or None,
                         exec_config=payload.get("exec") or None,
                         inputs=payload.get("inputs") or None,
+                        require_approval=payload.get("require_approval"),
                     )
                 except (ValueError, KeyError, OSError) as exc:
                     return self._send_json({"error": str(exc)}, status=400)

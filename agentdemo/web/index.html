@@ -764,8 +764,12 @@ $("nsCreate").onclick = async () => {
   state.current = null;
   $("newScenarioForm").hidden = true;
   await loadScenarios(slug);
-  if (state.mode === "replay") setMode("live");
-  setStatus("prêt", "ok");
+  setStatus(
+    data.scenario.has_cassette
+      ? "prêt : ce scénario a une cassette, le replay fonctionne"
+      : "prêt : pas encore de cassette, lance-le une fois en live pour en produire une",
+    "ok",
+  );
 };
 
 on("run", "onclick", launch);
