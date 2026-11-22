@@ -264,6 +264,7 @@
     </div>
 
     <button id="run">Lancer l'agent</button>
+    <button id="resumeRun" class="ghost" hidden>reprendre ce run</button>
     <p class="hint">Le mode replay rejoue des décisions enregistrées : aucune clé, aucun réseau,
     mais les outils s'exécutent pour de vrai et écrivent dans le bac à sable du run.</p>
 
@@ -277,6 +278,7 @@
       <span id="statusText">prêt, choisis un scénario</span>
     </div>
     <div class="objective" id="objectiveView">, </div>
+    <div id="approvals"></div>
     <div id="steps"><p class="empty">Lance un scénario pour voir la trace d'exécution.</p></div>
     <div id="result"></div>
     <div class="artifacts" id="artifacts"></div>
@@ -287,6 +289,14 @@
 const state = { scenarios: [], current: null, mode: "replay", runId: null, polling: null };
 
 const $ = (id) => document.getElementById(id);
+
+function on(id, event, handler) {
+  // Un identifiant absent ne doit jamais casser tout le script : le reste de la page reste utilisable.
+  const el = $(id);
+  if (!el) { console.warn("element absent :", id); return null; }
+  el[event] = handler;
+  return el;
+}
 
 async function loadScenarios(preferred) {
   const res = await fetch("/api/scenarios");
@@ -650,7 +660,7 @@ $("nsCheckInput").onclick = async () => {
 };
 $("nsCancel").onclick = () => { $("newScenarioForm").hidden = true; editing = null; };
 
-$("nsReset").onclick = async () => {
+on("nsReset", "onclick", async () => {
   if (!editing) return;
   if (!confirm("Retirer tes modifications et revenir au scénario livré d'origine ?")) return;
   const res = await fetch(`/api/scenarios/${encodeURIComponent(editing)}/reset`, { method: "POST" });
@@ -660,7 +670,7 @@ $("nsReset").onclick = async () => {
   editing = null;
   await loadScenarios(data.scenario.slug);
   setStatus("scénario livré rétabli", "ok");
-};
+});
 
 async function openEditor(slug) {
   const res = await fetch(`/api/scenarios/${encodeURIComponent(slug)}`);
@@ -758,9 +768,9 @@ $("nsCreate").onclick = async () => {
   setStatus("prêt", "ok");
 };
 
-$("run").onclick = launch;
+on("run", "onclick", launch);
 
-$("resumeRun").onclick = async () => {
+on("resumeRun", "onclick", async () => {
   if (!state.current || !state.lastRun) return;
   const res = await fetch(`/api/runs/${encodeURIComponent(state.lastRun)}/resume`, { method: "POST" });
   const data = await res.json().catch(() => ({}));
@@ -769,7 +779,7 @@ $("resumeRun").onclick = async () => {
   state.lastRun = data.run_id;
   setStatus("run repris", "ok");
   poll();
-};
+});
 $("modeReplay").onclick = () => setMode("replay");
 $("modeLive").onclick = () => setMode("live");
 $("checkModels").onclick = checkModels;
