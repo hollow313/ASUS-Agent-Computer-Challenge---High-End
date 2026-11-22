@@ -199,9 +199,12 @@ artefacts. `--resume`, `POST /api/runs/<id>/resume` et un bouton dans l'interfac
 verdict motivé. Un rejet renvoie les motifs au rédacteur, qui corrige. Deux relectures au maximum, puis
 arrêt : on ne brûle pas le budget à convaincre un relecteur.
 
-**Autorisations visibles.** Une option demande votre accord avant chaque écriture ou commande. La
-demande apparaît dans la page du run avec l'outil et ses arguments ; sans réponse en deux minutes, c'est
-refusé. Les valeurs sensibles configurées sont masquées dans les pensées, les observations et le bilan.
+**Autorisations visibles, scénario par scénario.** Décoché par défaut, parce qu'une tâche planifiée
+tourne quand personne ne peut répondre. Une case dans l'éditeur de scénario demande votre accord avant
+chaque écriture ou commande : la demande apparaît dans la page du run avec l'outil et ses arguments, et
+sans réponse en deux minutes c'est refusé. Une tâche planifiée qui exige cet accord le note dans son
+journal et poursuit, au lieu d'attendre deux minutes pour rien. Les valeurs sensibles configurées sont
+masquées dans les pensées, les observations et le bilan.
 
 ## Sécurité et données
 

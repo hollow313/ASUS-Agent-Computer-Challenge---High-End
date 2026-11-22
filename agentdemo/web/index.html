@@ -208,6 +208,10 @@
       <button id="nsHostsFromFeeds" class="ghost" style="margin-bottom:8px" hidden>ajouter les domaines des flux</button>
 
       <label class="check" style="margin:10px 0"><input id="nsExec" type="checkbox">autoriser l'exécution de commandes (`run`)</label>
+      <label class="check" style="margin:0 0 10px"><input id="nsApproval" type="checkbox">
+        demander mon accord avant chaque écriture ou commande</label>
+      <p class="hint" style="margin:0 0 10px">À laisser décoché pour une tâche planifiée : personne n'est là
+      pour répondre, le run attendrait deux minutes pour rien.</p>
 
       <label>dossier d'entrée <span class="opt">(copié dans inputs/ à chaque run)</span>
         <input id="nsInputDir" placeholder="/app/demo/inputs/audit-demo" list="demoInputDirs" spellcheck="false">
@@ -306,7 +310,7 @@ async function loadScenarios(preferred) {
           : `<button class="mini danger" data-del-scen="${s.slug}" title="supprimer">×</button>`}
       </div>`;
     el.innerHTML = `<strong>${escapeHtml(s.title)}</strong><span>${escapeHtml(s.blurb)}</span>
-      <em>${escapeHtml(s.tags.join(" · "))} · ${s.steps} étapes · réseau ${escapeHtml(net)}${s.overridden ? " · modifié localement" : ""}</em>${flag}${actions}`;
+      <em>${escapeHtml(s.tags.join(" · "))} · ${s.steps} étapes · réseau ${escapeHtml(net)}${s.require_approval ? " · accord manuel" : ""}${s.overridden ? " · modifié localement" : ""}</em>${flag}${actions}`;
     el.onclick = () => selectScenario(s, el);
     box.appendChild(el);
     if (s.slug === previous) selected = { scenario: s, element: el };
@@ -591,6 +595,7 @@ function fillForm(detail) {
   $("nsNetwork").value = detail ? ((detail.network || {}).mode || "deny") : "deny";
   $("nsHosts").value = detail ? ((detail.network || {}).hosts || []).join("\n") : "";
   $("nsExec").checked = Boolean(detail && (detail.exec || {}).allow_unsandboxed);
+  $("nsApproval").checked = Boolean(detail && detail.require_approval);
   $("nsInputDir").value = detail ? ((detail.inputs || {}).dir || "") : "";
   $("nsFeeds").value = detail ? ((detail.inputs || {}).feeds || []).join("\n") : "";
   syncNetworkFields();
@@ -723,6 +728,7 @@ function scenarioPayload() {
     max_steps: Number($("nsSteps").value) || 10,
     network: network,
     exec: { allow_unsandboxed: $("nsExec").checked, reason: "déclaré dans l'interface" },
+    require_approval: $("nsApproval").checked,
     inputs: {
       dir: $("nsInputDir").value.trim(),
       feeds: $("nsFeeds").value.split("\n").map((f) => f.trim()).filter(Boolean),

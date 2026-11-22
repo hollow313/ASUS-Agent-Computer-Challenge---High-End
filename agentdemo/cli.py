@@ -142,7 +142,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         return answer in ("o", "oui", "y", "yes")
 
     confirm = None
-    if getattr(args, "interactive", False) or getattr(args, "confirm_writes", False):
+    if getattr(args, "approve", False) or scenario.require_approval:
         confirm = approver
 
     print(f"▸ scénario  : {scenario.slug} ({scenario.title})")
@@ -465,6 +465,8 @@ def cmd_scenario_edit(args: argparse.Namespace) -> int:
         payload["exec"] = {"allow_unsandboxed": True, "reason": "déclaré en CLI"}
     if args.input_dir:
         payload["inputs"] = {"dir": args.input_dir, "feeds": []}
+    if getattr(args, "require_approval", None) is not None:
+        payload["require_approval"] = bool(args.require_approval)
     try:
         updated = update_scenario(args.name, payload)
     except (ValueError, KeyError) as exc:
@@ -695,6 +697,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--api-key", help="clé API si l'endpoint en exige une (ou AGENTDEMO_LLM_API_KEY)")
     run.add_argument("--max-steps", type=int)
     run.add_argument("--resume", metavar="RUN_ID", help="reprend un run interrompu depuis son état")
+    run.add_argument("--approve", action="store_true", help="demande mon accord avant chaque écriture")
     run.add_argument("--review", action="store_true", help="rejoue la revue enregistrée du scénario")
     run.add_argument("--review-model", metavar="NOM", help="second modèle qui relit, en live")
     run.set_defaults(func=cmd_run)
@@ -743,6 +746,8 @@ def build_parser() -> argparse.ArgumentParser:
     scenario_edit.add_argument("--hosts", help="domaines autorisés, séparés par des virgules")
     scenario_edit.add_argument("--allow-exec", action="store_true")
     scenario_edit.add_argument("--input-dir")
+    scenario_edit.add_argument("--require-approval", dest="require_approval", action="store_true", default=None)
+    scenario_edit.add_argument("--no-approval", dest="require_approval", action="store_false")
     scenario_edit.set_defaults(func=cmd_scenario_edit)
 
     scenario = sub.add_parser("scenario", help="cycle de vie d'un scénario")

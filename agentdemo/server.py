@@ -64,6 +64,7 @@ class RunStore:
         llm: dict[str, Any] | None = None,
         resume_from: Path | None = None,
         workspace: Path | None = None,
+        auto_approve: bool = False,
     ) -> str:
         scenario = get_scenario(slug)
         if mode == "replay" and not scenario.has_cassette():
@@ -86,6 +87,7 @@ class RunStore:
         skills = SkillStore(self.data_dir / "skills")
         settings = Settings.load(self.data_dir / "settings.json")
         labels = scenario.pass_labels()
+        events: list[dict[str, Any]] = []
         llm = llm or {}
         routing_decision = None
         routing_chain: list[str] = []
@@ -112,6 +114,15 @@ class RunStore:
             if not base_url or not model:
                 raise ValueError("mode live : renseigne l'endpoint et le modèle")
 
+        boot_events: list[dict[str, Any]] = []
+        if auto_approve and scenario.require_approval:
+            # tâche planifiée : personne pour répondre, on poursuit et on le note
+            boot_events.append(
+                {
+                    "event": "approval_skipped",
+                    "reason": "tâche planifiée : aucune validation humaine possible",
+                }
+            )
         state: dict[str, Any] = {
             "run_id": run_id,
             "scenario": slug,
@@ -128,7 +139,7 @@ class RunStore:
             "routing": routing_decision,
             "inputs_staged": staged,
             "network": scenario.network,
-            "events": [],
+            "events": list(boot_events),
             "isolation": isolation_level(),
             "llm": dict(llm or {}),
             "resumable": False,
@@ -173,18 +184,20 @@ class RunStore:
                         resume=resume_state if index == 0 else None,
                         save_state=True,
                         secrets=_known_secrets(settings, self.data_dir),
-                        approver=(lambda tool, wanted, base=run_id: self.ask_approval(base, tool, wanted))
-                        if (settings.approvals_required or scenario.exec_config.get("require_approval"))
-                        else None,
+                        approver=(
+                            (lambda tool, wanted, base=run_id: self.ask_approval(base, tool, wanted))
+                            if scenario.require_approval and not auto_approve
+                            else None
+                        ),
                     )
                     result = agent.run(state["objective"], run_id=f"{run_id}-p{index + 1}")
-                    if fallback_events:
-                        result.events = list(fallback_events) + list(result.events)
+                    if fallback_events or boot_events:
+                        result.events = list(boot_events) + list(fallback_events) + list(result.events)
                     with self.lock:
                         state["status"] = result.status
                         state["summary"] = result.summary
                         state["artifacts"] = result.artifacts
-                        state["events"] = result.events
+                        state["events"] = list(result.events)
                         state["network_effective"] = result.network
                         state["recap"].append(
                             {
@@ -695,7 +708,7 @@ def make_handler(store: RunStore):
                     settings.jobs = [item for item in settings.jobs if item.id != job_id]
                 elif action == "run":
                     try:
-                        run_id = store.start(job.scenario, job.mode, None)
+                        run_id = store.start(job.scenario, job.mode, None, auto_approve=True)
                     except (KeyError, ValueError) as exc:
                         return self._send_json({"error": str(exc)}, status=400)
                     job.last_run_id = run_id
@@ -859,7 +872,7 @@ def scheduler_loop(store: "RunStore", interval: float = 20.0) -> None:
                     continue
                 now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
                 try:
-                    run_id = store.start(job.scenario, job.mode, None)
+                    run_id = store.start(job.scenario, job.mode, None, auto_approve=True)
                     job.last_status = "ok"
                     job.last_run_id = run_id
                 except Exception as exc:  # noqa: BLE001 - une tâche qui casse ne doit pas arrêter la boucle

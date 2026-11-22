@@ -17,7 +17,17 @@ SCENARIOS_DIR = Path(__file__).resolve().parent / "scenarios"
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{1,40}$")
 
 
-OVERRIDE_FIELDS = ("title", "blurb", "objective", "tags", "max_steps", "network", "exec", "inputs")
+OVERRIDE_FIELDS = (
+    "title",
+    "blurb",
+    "objective",
+    "tags",
+    "max_steps",
+    "network",
+    "exec",
+    "inputs",
+    "require_approval",
+)
 
 
 def overrides_dir() -> Path:
@@ -56,6 +66,7 @@ class Scenario:
     network: dict[str, Any] = field(default_factory=lambda: {"mode": "deny"})
     exec_config: dict[str, Any] = field(default_factory=dict)
     inputs: dict[str, Any] = field(default_factory=dict)
+    require_approval: bool = False
     overridden: bool = False
 
     @property
@@ -144,6 +155,7 @@ class Scenario:
             "network": self.network,
             "exec": self.exec_config,
             "inputs": self.inputs,
+            "require_approval": self.require_approval,
             "builtin": self.builtin,
             "overridden": self.overridden,
             "user": str(self.root).startswith(str(user_scenarios_dir())),
@@ -188,6 +200,7 @@ def list_scenarios(dirs: list[Path] | None = None) -> list[Scenario]:
                     network=dict(meta.get("network") or {"mode": "deny"}),
                     exec_config=dict(meta.get("exec") or {}),
                     inputs=dict(meta.get("inputs") or {}),
+                    require_approval=bool(meta.get("require_approval")),
                     overridden=overridden,
                 )
             )
@@ -288,6 +301,7 @@ def create_scenario(
     network: dict[str, Any] | None = None,
     exec_config: dict[str, Any] | None = None,
     inputs: dict[str, Any] | None = None,
+    require_approval: bool | None = None,
 ) -> Scenario:
     """Crée un scénario utilisateur, sans cassette : il se lance en mode réel, puis s'enregistre."""
     slug = str(slug or "").strip().lower()
@@ -315,6 +329,8 @@ def create_scenario(
     if mode == "allowlist" and not hosts:
         raise ValueError("allowlist sans hôte : ajoute au moins un domaine")
     meta["network"] = {"mode": mode, "hosts": hosts}
+    if require_approval is not None:
+        meta["require_approval"] = bool(require_approval)
     meta["exec"] = {
         "allow_unsandboxed": bool((exec_config or {}).get("allow_unsandboxed")),
         "reason": str((exec_config or {}).get("reason") or ""),
@@ -367,6 +383,7 @@ def scenario_detail(slug: str) -> dict[str, Any]:
         "network": scenario.network,
         "exec": scenario.exec_config,
         "inputs": scenario.inputs,
+        "require_approval": scenario.require_approval,
         "max_steps": scenario.max_steps,
         "objective": scenario.objective,
         "title": scenario.title,
@@ -413,6 +430,8 @@ def update_scenario(slug: str, payload: dict[str, Any]) -> Scenario:
             "allow_unsandboxed": bool(payload["exec"].get("allow_unsandboxed")),
             "reason": str(payload["exec"].get("reason") or ""),
         }
+    if "require_approval" in payload:
+        meta["require_approval"] = bool(payload.get("require_approval"))
     if isinstance(payload.get("inputs"), dict):
         meta["inputs"] = {
             "dir": str(payload["inputs"].get("dir") or "").strip(),

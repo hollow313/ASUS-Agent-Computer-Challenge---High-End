@@ -195,9 +195,12 @@ mid-run resumes at the next step, with its history, counters and artifacts. `--r
 a justified verdict. A rejection sends the reasons back to the writer, who fixes it. Two reviews at
 most, then stop: the budget is not spent arguing with a reviewer.
 
-**Visible approvals.** An option asks for your consent before every write or command. The request
-appears on the run page with the tool and its arguments; no answer within two minutes means refusal.
-Configured sensitive values are masked in thoughts, observations and the summary.
+**Visible approvals, per scenario.** Off by default, because a scheduled task runs when nobody can
+answer. A checkbox in the scenario editor asks for your consent before every write or command: the
+request appears on the run page with the tool and its arguments, and no answer within two minutes means
+refusal. A scheduled task that requires it records that fact in its journal and carries on, instead of
+waiting two minutes for nothing. Configured sensitive values are masked in thoughts, observations and the
+summary.
 
 ## Security and data
 

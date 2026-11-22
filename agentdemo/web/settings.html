@@ -107,14 +107,6 @@
   </section>
 
   <section>
-    <h2>Autorisations</h2>
-    <label class="check" style="margin:4px 0"><input id="approvalsRequired" type="checkbox">
-      demander mon accord avant chaque écriture ou commande</label>
-    <p class="hint">Les demandes apparaissent dans la page du run, avec la commande et ses arguments.
-    Sans réponse au bout de deux minutes, c'est refusé.</p>
-  </section>
-
-  <section>
     <h2>Scénarios masqués</h2>
     <p class="hint" style="margin-top:0">Un scénario livré ne se supprime pas : il se masque. Il reste dans
     l'image, ses runs restent lisibles, et il revient ici en un clic.</p>
@@ -221,7 +213,6 @@ function render() {
   $("mailPassword").placeholder = s.mail.has_key ? "•••••••• (inchangé)" : "mot de passe IMAP";
 
   const hidden = s.hidden_scenarios || [];
-  $("approvalsRequired").checked = Boolean(s.approvals_required);
   $("hiddenRows").innerHTML = hidden.length
     ? hidden.map((slug) => `<p class="hint" style="margin:4px 0">${esc(slug)}
         <button class="mini" data-unhide="${esc(slug)}">réafficher</button></p>`).join("")
@@ -348,7 +339,6 @@ async function saveMcp(servers, message) {
 
 function payload() {
   return {
-    approvals_required: $("approvalsRequired").checked,
     inputs: { csv_dir: $("csvDir").value.trim(), feeds: state.settings.inputs.feeds || [] },
     mail: {
       host: $("mailHost").value.trim(),

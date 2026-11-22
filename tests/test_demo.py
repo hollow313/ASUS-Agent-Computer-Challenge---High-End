@@ -947,6 +947,37 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(target.id, "local-rapide")
         self.assertEqual(target.api_key, "")
 
+    def test_approval_is_off_by_default_and_enabled_per_scenario(self) -> None:
+        """L'accord manuel se règle par scénario, décoché par défaut."""
+        import os
+
+        from agentdemo import scenarios_loader as loader
+
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        previous = os.environ.get("AGENTDEMO_DATA_DIR")
+        os.environ["AGENTDEMO_DATA_DIR"] = tmp.name
+        self.addCleanup(
+            lambda: os.environ.pop("AGENTDEMO_DATA_DIR", None)
+            if previous is None
+            else os.environ.__setitem__("AGENTDEMO_DATA_DIR", previous)
+        )
+
+        plain = loader.create_scenario("sans-accord", "Sans accord", "écris x.md")
+        self.assertFalse(plain.require_approval, "par défaut, aucune demande d'accord")
+        self.assertFalse(loader.scenario_detail("sans-accord")["require_approval"])
+
+        guarded = loader.create_scenario("avec-accord", "Avec accord", "écris y.md", require_approval=True)
+        self.assertTrue(guarded.require_approval)
+        self.assertTrue(loader.scenario_detail("avec-accord")["require_approval"])
+
+        toggled = loader.update_scenario("avec-accord", {"require_approval": False})
+        self.assertFalse(toggled.require_approval)
+        # le drapeau passe par la surcharge pour un scénario livré, sans toucher à l'image
+        patched = loader.update_scenario("cyber-brief", {"require_approval": True})
+        self.assertTrue(patched.require_approval and patched.overridden)
+        self.assertFalse(loader.reset_scenario("cyber-brief").require_approval)
+
     def test_secrets_are_masked_in_steps_and_summary(self) -> None:
         """Une valeur secrète configurée ne doit apparaître ni dans une étape ni dans le bilan."""
         import tempfile
