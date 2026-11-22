@@ -18,6 +18,21 @@ from .tools import Sandbox, ToolError, NetworkPolicy, build_registry
 APPROVAL_TOOLS = ("fs_write", "fs_move", "mail_move", "run")
 
 
+def mask_secrets(text: str, secrets: list[str]) -> str:
+    """Remplace toute valeur secrète connue (plus de 6 caractères) par des étoiles.
+
+    Masquer les valeurs courtes casserait la lecture du journal sans rien protéger : un mot de
+    passe de trois caractères n'est pas un secret, c'est un identifiant.
+    """
+    if not text:
+        return text
+    for secret in secrets:
+        value = str(secret or "")
+        if len(value) > 6 and value in text:
+            text = text.replace(value, "********")
+    return text
+
+
 class ResumeError(RuntimeError):
     """Reprise impossible, avec une raison lisible plutôt qu'une trace."""
 
@@ -100,6 +115,7 @@ class Agent:
         resume: Path | None = None,
         save_state: bool = False,
         reviewer: Any = None,
+        secrets: list[str] | None = None,
     ) -> None:
         self.planner = planner
         self.workspace = Path(workspace)
@@ -118,6 +134,7 @@ class Agent:
         self.resume = Path(resume) if resume else None
         self.save_state = save_state
         self.reviewer = reviewer
+        self.secrets = [str(item) for item in (secrets or []) if str(item)]
 
     def _state_path(self, run_id: str) -> Path:
         return Path(self.runs_dir) / run_id / "state.json"
@@ -225,9 +242,9 @@ class Agent:
                 result.summary = str(exc)
                 break
 
-            thought = str(action.get("thought", "")).strip()
+            thought = mask_secrets(str(action.get("thought", "")).strip(), self.secrets)
             if action.get("final"):
-                result.summary = str(action["final"]).strip()
+                result.summary = mask_secrets(str(action["final"]).strip(), self.secrets)
                 expected = _expected_deliverable(objective)
                 produced = sorted(
                     str(p.relative_to(self.workspace))
@@ -365,6 +382,7 @@ class Agent:
                 except Exception as exc:  # un outil qui plante ne doit pas emporter le run
                     observation, error = f"échec interne de {tool_name} : {type(exc).__name__}: {exc}"[:400], True
             observation = observation if isinstance(observation, str) else json.dumps(observation, ensure_ascii=False)
+            observation = mask_secrets(observation, self.secrets)
 
             step = Step(index, thought, tool_name, args, observation, _ms(started), error)
             result.steps.append(step)

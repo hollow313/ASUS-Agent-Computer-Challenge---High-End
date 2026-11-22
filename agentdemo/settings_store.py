@@ -184,6 +184,7 @@ class Settings:
     jobs: list[Job] = field(default_factory=list)
     mcp_servers: list[McpServer] = field(default_factory=list)
     hidden_scenarios: list[str] = field(default_factory=list)
+    approvals_required: bool = False
 
     # ---------- persistance ----------
     @classmethod
@@ -202,6 +203,7 @@ class Settings:
                 }
             ),
             hidden_scenarios=[str(slug) for slug in (raw.get("hidden_scenarios") or [])],
+            approvals_required=bool(raw.get("approvals_required")),
             mcp_servers=[
                 McpServer(
                     name=str(item.get("name") or ""),
@@ -245,6 +247,7 @@ class Settings:
                 "ssl": self.mail.ssl,
             },
             "hidden_scenarios": sorted(self.hidden_scenarios),
+            "approvals_required": self.approvals_required,
             "mcp_servers": [
                 {
                     "name": server.name,
@@ -300,6 +303,8 @@ class Settings:
 
         if "hidden_scenarios" in raw:
             self.hidden_scenarios = [str(slug) for slug in (raw.get("hidden_scenarios") or [])]
+        if "approvals_required" in raw:
+            self.approvals_required = bool(raw.get("approvals_required"))
         if "mcp_servers" in raw:
             self.mcp_servers = [
                 McpServer(
@@ -357,4 +362,5 @@ class Settings:
             "jobs": [job.as_public(now) for job in self.jobs],
             "mcp_servers": [server.as_public() for server in self.mcp_servers],
             "hidden_scenarios": sorted(self.hidden_scenarios),
+            "approvals_required": self.approvals_required,
         }

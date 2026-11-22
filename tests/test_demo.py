@@ -947,6 +947,77 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(target.id, "local-rapide")
         self.assertEqual(target.api_key, "")
 
+    def test_secrets_are_masked_in_steps_and_summary(self) -> None:
+        """Une valeur secrète configurée ne doit apparaître ni dans une étape ni dans le bilan."""
+        import tempfile
+
+        from agentdemo.agent import Agent, mask_secrets
+        from agentdemo.planners import ReplayPlanner
+        from agentdemo.scenarios_loader import get_scenario
+
+        secret = "motdepasse-imap-2026"
+        self.assertEqual(mask_secrets(f"connexion avec {secret} ok", [secret]), "connexion avec ******** ok")
+        self.assertEqual(mask_secrets("court abc", ["abc"]), "court abc", "les valeurs courtes restent lisibles")
+
+        scenario = get_scenario("cyber-brief")
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "runs" / "ms" / "workspace"
+        workspace.mkdir(parents=True)
+        scenario.stage(workspace)
+
+        trace = [{"thought": f"je me connecte avec {secret}", "tool": "fs_list", "args": {"path": "."}},
+                 {"thought": "fini", "final": f"terminé avec {secret}"}]
+        result = Agent(
+            planner=ReplayPlanner(trace),
+            workspace=workspace,
+            runs_dir=root / "runs",
+            max_steps=3,
+            secrets=[secret],
+        ).run("objectif", run_id="ms")
+
+        dumped = json.dumps(result.as_dict(), ensure_ascii=False)
+        self.assertNotIn(secret, dumped)
+        self.assertIn("********", dumped)
+
+    def test_approval_refusal_blocks_the_run_with_an_event(self) -> None:
+        """Sans accord de l'opérateur, l'écriture est refusée, journalisée, et le run s'arrête."""
+        import tempfile
+
+        from agentdemo.agent import Agent
+        from agentdemo.planners import ReplayPlanner
+        from agentdemo.scenarios_loader import get_scenario
+
+        scenario = get_scenario("cyber-brief")
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        root = Path(tmp.name)
+        workspace = root / "runs" / "ap" / "workspace"
+        workspace.mkdir(parents=True)
+        scenario.stage(workspace)
+
+        asked = []
+
+        def refuse(tool, args):
+            asked.append((tool, args))
+            return False
+
+        result = Agent(
+            planner=ReplayPlanner(scenario.cassette(0)),
+            workspace=workspace,
+            runs_dir=root / "runs",
+            max_steps=scenario.max_steps,
+            approver=refuse,
+        ).run(scenario.objective, run_id="ap")
+
+        self.assertTrue(asked, "l'approbateur doit être sollicité")
+        refusals = [step for step in result.steps if "refusé par l'opérateur" in (step.observation or "")]
+        self.assertTrue(refusals)
+        self.assertTrue(any(event.get("event") == "approval" for event in result.events))
+        self.assertFalse((workspace / "briefing.md").exists())
+        self.assertNotEqual(result.status, "done")
+
     def test_review_rejects_then_accepts_and_the_run_finishes(self) -> None:
         """Le relecteur rejette le premier jet, le rédacteur corrige, puis le relecteur accepte."""
         import json as _json

@@ -103,6 +103,8 @@
   }
   .newform .two { display: grid; grid-template-columns: 1fr 90px; gap: 7px; }
   .formbar { display: flex; gap: 6px; margin-top: 4px; }
+  .approval { border: 1px solid #6b5bd2; border-radius: 10px; padding: 10px 12px; margin: 10px 0; background: rgba(107,91,210,.08); }
+  .approval code { display: block; margin: 6px 0; font-size: 11px; color: #9dbcff; word-break: break-all; }
   .scen-actions { display: flex; gap: 4px; margin-top: 7px; }
   .scen-actions button { padding: 3px 7px; font-size: 11px; }
   .scenario .flag { display: inline-block; margin-top: 6px; font: 10px/1 var(--mono); color: var(--warn); border: 1px solid #5a4318; border-radius: 999px; padding: 3px 7px; }
@@ -426,6 +428,37 @@ function renderSteps(run) {
   }).join("");
 }
 
+async function loadApprovals(runId) {
+  const box = $("approvals");
+  if (!box || !runId) return;
+  try {
+    const res = await fetch(`/api/approvals/${encodeURIComponent(runId)}`);
+    const data = await res.json();
+    const pending = data.pending || [];
+    box.innerHTML = pending.map((item) => `
+      <div class="approval">
+        <strong>${escapeHtml(item.tool)}</strong>
+        <code>${escapeHtml(JSON.stringify(item.args))}</code>
+        <div class="formbar">
+          <button class="primary small" data-approve="${item.id}">autoriser</button>
+          <button class="ghost small" data-refuse="${item.id}">refuser</button>
+        </div>
+      </div>`).join("");
+  } catch (err) { box.innerHTML = ""; }
+}
+
+document.addEventListener("click", async (event) => {
+  const el = event.target;
+  if (!el.dataset.approve && !el.dataset.refuse) return;
+  const decision = el.dataset.approve ? "approve" : "refuse";
+  const approvalId = el.dataset.approve || el.dataset.refuse;
+  await fetch(`/api/approvals/${encodeURIComponent(state.lastRun)}/${approvalId}`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ decision }),
+  });
+  loadApprovals(state.lastRun);
+});
+
 function renderResult(run) {
   const recap = (run.recap || []).length > 1
     ? `<div class="recap">${run.recap.map((p) =>
@@ -506,7 +539,8 @@ async function poll() {
   $("statusText").textContent = `${run.status} · ${run.steps.length} étapes · ${run.mode}${route}${fallbackNote} · ${run.title}`;
   const resumeBtn = $("resumeRun");
   if (resumeBtn) resumeBtn.hidden = !run.resumable;
-  if (run.status !== "running") {
+  if (run.status === "running" || run.status === "waiting") loadApprovals(run.run_id);
+  if (run.status !== "running" && run.status !== "waiting") {
     clearInterval(state.polling);
     state.polling = null;
     $("run").disabled = false;

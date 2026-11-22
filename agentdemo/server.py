@@ -39,6 +39,7 @@ class RunStore:
         self.data_dir = Path(data_dir)
         self.runs: dict[str, dict[str, Any]] = {}
         self.pending_resume: dict[str, Path] = {}
+        self.approvals: dict[str, list[dict[str, Any]]] = {}
         self.lock = threading.Lock()
 
     def _stage_inputs(self, workspace: Path) -> list[str]:
@@ -171,6 +172,10 @@ class RunStore:
                         scenario=slug,
                         resume=resume_state if index == 0 else None,
                         save_state=True,
+                        secrets=_known_secrets(settings, self.data_dir),
+                        approver=(lambda tool, wanted, base=run_id: self.ask_approval(base, tool, wanted))
+                        if (settings.approvals_required or scenario.exec_config.get("require_approval"))
+                        else None,
                     )
                     result = agent.run(state["objective"], run_id=f"{run_id}-p{index + 1}")
                     if fallback_events:
@@ -198,6 +203,48 @@ class RunStore:
 
         threading.Thread(target=worker, daemon=True).start()
         return run_id
+
+    def ask_approval(self, run_id: str, tool: str, args: dict[str, Any], timeout: float = 120.0) -> bool:
+        """Une écriture attend l'accord de l'opérateur : le run patiente, le serveur reste libre."""
+        approval = {
+            "id": uuid.uuid4().hex[:8],
+            "tool": tool,
+            "args": args,
+            "asked_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "event": threading.Event(),
+            "decision": "refuse",
+        }
+        with self.lock:
+            self.approvals.setdefault(run_id, []).append(approval)
+            state = self.runs.get(run_id)
+            if state is not None:
+                state["waiting_for"] = approval["id"]
+                state["status"] = "waiting"
+        decided = approval["event"].wait(timeout)
+        with self.lock:
+            state = self.runs.get(run_id)
+            if state is not None:
+                state.pop("waiting_for", None)
+                state["status"] = "running"
+            self.approvals[run_id] = [item for item in self.approvals.get(run_id, []) if item["id"] != approval["id"]]
+        return bool(decided) and approval["decision"] == "approve"
+
+    def pending_approvals(self, run_id: str) -> list[dict[str, Any]]:
+        with self.lock:
+            return [
+                {"id": item["id"], "tool": item["tool"], "args": item["args"], "asked_at": item["asked_at"]}
+                for item in self.approvals.get(run_id, [])
+                if not item["event"].is_set()
+            ]
+
+    def decide_approval(self, run_id: str, approval_id: str, decision: str) -> bool:
+        with self.lock:
+            for item in self.approvals.get(run_id, []):
+                if item["id"] == approval_id:
+                    item["decision"] = "approve" if decision == "approve" else "refuse"
+                    item["event"].set()
+                    return True
+        return False
 
     def state_path(self, run_id: str) -> Path:
         """L'état est écrit par passe : la première est celle qui porte la reprise."""
@@ -244,6 +291,17 @@ class RunStore:
         if root not in target.parents and target != root:
             return None
         return target if target.is_file() else None
+
+
+def _known_secrets(settings: Any, data_dir: Path) -> list[str]:
+    """Valeurs à masquer dans les journaux : mot de passe IMAP et clés d'API connues."""
+    values = [getattr(settings.mail, "password", "") or ""]
+    try:
+        table = RoutingTable.load(Path(data_dir) / "routing.json")
+        values.extend(target.api_key for target in table.targets if target.api_key)
+    except Exception:
+        pass
+    return [value for value in values if value]
 
 
 def _live_planner(
@@ -411,6 +469,8 @@ def make_handler(store: RunStore):
                 self.end_headers()
                 self.wfile.write(body)
                 return
+            if path.startswith("/api/approvals/") and path.strip("/").count("/") == 2:
+                return self._send_json({"pending": store.pending_approvals(path.strip("/").split("/")[2])})
             if path.startswith("/api/runs/") and path.count("/") == 3:
                 run_id = path.split("/")[3]
                 state = store.get(run_id)
@@ -528,6 +588,14 @@ def make_handler(store: RunStore):
                 except ValueError as exc:
                     return self._send_json({"error": str(exc)}, status=400)
                 return self._send_json({"ok": True, "scenario": restored.as_summary()})
+            if path.startswith("/api/approvals/") and path.count("/") == 4:
+                _, _, _, run_id, approval_id = path.split("/")
+                decision = str(payload.get("decision") or "").lower()
+                if decision not in ("approve", "refuse"):
+                    return self._send_json({"error": "decision attendue : approve ou refuse"}, status=400)
+                if not store.decide_approval(run_id, approval_id, decision):
+                    return self._send_json({"error": "demande inconnue"}, status=404)
+                return self._send_json({"ok": True, "decision": decision})
             if path.startswith("/api/runs/") and path.endswith("/resume"):
                 run_id = path.split("/")[3]
                 try:
