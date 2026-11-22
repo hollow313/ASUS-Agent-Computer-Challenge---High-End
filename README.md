@@ -5,7 +5,7 @@
 **Un agent qui prend le quart 24 heures sur 24.** Il reçoit un objectif, choisit ses outils, écrit
 des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son travail après un crash.
 
-[Vidéo de présentation](docs/video/agent-computer-presentation.mp4) · [Démo en 30 secondes](#en-trente-secondes) · [Les chiffres](#les-chiffres-mesurés) · [Les limites](#limites-assumées)
+[La démo en vidéo](https://www.youtube.com/watch?v=rUKwZeVePNs) · [Démo en 30 secondes](#en-trente-secondes) · [Les chiffres](#les-chiffres-mesurés) · [Les limites](#limites-assumées)
 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
@@ -24,11 +24,10 @@ des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son tr
 - [Sept scénarios, sept livrables](#sept-scénarios-sept-livrables)
 - [Un cas réel, sur internet](#un-cas-réel-sur-internet)
 - [Architecture et boucle](#architecture-et-boucle)
-- [Robustesse : repli, reprise, revue, autorisations](#robustesse-repli-reprise-revue-autorisations)
+- [Robustesse : repli, reprise, revue](#robustesse-repli-reprise-revue-autorisations)
 - [Sécurité et données](#sécurité-et-données)
 - [Limites assumées](#limites-assumées)
 - [Construire, tester, étendre](#construire-tester-étendre)
-- [Licence](#licence)
 
 ## En trente secondes
 
@@ -40,6 +39,12 @@ python3 -m agentdemo run --scenario cyber-brief # un run complet, déterministe
 python3 -m agentdemo serve --port 8080          # la même chose avec l'interface
 python3 -m unittest discover -s tests           # 63 tests, trois secondes
 ```
+
+[![Lancer la démo sur YouTube, 1 min 03](https://img.youtube.com/vi/rUKwZeVePNs/maxresdefault.jpg)](https://www.youtube.com/watch?v=rUKwZeVePNs)
+
+La démo, 1 min 03 : trois flux à agréger, le briefing écrit puis relu, et la leçon enregistrée pour la
+seconde passe. La présentation longue, 2 min 31, couvre les sept scénarios, le routage et le
+dimensionnement de la carte : [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4).
 
 Aucune dépendance, aucune clé, aucun accès réseau : le mode replay rejoue des décisions enregistrées,
 mais les outils s'exécutent pour de vrai. Les fichiers sont écrits, le CSV est calculé, le graphique
@@ -176,19 +181,28 @@ Les runs réels versionnés sont dans [`docs/runs/`](docs/runs), avec leur journ
 
 ## Architecture et boucle
 
+```mermaid
+flowchart LR
+    O[Objectif du scénario] --> P{Planificateur}
+    P -- replay --> C[Cassette<br/>déterministe, hors ligne]
+    P -- live --> T[Cible de routage<br/>local ou cloud]
+    T -. cible muette .-> FB[Repli<br/>cible suivante]
+    C --> A[Outil exécuté<br/>dans le bac à sable]
+    FB --> A
+    A --> V{Observation<br/>et contrôle}
+    V -- erreur --> P
+    V -- mêmes appels répétés --> STOP[Arrêt<br/>budget préservé]
+    V -- livrable écrit --> L{Livrable annoncé<br/>présent et relu}
+    L -- non --> N[Relance ciblée<br/>puis arrêt]
+    L -- oui --> RV{Revue<br/>second modèle}
+    RV -- rejette, motifs --> P
+    RV -- accepte --> D[Livrable, journal<br/>et état reprenable]
 ```
-objectif -> planificateur -> outil -> observation -> planificateur -> … -> livrable
-                |                |                        |
-          cassette ou modèle   bac à sable          mémoire procédurale
-```
-
-Cinq responsabilités, un seul point d'entrée `agentdemo/agent.py` : le planificateur propose une
-action, le registre d'outils limite ce qui est possible, le bac à sable confine les chemins, le journal
-enregistre tout, la mémoire garde les leçons. Une étape ne peut produire qu'une action.
 
 Deux planificateurs derrière la même interface : `ReplayPlanner` rejoue une trace enregistrée, sans
-réseau, et `OpenAICompatPlanner` interroge un endpoint compatible OpenAI. La démonstration et la
-production partagent donc exactement le même code d'exécution.
+réseau, et `OpenAICompatPlanner` interroge un endpoint compatible OpenAI. Le contrôle, le bac à sable et
+le journal sont les mêmes dans les deux cas : ce qui change est la source des décisions, pas la machine.
+Un run interrompu reprend depuis `state.json`, et la revue peut refuser deux fois avant l'arrêt.
 
 Détail : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 

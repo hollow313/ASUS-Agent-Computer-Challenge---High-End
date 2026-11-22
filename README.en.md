@@ -5,7 +5,7 @@
 **An agent that stands the watch 24 hours a day.** It receives an objective, picks its tools, writes
 files, re-reads what it produced, learns from its mistakes and resumes its work after a crash.
 
-[Presentation video](docs/video/agent-computer-presentation.mp4) · [30-second demo](#in-thirty-seconds) · [The numbers](#the-measured-numbers) · [The limits](#limits-we-accept)
+[The demo on video](https://www.youtube.com/watch?v=rUKwZeVePNs) · [30-second demo](#in-thirty-seconds) · [The numbers](#the-measured-numbers) · [The limits](#limits-we-accept)
 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
@@ -24,11 +24,10 @@ files, re-reads what it produced, learns from its mistakes and resumes its work 
 - [Seven scenarios, seven deliverables](#seven-scenarios-seven-deliverables)
 - [A real case, on the internet](#a-real-case-on-the-internet)
 - [Architecture and loop](#architecture-and-loop)
-- [Robustness: fallback, resume, review, approvals](#robustness-fallback-resume-review-approvals)
+- [Robustness: fallback, resume, review](#robustness-fallback-resume-review-approvals)
 - [Security and data](#security-and-data)
 - [Limits we accept](#limits-we-accept)
 - [Build, test, extend](#build-test-extend)
-- [Licence](#licence)
 
 ## In thirty seconds
 
@@ -40,6 +39,12 @@ python3 -m agentdemo run --scenario cyber-brief # one full, deterministic run
 python3 -m agentdemo serve --port 8080          # the same thing with the interface
 python3 -m unittest discover -s tests           # 63 tests, three seconds
 ```
+
+[![Watch the demo on YouTube, 1 min 03](https://img.youtube.com/vi/rUKwZeVePNs/maxresdefault.jpg)](https://www.youtube.com/watch?v=rUKwZeVePNs)
+
+The demo, 1 min 03: three feeds merged, the briefing written then re-read, and the lesson recorded for
+the second pass. The long presentation, 2 min 31, covers the seven scenarios, routing and the card
+sizing: [`docs/video/agent-computer-presentation.mp4`](docs/video/agent-computer-presentation.mp4).
 
 No dependency, no key, no network access: replay mode plays recorded decisions, but the tools really
 run. Files are written, the CSV is computed, the chart is generated.
@@ -172,19 +177,28 @@ Detail: [`docs/PRODUCTION.md`](docs/PRODUCTION.md).
 
 ## Architecture and loop
 
+```mermaid
+flowchart LR
+    O[Scenario objective] --> P{Planner}
+    P -- replay --> C[Recorded cassette<br/>deterministic, offline]
+    P -- live --> T[Routing target<br/>local or cloud]
+    T -. silent target .-> FB[Fallback<br/>next target]
+    C --> A[Tool executed<br/>inside the sandbox]
+    FB --> A
+    A --> V{Observation<br/>and check}
+    V -- error --> P
+    V -- repeated identical calls --> STOP[Stop<br/>budget preserved]
+    V -- deliverable written --> L{Declared deliverable<br/>present and re-read}
+    L -- no --> N[Targeted nudge<br/>then stop]
+    L -- yes --> RV{Review<br/>second model}
+    RV -- rejects, reasons --> P
+    RV -- accepts --> D[Deliverable, journal<br/>and resumable state]
 ```
-objective -> planner -> tool -> observation -> planner -> … -> deliverable
-                |         |                    |
-          cassette or model  sandbox      procedural memory
-```
-
-Five responsibilities, one entry point `agentdemo/agent.py`: the planner proposes an action, the tool
-registry limits what is possible, the sandbox confines paths, the journal records everything, memory
-keeps the lessons. One step produces exactly one action.
 
 Two planners behind the same interface: `ReplayPlanner` plays a recorded trace, offline, and
-`OpenAICompatPlanner` queries an OpenAI-compatible endpoint. The demonstration and production therefore
-share exactly the same execution code.
+`OpenAICompatPlanner` queries an OpenAI-compatible endpoint. The check, the sandbox and the journal are
+identical in both cases: what changes is where decisions come from, not the machine. An interrupted run
+resumes from `state.json`, and the review may reject twice before stopping.
 
 Detail: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
