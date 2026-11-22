@@ -21,7 +21,7 @@
   h2 { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
   .row { display: grid; gap: 8px; align-items: end; padding: 9px 0; border-bottom: 1px solid var(--panel-2); }
   .row:last-child { border-bottom: 0; }
-  .targets .row { grid-template-columns: 96px 1fr 1.2fr 200px 88px 120px; }
+  .targets .row { grid-template-columns: 92px 1fr 1.3fr 180px 80px 1fr 116px; }
   .rules .row { grid-template-columns: 170px 1fr 150px 1fr 88px; }
   label { display: block; font: 10.5px/1.4 var(--mono); color: #8390a6; }
   input, select, textarea {
@@ -169,6 +169,7 @@ function render() {
           <option value="cloud" ${t.kind === "cloud" ? "selected" : ""}>cloud</option>
         </select>
       </label>
+      <label>repli<input value="${esc((t.fallback || []).join(", "))}" data-kind="target" data-i="${i}" data-f="fallback" placeholder="id, id" title="cibles essayées si celle-ci ne répond pas"></label>
       <div>
         <button class="mini" data-probe="${esc(t.id)}" title="interroger /models">tester</button>
         <button class="mini danger" data-del-target="${i}">retirer</button>
@@ -241,7 +242,9 @@ document.addEventListener("input", (event) => {
   const el = event.target;
   const i = Number(el.dataset.i);
   const f = el.dataset.f;
-  if (el.dataset.kind === "target") state.targets[i][f] = el.value;
+  if (el.dataset.kind === "target" && f === "fallback") {
+    state.targets[i][f] = el.value.split(",").map((v) => v.trim()).filter(Boolean);
+  } else if (el.dataset.kind === "target") state.targets[i][f] = el.value;
   if (el.dataset.kind === "rule") state.rules[i][f] = el.value;
 });
 

@@ -498,10 +498,12 @@ async function poll() {
   renderResult(run);
   const dot = $("dot");
   dot.className = "dot " + run.status;
-  const route = run.routing
-    ? ` · ${run.routing.target} (${run.routing.reason})`
+  const fallbacks = (run.events || []).filter((e) => e.event === "fallback");
+  const route = run.routing ? ` · ${run.routing.target} (${run.routing.reason})` : "";
+  const fallbackNote = fallbacks.length
+    ? ` · repli : ${fallbacks.map((e) => `${e.from} → ${e.to}`).join(", ")}`
     : "";
-  $("statusText").textContent = `${run.status} · ${run.steps.length} étapes · ${run.mode}${route} · ${run.title}`;
+  $("statusText").textContent = `${run.status} · ${run.steps.length} étapes · ${run.mode}${route}${fallbackNote} · ${run.title}`;
   if (run.status !== "running") {
     clearInterval(state.polling);
     state.polling = null;

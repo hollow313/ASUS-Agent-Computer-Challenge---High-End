@@ -938,6 +938,88 @@ class ScenarioTests(unittest.TestCase):
         self.assertEqual(target.id, "local-rapide")
         self.assertEqual(target.api_key, "")
 
+    def test_fallback_chain_switches_once_on_transport_error(self) -> None:
+        """Une cible muette fait basculer sur la suivante, une seule fois, avec un événement."""
+        from agentdemo.planners import FallbackPlanner
+
+        class Silent:
+            label = "muet"
+
+            def next_action(self, objective, history):
+                raise RuntimeError("connexion refusée")
+
+            def child(self):
+                return None
+
+        class Talkative:
+            label = "bavard"
+
+            def next_action(self, objective, history):
+                return {"thought": "je réponds", "final": "fait"}
+
+            def child(self):
+                return None
+
+        events = []
+        planner = FallbackPlanner([("muet", Silent()), ("bavard", Talkative())], events.append)
+        action = planner.next_action("objectif", [])
+        self.assertEqual(action["final"], "fait")
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]["event"], "fallback")
+        self.assertEqual((events[0]["from"], events[0]["to"]), ("muet", "bavard"))
+        self.assertIn("connexion refusée", events[0]["reason"])
+
+    def test_fallback_chain_is_silent_when_first_target_answers(self) -> None:
+        from agentdemo.planners import FallbackPlanner
+
+        class Talkative:
+            label = "ok"
+
+            def next_action(self, objective, history):
+                return {"thought": "je réponds", "final": "fait"}
+
+            def child(self):
+                return None
+
+        events = []
+        planner = FallbackPlanner([("ok", Talkative())], events.append)
+        planner.next_action("objectif", [])
+        self.assertEqual(events, [])
+
+    def test_routing_accepts_and_checks_fallback(self) -> None:
+        """Le repli fait l'aller-retour par l'API et refuse un identifiant inconnu ou un cycle."""
+        from agentdemo.routing import RoutingError, RoutingTable, Target
+
+        table = RoutingTable(
+            targets=[
+                Target("aa", "A", "http://127.0.0.1:1/v1", "m1", "local", fallback=["bb"]),
+                Target("bb", "B", "http://127.0.0.1:2/v1", "m2", "local"),
+            ],
+            default_target="aa",
+        )
+        table.validate()
+        self.assertEqual(table.chain_for("aa"), ["aa", "bb"])
+        public = table.targets[0].as_public()
+        self.assertEqual(public["fallback"], ["bb"])
+        self.assertEqual(Target.from_public(public).fallback, ["bb"])
+
+        broken = RoutingTable(
+            targets=[Target("aa", "A", "http://127.0.0.1:1/v1", "m1", "local", fallback=["inconnu"])],
+            default_target="aa",
+        )
+        with self.assertRaises(RoutingError):
+            broken.validate()
+
+        cycle = RoutingTable(
+            targets=[
+                Target("aa", "A", "http://127.0.0.1:1/v1", "m1", "local", fallback=["bb"]),
+                Target("bb", "B", "http://127.0.0.1:2/v1", "m2", "local", fallback=["aa"]),
+            ],
+            default_target="aa",
+        )
+        with self.assertRaises(RoutingError):
+            cycle.validate()
+
     def test_planner_retries_a_transient_endpoint_error(self) -> None:
         """Un 500 passager de l'endpoint ne doit pas tuer le run : une relance suffit."""
         import urllib.error

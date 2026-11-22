@@ -54,6 +54,7 @@ class Target:
     model: str
     kind: str = "local"  # "local" ou "cloud"
     api_key: str = ""
+    fallback: list[str] = field(default_factory=list)  # cibles à essayer si celle-ci ne répond pas
 
     def validate(self) -> None:
         if not self.id or not re.fullmatch(r"[a-z0-9_-]{2,32}", self.id):
@@ -79,6 +80,7 @@ class Target:
             model=str(item.get("model") or ""),
             kind=str(item.get("kind") or "local"),
             api_key=str(item.get("api_key") or ""),
+            fallback=[str(name) for name in (item.get("fallback") or []) if str(name).strip()],
         )
 
     def as_public(self) -> dict[str, Any]:
@@ -89,6 +91,7 @@ class Target:
             "model": self.model,
             "kind": self.kind,
             "has_key": bool(self.api_key),
+            "fallback": list(self.fallback),
         }
 
 
@@ -207,6 +210,51 @@ class RoutingTable:
             raise RoutingError(f"cible par défaut absente : {self.default_target}")
         if self.override and self.override not in ids:
             raise RoutingError(f"forçage manuel sur une cible absente : {self.override}")
+        for target in self.targets:
+            for name in target.fallback:
+                if name == target.id:
+                    raise RoutingError(f"repli de {target.id} sur lui-même : refusé")
+                if name not in ids:
+                    raise RoutingError(f"repli de {target.id} vers une cible absente : {name}")
+            if self.fallback_cycle(target.id):
+                raise RoutingError(f"cycle de repli détecté depuis {target.id}")
+            depth = self.fallback_depth(target.id)
+            if depth > 3:
+                raise RoutingError(f"chaîne de repli trop longue depuis {target.id} : {depth} sauts (maximum 3)")
+
+    def fallback_depth(self, target_id: str, seen: tuple[str, ...] = ()) -> int:
+        """Longueur de la plus longue chaîne de repli depuis une cible."""
+        if target_id in seen:
+            return 0
+        by_id = {target.id: target for target in self.targets}
+        target = by_id.get(target_id)
+        if target is None or not target.fallback:
+            return 0
+        return 1 + max(
+            self.fallback_depth(name, seen + (target_id,)) for name in target.fallback if name not in seen
+        )
+
+    def fallback_cycle(self, target_id: str, path: tuple[str, ...] = ()) -> bool:
+        by_id = {target.id: target for target in self.targets}
+        if target_id in path:
+            return True
+        target = by_id.get(target_id)
+        if target is None:
+            return False
+        return any(self.fallback_cycle(name, path + (target_id,)) for name in target.fallback)
+
+    def chain_for(self, target_id: str) -> list[str]:
+        """Cible demandée puis ses replis, dans l'ordre, sans doublon."""
+        by_id = {target.id: target for target in self.targets}
+        order: list[str] = []
+        stack = [target_id]
+        while stack:
+            name = stack.pop(0)
+            if name in order or name not in by_id:
+                continue
+            order.append(name)
+            stack.extend(by_id[name].fallback)
+        return order
 
     # ---------- résolution ----------
     def resolve(self, objective: str, scenario: str = "") -> Decision:

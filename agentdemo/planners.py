@@ -63,6 +63,56 @@ class ReplayPlanner:
         return action
 
 
+class FallbackPlanner:
+    """Essaie les backends dans l'ordre : le premier qui répond parle.
+
+    Un seul passage par étape, et seulement sur une erreur de transport. Une réponse illisible
+    (JSON invalide, mauvais format) n'est pas un incident de backend : la relancer ailleurs
+    masquerait la vraie erreur.
+    """
+
+    def __init__(self, chain: list[tuple[str, "Planner"]], on_event=None) -> None:
+        self._chain = list(chain)
+        self._on_event = on_event
+        self.label = "fallback:" + ",".join(label for label, _ in self._chain)
+
+    @property
+    def tools(self):
+        return getattr(self._chain[0][1], "tools", None) if self._chain else None
+
+    @tools.setter
+    def tools(self, value):
+        for _, planner in self._chain:
+            if hasattr(planner, "tools"):
+                planner.tools = value
+
+    def child(self) -> "FallbackPlanner | None":
+        children = []
+        for label, planner in self._chain:
+            child = planner.child() if hasattr(planner, "child") else None
+            if child is not None:
+                children.append((label, child))
+        return FallbackPlanner(children, self._on_event) if children else None
+
+    def next_action(self, objective: str, history: list[dict[str, Any]]) -> dict[str, Any]:
+        last: Exception | None = None
+        for index, (label, planner) in enumerate(self._chain):
+            try:
+                return planner.next_action(objective, history)
+            except RuntimeError as exc:
+                last = exc
+                if index + 1 < len(self._chain) and self._on_event:
+                    self._on_event(
+                        {
+                            "event": "fallback",
+                            "from": label,
+                            "to": self._chain[index + 1][0],
+                            "reason": str(exc)[:200],
+                        }
+                    )
+        raise RuntimeError(str(last) if last else "aucun backend disponible")
+
+
 class OpenAICompatPlanner:
     """Live planner against an OpenAI-compatible chat completions endpoint."""
 

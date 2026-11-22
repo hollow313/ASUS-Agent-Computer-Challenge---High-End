@@ -73,6 +73,7 @@ class RunStore:
         labels = scenario.pass_labels()
         llm = llm or {}
         routing_decision = None
+        routing_chain: list[str] = []
         if mode == "live" and not (llm.get("base_url") and llm.get("model")):
             # aucune cible fournie à la main : c'est la politique de routage qui décide
             try:
@@ -82,6 +83,7 @@ class RunStore:
                 table.save(self.data_dir / "routing.json")
             except RoutingError as exc:
                 raise ValueError(f"routage impossible : {exc}") from exc
+            routing_chain = table.chain_for(decision.target.id)
             llm = {
                 "base_url": decision.target.base_url,
                 "model": decision.target.model,
@@ -117,6 +119,8 @@ class RunStore:
         with self.lock:
             self.runs[run_id] = state
 
+        fallback_events: list[dict[str, Any]] = []
+
         def worker() -> None:
             try:
                 for index, label in enumerate(labels):
@@ -125,12 +129,7 @@ class RunStore:
                         with self.lock:
                             state.setdefault("mutations", []).append(applied)
                     if mode == "live":
-                        planner = OpenAICompatPlanner(
-                            base_url=str(llm.get("base_url") or ""),
-                            model=str(llm.get("model") or ""),
-                            api_key=str(llm.get("api_key") or ""),
-                            tools=build_registry(_NullSandbox(), []),
-                        )
+                        planner = _live_planner(llm, routing_chain, self.data_dir, fallback_events)
                     else:
                         planner = ReplayPlanner(scenario.cassette(index))
 
@@ -155,6 +154,8 @@ class RunStore:
                         scenario=slug,
                     )
                     result = agent.run(state["objective"], run_id=f"{run_id}-p{index + 1}")
+                    if fallback_events:
+                        result.events = list(fallback_events) + list(result.events)
                     with self.lock:
                         state["status"] = result.status
                         state["summary"] = result.summary
@@ -194,6 +195,43 @@ class RunStore:
         if root not in target.parents and target != root:
             return None
         return target if target.is_file() else None
+
+
+def _live_planner(
+    llm: dict[str, Any],
+    chain_ids: list[str],
+    data_dir: Path,
+    sink: list[dict[str, Any]],
+) -> Any:
+    """Planner live, avec la chaîne de repli déclarée dans la politique de routage."""
+    from .planners import FallbackPlanner
+
+    if not chain_ids:
+        return OpenAICompatPlanner(
+            base_url=str(llm.get("base_url") or ""),
+            model=str(llm.get("model") or ""),
+            api_key=str(llm.get("api_key") or ""),
+            tools=build_registry(_NullSandbox(), []),
+        )
+    table = RoutingTable.load(Path(data_dir) / "routing.json")
+    by_id = {target.id: target for target in table.targets}
+    built: list[tuple[str, Any]] = []
+    for target_id in chain_ids:
+        target = by_id.get(target_id)
+        if target is None:
+            continue
+        built.append(
+            (
+                target.label or target.id,
+                OpenAICompatPlanner(
+                    base_url=target.base_url,
+                    model=target.model,
+                    api_key=target.api_key,
+                    tools=build_registry(_NullSandbox(), []),
+                ),
+            )
+        )
+    return FallbackPlanner(built, sink.append) if built else FallbackPlanner([])
 
 
 class _NullSandbox:
