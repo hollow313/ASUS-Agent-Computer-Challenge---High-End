@@ -10,7 +10,7 @@ des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son tr
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
-![tests](https://img.shields.io/badge/tests-63%20passing-2ea043)
+![tests](https://img.shields.io/badge/tests-64%20passing-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **Candidature ASUS Agent Computer Challenge, catégorie High-End.** Vigie est la version distribuable de l'agent qui tourne sur ma machine depuis des mois ; ce dépôt en publie le cœur, sans mes données ni mes clés.
@@ -37,12 +37,16 @@ cd ASUS-Agent-Computer-Challenge---High-End
 python3 -m agentdemo scenarios                  # les sept scénarios
 python3 -m agentdemo run --scenario cyber-brief # un run complet, déterministe
 python3 -m agentdemo serve --port 8080          # la même chose avec l'interface
-python3 -m unittest discover -s tests           # 63 tests, trois secondes
+python3 -m unittest discover -s tests           # 64 tests, trois secondes
 ```
+
+### ▶ La présentation en vidéo
 
 [![Lancer la présentation sur YouTube, 2 min 25](https://img.youtube.com/vi/YmQbnhEh1Ps/maxresdefault.jpg)](https://youtu.be/YmQbnhEh1Ps)
 
-La présentation, 2 min 25, montre les sept scénarios, la mémoire procédurale, la délégation, le routage
+*Cliquez sur l'image pour lancer la vidéo sur YouTube (2 min 25).*
+
+Elle montre les sept scénarios, la mémoire procédurale, la délégation, le routage
 avec repli, la reprise après crash, la revue par un second modèle, l'accord manuel et le dimensionnement
 de la carte. La démo courte, 1 min 03, est aussi en ligne : [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs).
 Le fichier reste dans le dépôt : [`docs/video/vigie-presentation.mp4`](docs/video/vigie-presentation.mp4).
@@ -255,7 +259,7 @@ Détail : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 ## Construire, tester, étendre
 
 ```bash
-python3 -m unittest discover -s tests     # 63 tests
+python3 -m unittest discover -s tests     # 64 tests
 python3 -m agentdemo validate             # cassettes contre outils réels
 python3 -m agentdemo doctor               # contrôles d'installation
 python3 -m agentdemo fit --vram 32        # dimensionnement mémoire

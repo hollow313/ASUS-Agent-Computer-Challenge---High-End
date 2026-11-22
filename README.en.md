@@ -10,7 +10,7 @@ files, re-reads what it produced, learns from its mistakes and resumes its work 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
-![tests](https://img.shields.io/badge/tests-63%20passing-2ea043)
+![tests](https://img.shields.io/badge/tests-64%20passing-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **ASUS Agent Computer Challenge, High-End category.** Vigie is the distributable version of the agent that has been running on my machine for months; this repository publishes its core, without my data and without my keys.
@@ -37,12 +37,16 @@ cd ASUS-Agent-Computer-Challenge---High-End
 python3 -m agentdemo scenarios                  # the seven scenarios
 python3 -m agentdemo run --scenario cyber-brief # one full, deterministic run
 python3 -m agentdemo serve --port 8080          # the same thing with the interface
-python3 -m unittest discover -s tests           # 63 tests, three seconds
+python3 -m unittest discover -s tests           # 64 tests, three seconds
 ```
+
+### ▶ The presentation on video
 
 [![Watch the presentation on YouTube, 2 min 25](https://img.youtube.com/vi/YmQbnhEh1Ps/maxresdefault.jpg)](https://youtu.be/YmQbnhEh1Ps)
 
-The presentation, 2 min 25, shows the seven scenarios, procedural memory, delegation, routing with
+*Click the image to play the video on YouTube (2 min 25).*
+
+It shows the seven scenarios, procedural memory, delegation, routing with
 fallback, crash resume, the second-model review, manual approval and the card sizing. The short demo,
 1 min 03, is online too: [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs). The file also lives in the
 repository: [`docs/video/vigie-presentation.mp4`](docs/video/vigie-presentation.mp4).
@@ -249,7 +253,7 @@ network is denied by default, with an allowlist checked on each call. Detail:
 ## Build, test, extend
 
 ```bash
-python3 -m unittest discover -s tests     # 63 tests
+python3 -m unittest discover -s tests     # 64 tests
 python3 -m agentdemo validate             # cassettes against real tools
 python3 -m agentdemo doctor               # installation checks
 python3 -m agentdemo fit --vram 32        # memory sizing
