@@ -42,11 +42,11 @@ python3 -m unittest discover -s tests           # 72 tests, trois secondes
 
 ### ▶ La présentation en vidéo
 
-[![Lancer la présentation sur YouTube, 2 min 25](https://img.youtube.com/vi/YmQbnhEh1Ps/maxresdefault.jpg)](https://youtu.be/YmQbnhEh1Ps)
+[![Lancer la présentation sur YouTube, 2 min 58](https://img.youtube.com/vi/YmQbnhEh1Ps/maxresdefault.jpg)](https://youtu.be/YmQbnhEh1Ps)
 
-*Cliquez sur l'image pour lancer la vidéo sur YouTube (2 min 25).*
+*Cliquez sur l'image pour lancer la vidéo sur YouTube (2 min 58).*
 
-Elle montre les sept premiers scénarios, la mémoire procédurale, la délégation, le routage
+Elle montre les huit scénarios, la vision, la mémoire procédurale, la délégation, le routage
 avec repli, la reprise après crash, la revue par un second modèle, l'accord manuel et le dimensionnement
 de la carte. La démo courte, 1 min 03, est aussi en ligne : [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs).
 Le fichier reste dans le dépôt : [`docs/video/vigie-presentation.mp4`](docs/video/vigie-presentation.mp4).
