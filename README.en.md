@@ -5,7 +5,7 @@
 **An agent that stands the watch 24 hours a day.** It receives an objective, picks its tools, writes
 files, re-reads what it produced, learns from its mistakes and resumes its work after a crash.
 
-[Watch the presentation](https://youtu.be/YmQbnhEh1Ps) · [30-second demo](#in-thirty-seconds) · [The numbers](#the-measured-numbers) · [The limits](#limits-we-accept)
+[Watch the presentation](https://youtu.be/jqpE5IXz8T8) · [30-second demo](#in-thirty-seconds) · [The numbers](#the-measured-numbers) · [The limits](#limits-we-accept)
 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
@@ -42,7 +42,7 @@ python3 -m unittest discover -s tests           # 72 tests, three seconds
 
 ### ▶ The presentation on video
 
-[![Watch the presentation on YouTube, 2 min 58](https://img.youtube.com/vi/YmQbnhEh1Ps/maxresdefault.jpg)](https://youtu.be/YmQbnhEh1Ps)
+[![Watch the presentation on YouTube, 2 min 58](https://i.ytimg.com/vi/jqpE5IXz8T8/sddefault.jpg)](https://youtu.be/jqpE5IXz8T8)
 
 *Click the image to play the video on YouTube (2 min 58).*
 

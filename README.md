@@ -5,7 +5,7 @@
 **Un agent qui prend le quart 24 heures sur 24.** Il reçoit un objectif, choisit ses outils, écrit
 des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son travail après un crash.
 
-[La présentation en vidéo](https://youtu.be/YmQbnhEh1Ps) · [Démo en 30 secondes](#en-trente-secondes) · [Les chiffres](#les-chiffres-mesurés) · [Les limites](#limites-assumées)
+[La présentation en vidéo](https://youtu.be/jqpE5IXz8T8) · [Démo en 30 secondes](#en-trente-secondes) · [Les chiffres](#les-chiffres-mesurés) · [Les limites](#limites-assumées)
 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
@@ -42,7 +42,7 @@ python3 -m unittest discover -s tests           # 72 tests, trois secondes
 
 ### ▶ La présentation en vidéo
 
-[![Lancer la présentation sur YouTube, 2 min 58](https://img.youtube.com/vi/YmQbnhEh1Ps/maxresdefault.jpg)](https://youtu.be/YmQbnhEh1Ps)
+[![Lancer la présentation sur YouTube, 2 min 58](https://i.ytimg.com/vi/jqpE5IXz8T8/sddefault.jpg)](https://youtu.be/jqpE5IXz8T8)
 
 *Cliquez sur l'image pour lancer la vidéo sur YouTube (2 min 58).*
 
