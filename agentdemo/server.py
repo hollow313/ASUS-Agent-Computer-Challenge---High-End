@@ -158,7 +158,9 @@ class RunStore:
                         with self.lock:
                             state.setdefault("mutations", []).append(applied)
                     if mode == "live":
-                        planner = _live_planner(llm, routing_chain, self.data_dir, fallback_events)
+                        planner = _live_planner(
+                            llm, routing_chain, self.data_dir, fallback_events, _vision_of(scenario)
+                        )
                     else:
                         planner = ReplayPlanner(scenario.cassette(index))
 
@@ -327,11 +329,24 @@ def _known_secrets(settings: Any, data_dir: Path) -> list[str]:
     return [value for value in values if value]
 
 
+def _vision_of(scenario: Any) -> str | None:
+    """Image déclarée par le scénario, encodée une seule fois pour tout le run."""
+    if not getattr(scenario, "vision", None):
+        return None
+    from .scenarios_loader import vision_data_url
+
+    try:
+        return vision_data_url(scenario)
+    except ValueError:
+        return None
+
+
 def _live_planner(
     llm: dict[str, Any],
     chain_ids: list[str],
     data_dir: Path,
     sink: list[dict[str, Any]],
+    image_data_url: str | None = None,
 ) -> Any:
     """Planner live, avec la chaîne de repli déclarée dans la politique de routage."""
     from .planners import FallbackPlanner
@@ -342,6 +357,7 @@ def _live_planner(
             model=str(llm.get("model") or ""),
             api_key=str(llm.get("api_key") or ""),
             tools=build_registry(_NullSandbox(), []),
+            image_data_url=image_data_url,
         )
     table = RoutingTable.load(Path(data_dir) / "routing.json")
     by_id = {target.id: target for target in table.targets}
@@ -358,6 +374,7 @@ def _live_planner(
                     model=target.model,
                     api_key=target.api_key,
                     tools=build_registry(_NullSandbox(), []),
+                    image_data_url=image_data_url,
                 ),
             )
         )

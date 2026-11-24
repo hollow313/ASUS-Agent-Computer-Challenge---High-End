@@ -150,3 +150,24 @@ recommandation.
 Ce scénario sert à montrer la revue : `reviewer.json` porte deux verdicts, rejoués dans l'ordre. Lancez
 `python3 -m agentdemo run --scenario revue-contradictoire --review` et regardez deux étapes `review`
 dans le journal, une rejetée puis une acceptée.
+
+## capture-audit
+
+Une capture d'écran entre dans le run. Le modèle local la lit, l'outil `image_probe` mesure ce que le
+modèle ne sait pas compter de façon fiable (format, dimensions, poids), et le rapport cite une zone en
+pixels pour chaque constat.
+
+Le scénario déclare sa vision dans `scenario.json` :
+
+```json
+"vision": {"image": "capture.png", "max_bytes": 1500000}
+```
+
+L'image part **une seule fois**, au premier message du run, sinon les jetons d'entrée sont multipliés par
+le nombre d'étapes. En replay, aucune image n'est envoyée : la cassette porte la description.
+
+Limites assumées : images fixes seulement, 1,5 Mo maximum, pas de redimensionnement (aucune dépendance
+pour le faire), PNG ou JPEG.
+
+    python3 -m agentdemo run --scenario capture-audit
+    python3 -m agentdemo run --scenario capture-audit --live --model qwen3-vl-8b --base-url http://IP:1234/v1

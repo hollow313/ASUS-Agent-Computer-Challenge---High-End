@@ -80,6 +80,11 @@ class FallbackPlanner:
         self._on_event = on_event
         self.label = "fallback:" + ",".join(label for label, _ in self._chain)
 
+    def set_image(self, data_url: str | None) -> None:
+        for _, planner in self._chain:
+            if hasattr(planner, "image_data_url"):
+                planner.image_data_url = data_url
+
     @property
     def tools(self):
         return getattr(self._chain[0][1], "tools", None) if self._chain else None
@@ -127,6 +132,7 @@ class OpenAICompatPlanner:
         api_key: str | None = None,
         tools: dict[str, Any] | None = None,
         timeout: int = 120,
+        image_data_url: str | None = None,
     ) -> None:
         raw_base = base_url or os.environ.get("AGENTDEMO_LLM_BASE_URL", "http://localhost:11434/v1")
         self.base_url = normalize_base_url(raw_base)
@@ -134,10 +140,11 @@ class OpenAICompatPlanner:
         self.api_key = api_key or os.environ.get("AGENTDEMO_LLM_API_KEY", "")
         self.timeout = timeout
         self.tools = tools or {}
+        self.image_data_url = image_data_url  # None, ou "data:image/png;base64,..."
         self.label = f"live:{self.model}"
 
     def child(self) -> "OpenAICompatPlanner":
-        """Un sous-agent : même endpoint, même modèle, catalogue rempli par son propre run."""
+        """Un sous-agent : même endpoint, même modèle, sans l'image du parent."""
         return OpenAICompatPlanner(
             base_url=self.base_url,
             model=self.model,
@@ -173,7 +180,20 @@ class OpenAICompatPlanner:
 
     def next_action(self, objective: str, history: list[dict[str, Any]]) -> dict[str, Any]:
         messages = [{"role": "system", "content": self._system_prompt()}]
-        messages.append({"role": "user", "content": f"Objectif : {objective}"})
+        if self.image_data_url:
+            # l'image part une seule fois, à l'ouverture : la renvoyer à chaque étape
+            # multiplierait les jetons d'entrée par le nombre d'étapes
+            messages.append(
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": f"Objectif : {objective}"},
+                        {"type": "image_url", "image_url": {"url": self.image_data_url}},
+                    ],
+                }
+            )
+        else:
+            messages.append({"role": "user", "content": f"Objectif : {objective}"})
         for step in history:
             messages.append(
                 {

@@ -1,0 +1,32 @@
+{
+  "slug": "capture-audit",
+  "title": "Audit d'une capture d'écran",
+  "blurb": "Une capture d'interface est lue par le modèle local, contrôlée par un outil qui mesure ses pixels, puis convertie en constats de correction.",
+  "objective": "Analyse la capture fournie : relève les défauts d'affichage, de contraste et de lisibilité, cite la zone concernée en pixels, puis écris RAPPORT-CAPTURE.md avec un constat, une zone et une correction par ligne.",
+  "tags": [
+    "audit",
+    "vision",
+    "local",
+    "accessibilité"
+  ],
+  "max_steps": 10,
+  "network": {
+    "mode": "deny"
+  },
+  "exec": {},
+  "inputs": {},
+  "vision": {
+    "image": "capture.png",
+    "max_bytes": 1500000
+  },
+  "passes": [
+    {
+      "label": "passe 1 · sans procédure",
+      "cassette": "cassette.json"
+    },
+    {
+      "label": "passe 2 · procédures relues",
+      "cassette": "cassette2.json"
+    }
+  ]
+}

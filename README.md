@@ -10,7 +10,7 @@ des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son tr
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
-![tests](https://img.shields.io/badge/tests-64%20passing-2ea043)
+![tests](https://img.shields.io/badge/tests-72%20passing-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **Candidature ASUS Agent Computer Challenge, catégorie High-End.** Vigie est la version distribuable de l'agent qui tourne sur ma machine depuis des mois ; ce dépôt en publie le cœur, sans mes données ni mes clés.
@@ -21,7 +21,7 @@ des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son tr
 - [Ce que fait l'agent](#ce-que-fait-lagent)
 - [Ce que la carte débloque](#ce-que-la-carte-débloque)
 - [Les chiffres mesurés](#les-chiffres-mesurés)
-- [Sept scénarios, sept livrables](#sept-scénarios-sept-livrables)
+- [Huit scénarios, huit livrables](#huit-scénarios-huit-livrables)
 - [Un cas réel, sur internet](#un-cas-réel-sur-internet)
 - [Architecture et boucle](#architecture-et-boucle)
 - [Robustesse : repli, reprise, revue](#robustesse-repli-reprise-revue-autorisations)
@@ -34,10 +34,10 @@ des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son tr
 ```bash
 git clone https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End
 cd ASUS-Agent-Computer-Challenge---High-End
-python3 -m agentdemo scenarios                  # les sept scénarios
+python3 -m agentdemo scenarios                  # les huit scénarios
 python3 -m agentdemo run --scenario cyber-brief # un run complet, déterministe
 python3 -m agentdemo serve --port 8080          # la même chose avec l'interface
-python3 -m unittest discover -s tests           # 64 tests, trois secondes
+python3 -m unittest discover -s tests           # 72 tests, trois secondes
 ```
 
 ### ▶ La présentation en vidéo
@@ -46,7 +46,7 @@ python3 -m unittest discover -s tests           # 64 tests, trois secondes
 
 *Cliquez sur l'image pour lancer la vidéo sur YouTube (2 min 25).*
 
-Elle montre les sept scénarios, la mémoire procédurale, la délégation, le routage
+Elle montre les sept premiers scénarios, la mémoire procédurale, la délégation, le routage
 avec repli, la reprise après crash, la revue par un second modèle, l'accord manuel et le dimensionnement
 de la carte. La démo courte, 1 min 03, est aussi en ligne : [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs).
 Le fichier reste dans le dépôt : [`docs/video/vigie-presentation.mp4`](docs/video/vigie-presentation.mp4).
@@ -149,7 +149,7 @@ Mesure du 21/11/2026 13:37 UTC, dix tâches, une passe. Rapport brut et JSON :
 [`bench/README.md`](bench/README.md) et
 [`docs/comparatif-local-cloud.md`](docs/comparatif-local-cloud.md).
 
-## Sept scénarios, sept livrables
+## Huit scénarios, huit livrables
 
 Chaque scénario est un dossier : le contrat (`scenario.json`), une cassette de décisions, des
 fixtures. Le même code rejoue ou exécute.
@@ -162,6 +162,7 @@ fixtures. Le même code rejoue ou exécute.
 | `local-audit` | inspecte journaux, ports, permissions | `RAPPORT-AUDIT.md` |
 | `delegation` | trois sous-agents, trois zones, agrégation | `comparatif.md` |
 | `self-repair` | répare puis documente la veille | `veille.md` |
+| `capture-audit` | une capture d'écran lue par le modèle local, mesurée par un outil, chaque constat cite une zone en pixels |
 | `revue-contradictoire` | premier jet rejeté par un relecteur, puis corrigé | `synthese.md` |
 
 Détail, cassettes et critères : [`docs/SCENARIOS.md`](docs/SCENARIOS.md).
@@ -255,11 +256,15 @@ Détail : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - Sans isolation disponible sur la machine, l'outil `run` n'est pas exposé du tout.
 - Le coût affiché pour le local ne compte ni l'électricité ni l'amortissement du matériel.
 - `inbox-triage` exige un compte IMAP configuré ; sans lui, le run s'arrête proprement en le disant.
+- La vision lit des images fixes de 1,5 Mo au plus, sans redimensionnement : pas de vidéo, pas de PDF
+  scanné, aucune dépendance de traitement d'image n'est installée pour le faire.
+- Les paliers 8, 16 et 32 Go de [`docs/MATERIEL.md`](docs/MATERIEL.md) sont calculés, pas mesurés. Seule
+  la carte de 3 Go a produit les latences publiées.
 
 ## Construire, tester, étendre
 
 ```bash
-python3 -m unittest discover -s tests     # 64 tests
+python3 -m unittest discover -s tests     # 72 tests
 python3 -m agentdemo validate             # cassettes contre outils réels
 python3 -m agentdemo doctor               # contrôles d'installation
 python3 -m agentdemo fit --vram 32        # dimensionnement mémoire

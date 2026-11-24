@@ -1,0 +1,21 @@
+[
+  {
+    "thought": "La procédure dit de mesurer l'image avant de conclure : je la mesure.",
+    "tool": "image_probe",
+    "args": {
+      "path": "capture.png"
+    }
+  },
+  {
+    "thought": "Même capture, mêmes constats, je réécris le rapport en suivant la procédure.",
+    "tool": "fs_write",
+    "args": {
+      "path": "RAPPORT-CAPTURE.md",
+      "content": "# Rapport de capture, sauvegardes\n\n| constat | zone (pixels) | correction |\n| --- | --- | --- |\n| Bandeau de maintenance : texte crème sur fond jaune clair, contraste insuffisant | x 0 à 1440, y 0 à 78 | passer le texte en #3b2f00 sur #fff2a8 |\n| Bouton relancer gris sur gris, illisible et sans état de focus visible | x 1000 à 1130, y 470 et 530 | fond #1f5fbf, texte blanc, contour de focus 2 px |\n| Pied de tableau en 9 px, caractères trop petits pour être lus | x 24 à 900, y 860 à 880 | 12 px minimum, couleur #5c636e |\n\nProcédure appliquée : mesurer l'image avant de décrire, citer une zone par constat.\n"
+    }
+  },
+  {
+    "thought": "Deux étapes suffisent cette fois.",
+    "final": "RAPPORT-CAPTURE.md réécrit en deux étapes, procédure appliquée."
+  }
+]

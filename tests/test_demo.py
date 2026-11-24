@@ -48,6 +48,7 @@ class ScenarioTests(unittest.TestCase):
             "delegation",
             "local-audit",
             "revue-contradictoire",
+            "capture-audit",
         },
         slugs
         )

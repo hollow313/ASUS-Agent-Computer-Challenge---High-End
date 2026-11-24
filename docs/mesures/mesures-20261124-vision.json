@@ -1,0 +1,111 @@
+{
+  "generated_at": "20261124T160905Z",
+  "tasks": 10,
+  "repeat": 1,
+  "results": [
+    {
+      "target": "vl-local",
+      "model": "qwen/qwen3-vl-8b",
+      "label": "local",
+      "base_url": "http://192.168.1.153:1234/v1",
+      "ok_rate": 100.0,
+      "p50_s": 0.944,
+      "p95_s": 6.962,
+      "tokens_out_per_s": 2.4,
+      "cost_per_1k_tasks": 0.0,
+      "errors": 0,
+      "samples": [
+        {
+          "task_id": "cap-cartes",
+          "ok": true,
+          "latency_s": 6.962373960763216,
+          "prompt_tokens": 674,
+          "completion_tokens": 2,
+          "reply": "3",
+          "error": ""
+        },
+        {
+          "task_id": "cap-jour",
+          "ok": true,
+          "latency_s": 0.935896853916347,
+          "prompt_tokens": 677,
+          "completion_tokens": 3,
+          "reply": "dimanche",
+          "error": ""
+        },
+        {
+          "task_id": "cap-lignes",
+          "ok": true,
+          "latency_s": 0.8428724557161331,
+          "prompt_tokens": 684,
+          "completion_tokens": 2,
+          "reply": "4",
+          "error": ""
+        },
+        {
+          "task_id": "cap-bouton",
+          "ok": true,
+          "latency_s": 0.9511379878968,
+          "prompt_tokens": 677,
+          "completion_tokens": 3,
+          "reply": "Relancer",
+          "error": ""
+        },
+        {
+          "task_id": "cap-badge",
+          "ok": true,
+          "latency_s": 0.930334304459393,
+          "prompt_tokens": 680,
+          "completion_tokens": 3,
+          "reply": "12",
+          "error": ""
+        },
+        {
+          "task_id": "cap-titre",
+          "ok": true,
+          "latency_s": 1.2477051746100187,
+          "prompt_tokens": 672,
+          "completion_tokens": 6,
+          "reply": "Sauvegardes",
+          "error": ""
+        },
+        {
+          "task_id": "cap-volume",
+          "ok": true,
+          "latency_s": 1.1629153015092015,
+          "prompt_tokens": 674,
+          "completion_tokens": 5,
+          "reply": "1,8 To",
+          "error": ""
+        },
+        {
+          "task_id": "cap-boutons",
+          "ok": true,
+          "latency_s": 0.8325015949085355,
+          "prompt_tokens": 674,
+          "completion_tokens": 2,
+          "reply": "2",
+          "error": ""
+        },
+        {
+          "task_id": "cap-incident",
+          "ok": true,
+          "latency_s": 1.7570731453597546,
+          "prompt_tokens": 678,
+          "completion_tokens": 11,
+          "reply": "échec disque sur nas-02",
+          "error": ""
+        },
+        {
+          "task_id": "cap-serveurs",
+          "ok": true,
+          "latency_s": 0.8395985774695873,
+          "prompt_tokens": 671,
+          "completion_tokens": 2,
+          "reply": "5",
+          "error": ""
+        }
+      ]
+    }
+  ]
+}

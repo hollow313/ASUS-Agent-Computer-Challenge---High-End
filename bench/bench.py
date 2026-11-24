@@ -35,6 +35,8 @@ from typing import Any
 BENCH_DIR = Path(__file__).resolve().parent
 REPORTS_DIR = BENCH_DIR / "reports"
 TASKS_FILE = BENCH_DIR / "tasks.jsonl"
+VISION_TASKS_FILE = BENCH_DIR / "tasks_vision.jsonl"
+CAPTURES_DIR = BENCH_DIR / "captures"
 PRICES_FILE = BENCH_DIR / "prices.json"
 
 
@@ -113,6 +115,21 @@ def load_prices() -> dict[str, dict[str, float]]:
     return {}
 
 
+def load_vision_tasks(path: Path = VISION_TASKS_FILE, captures: Path | None = None) -> list[dict[str, Any]]:
+    """Tâches visuelles : chaque ligne porte une image du dossier captures, encodée ici."""
+    import base64
+
+    directory = Path(captures) if captures else CAPTURES_DIR
+    tasks = load_tasks(path)
+    for task in tasks:
+        image = directory / str(task["image"])
+        if not image.is_file():
+            raise SystemExit(f"capture absente : {image}")
+        mime = "image/png" if image.suffix.lower() == ".png" else "image/jpeg"
+        task["image_data_url"] = f"data:{mime};base64," + base64.b64encode(image.read_bytes()).decode()
+    return tasks
+
+
 def load_tasks(path: Path = TASKS_FILE) -> list[dict[str, Any]]:
     tasks = []
     for line in path.read_text(encoding="utf-8").splitlines():
@@ -166,12 +183,20 @@ def _is_local(url: str) -> bool:
     return any(h in url for h in ("localhost", "127.0.0.1", "192.168.", "10.", "host.docker.internal", "ollama"))
 
 
-def ask(target: Target, prompt: str, system: str, timeout: int) -> tuple[str, int, int, float]:
+def ask(
+    target: Target, prompt: str, system: str, timeout: int, image_data_url: str | None = None
+) -> tuple[str, int, int, float]:
+    content: Any = prompt
+    if image_data_url:
+        content = [
+            {"type": "text", "text": prompt},
+            {"type": "image_url", "image_url": {"url": image_data_url}},
+        ]
     payload = {
         "model": target.model,
         "messages": [
             {"role": "system", "content": system},
-            {"role": "user", "content": prompt},
+            {"role": "user", "content": content},
         ],
         "temperature": 0,
         "stream": False,
@@ -225,7 +250,9 @@ def run_target(target: Target, tasks: list[dict[str, Any]], repeat: int, timeout
     for round_index in range(repeat):
         for task in tasks:
             try:
-                text, prompt_tokens, completion_tokens, latency = ask(target, task["prompt"], system, timeout)
+                text, prompt_tokens, completion_tokens, latency = ask(
+                    target, task["prompt"], system, timeout, task.get("image_data_url")
+                )
                 ok = grade(task, text)
                 result.samples.append(
                     Sample(task["id"], ok, latency, prompt_tokens, completion_tokens, reply=text[:200])
@@ -340,7 +367,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Banc de mesure agent local vs cloud")
     parser.add_argument("--target", action="append", default=[], help="nom=url|modèle[|clé]")
     parser.add_argument("--targets", help="fichier JSON de cibles (bench/targets.example.json)")
-    parser.add_argument("--tasks", default=str(TASKS_FILE))
+    parser.add_argument("--tasks", default=None, help="fichier de tâches (défaut selon la suite)")
+    parser.add_argument("--suite", choices=["text", "vision"], default="text", help="jeu de tâches")
+    parser.add_argument(
+        "--captures", default=str(CAPTURES_DIR), help="dossier des images du banc vision"
+    )
     parser.add_argument("--repeat", type=int, default=1)
     parser.add_argument("--timeout", type=int, default=180)
     parser.add_argument("--quiet", action="store_true")
@@ -355,8 +386,13 @@ def main(argv: list[str] | None = None) -> int:
     if not targets:
         parser.error("au moins une cible : --target ou --targets")
 
-    tasks = load_tasks(Path(args.tasks))
-    print(f"▸ {len(tasks)} tâches · {args.repeat} passe(s) · {len(targets)} cible(s)")
+    if args.suite == "vision":
+        tasks = load_vision_tasks(
+            Path(args.tasks) if args.tasks else VISION_TASKS_FILE, Path(args.captures)
+        )
+    else:
+        tasks = load_tasks(Path(args.tasks) if args.tasks else TASKS_FILE)
+    print(f"▸ {len(tasks)} tâches · suite {args.suite} · {args.repeat} passe(s) · {len(targets)} cible(s)")
     results = []
     for target in targets:
         print(f"\n, {target.name} ({target.label}, {target.model}) → {target.base_url}")

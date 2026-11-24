@@ -472,6 +472,61 @@ def build_registry(
         note(dest)
         return f"déplacé {src} → {dst}"
 
+
+    MAX_IMAGE_BYTES = 1_500_000
+
+    def _image_header(data: bytes) -> tuple[str, int, int] | None:
+        """Format, largeur, hauteur, lus dans l'en-tête. Aucune dépendance, aucun décodage complet."""
+        if data[:8] == b"\x89PNG\r\n\x1a\n" and data[12:16] == b"IHDR":
+            width = int.from_bytes(data[16:20], "big")
+            height = int.from_bytes(data[20:24], "big")
+            return "PNG", width, height
+        if data[:2] == b"\xff\xd8":
+            index = 2
+            while index < len(data) - 9:
+                if data[index] != 0xFF:
+                    index += 1
+                    continue
+                marker = data[index + 1]
+                if marker in (0xC0, 0xC1, 0xC2, 0xC3):  # SOF0 a SOF3
+                    height = int.from_bytes(data[index + 5 : index + 7], "big")
+                    width = int.from_bytes(data[index + 7 : index + 9], "big")
+                    return "JPEG", width, height
+                if marker in (0xD8, 0xD9) or 0xD0 <= marker <= 0xD7:
+                    index += 2
+                    continue
+                length = int.from_bytes(data[index + 2 : index + 4], "big")
+                index += 2 + max(length, 2)
+            return "JPEG", 0, 0
+        return None
+
+    def image_probe(path: str) -> str:
+        """Mesure une image : format, dimensions, poids. Le fait, quand le modèle donne la lecture."""
+        target = sandbox.resolve(path)
+        if not target.is_file():
+            raise ToolError(f"image introuvable : {path}{hint_for(path)}")
+        size = target.stat().st_size
+        if size > MAX_IMAGE_BYTES:
+            raise ToolError(
+                f"image trop lourde pour un modèle local : {size / 1_000_000:.1f} Mo, "
+                f"plafond {MAX_IMAGE_BYTES / 1_000_000:.1f} Mo. Réduis la capture avant de la relancer."
+            )
+        head = target.read_bytes()[:65_536]
+        parsed = _image_header(head)
+        if parsed is None:
+            raise ToolError(
+                f"ce fichier n'est pas une image lisible (PNG ou JPEG attendu) : {path}. "
+                "Vérifie l'extension et le contenu."
+            )
+        fmt, width, height = parsed
+        if not width or not height:
+            raise ToolError(f"dimensions illisibles dans l'en-tête de {path}")
+        # une image d'entrée n'est pas un livrable : on ne la déclare pas comme artefact
+        return (
+            f"{width} x {height}, {size / 1000:.0f} ko, {fmt}, ratio {width / height:.2f}. "
+            f"Chaque constat doit citer une zone de cette image, en pixels."
+        )
+
     def csv_profile(path: str) -> str:
         target = sandbox.resolve(path)
         if not target.is_file():
@@ -612,6 +667,13 @@ def build_registry(
             chart_bar,
         ),
         "rss_rank": Tool("rss_rank", "rss_rank(paths[], top_n?)", "lit des flux RSS et les classe", rss_rank),
+        "image_probe": Tool(
+            "image_probe",
+            "image_probe(path)",
+            "mesure une image du bac à sable : format, dimensions en pixels, poids, et rappelle que "
+            "chaque constat doit citer une zone. À appeler avant de décrire une capture",
+            image_probe,
+        ),
         "http_get": Tool(
             "http_get",
             "http_get(url, max_chars?)",

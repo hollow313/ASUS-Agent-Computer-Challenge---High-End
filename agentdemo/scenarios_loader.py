@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import re
@@ -27,6 +28,7 @@ OVERRIDE_FIELDS = (
     "exec",
     "inputs",
     "require_approval",
+    "vision",
 )
 
 
@@ -67,6 +69,7 @@ class Scenario:
     exec_config: dict[str, Any] = field(default_factory=dict)
     inputs: dict[str, Any] = field(default_factory=dict)
     require_approval: bool = False
+    vision: dict[str, Any] = field(default_factory=dict)
     overridden: bool = False
 
     @property
@@ -156,6 +159,7 @@ class Scenario:
             "exec": self.exec_config,
             "inputs": self.inputs,
             "require_approval": self.require_approval,
+            "vision": self.vision,
             "builtin": self.builtin,
             "overridden": self.overridden,
             "user": str(self.root).startswith(str(user_scenarios_dir())),
@@ -201,6 +205,7 @@ def list_scenarios(dirs: list[Path] | None = None) -> list[Scenario]:
                     exec_config=dict(meta.get("exec") or {}),
                     inputs=dict(meta.get("inputs") or {}),
                     require_approval=bool(meta.get("require_approval")),
+                    vision=dict(meta.get("vision") or {}),
                     overridden=overridden,
                 )
             )
@@ -302,6 +307,7 @@ def create_scenario(
     exec_config: dict[str, Any] | None = None,
     inputs: dict[str, Any] | None = None,
     require_approval: bool | None = None,
+    vision: dict[str, Any] | None = None,
 ) -> Scenario:
     """Crée un scénario utilisateur, sans cassette : il se lance en mode réel, puis s'enregistre."""
     slug = str(slug or "").strip().lower()
@@ -331,6 +337,8 @@ def create_scenario(
     meta["network"] = {"mode": mode, "hosts": hosts}
     if require_approval is not None:
         meta["require_approval"] = bool(require_approval)
+    if vision is not None:
+        meta["vision"] = dict(vision)
     meta["exec"] = {
         "allow_unsandboxed": bool((exec_config or {}).get("allow_unsandboxed")),
         "reason": str((exec_config or {}).get("reason") or ""),
@@ -384,6 +392,7 @@ def scenario_detail(slug: str) -> dict[str, Any]:
         "exec": scenario.exec_config,
         "inputs": scenario.inputs,
         "require_approval": scenario.require_approval,
+        "vision": scenario.vision,
         "max_steps": scenario.max_steps,
         "objective": scenario.objective,
         "title": scenario.title,
@@ -430,6 +439,8 @@ def update_scenario(slug: str, payload: dict[str, Any]) -> Scenario:
             "allow_unsandboxed": bool(payload["exec"].get("allow_unsandboxed")),
             "reason": str(payload["exec"].get("reason") or ""),
         }
+    if isinstance(payload.get("vision"), dict):
+        meta["vision"] = dict(payload["vision"])
     if "require_approval" in payload:
         meta["require_approval"] = bool(payload.get("require_approval"))
     if isinstance(payload.get("inputs"), dict):
@@ -478,3 +489,46 @@ def reset_scenario(slug: str) -> Scenario:
     if path.is_file():
         path.unlink()
     return get_scenario(slug)
+
+IMAGE_FORMATS = {".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg"}
+MAX_IMAGE_BYTES = 1_500_000
+
+
+def vision_image_path(scenario: "Scenario") -> Path:
+    """Chemin de l'image déclarée par le scénario, vérifié : pas de remontée, format connu, taille bornée."""
+    declaration = scenario.vision or {}
+    name = str(declaration.get("image") or "").strip()
+    if not name:
+        raise ValueError("vision.image manquant : indique un fichier du dossier fixtures")
+    if "/" in name or "\\" in name or name.startswith(".."):
+        raise ValueError(f"vision.image doit être un simple nom de fichier, pas un chemin : {name!r}")
+    suffix = Path(name).suffix.lower()
+    if suffix not in IMAGE_FORMATS:
+        raise ValueError(f"format d'image non reconnu pour vision.image : {name!r} (PNG ou JPEG)")
+    path = scenario.root / "fixtures" / name
+    if not path.is_file():
+        raise ValueError(f"image déclarée absente : {path}")
+    limit = int(declaration.get("max_bytes") or MAX_IMAGE_BYTES)
+    size = path.stat().st_size
+    if size > limit:
+        raise ValueError(
+            f"image trop lourde : {name} fait {size / 1_000_000:.1f} Mo, plafond {limit / 1_000_000:.1f} Mo"
+        )
+    if not _looks_like_image(path):
+        raise ValueError(f"le fichier {name} n'est pas une image PNG ou JPEG lisible")
+    return path
+
+
+def _looks_like_image(path: Path) -> bool:
+    head = path.read_bytes()[:12]
+    return head[:8] == b"\x89PNG\r\n\x1a\n" or head[:2] == b"\xff\xd8"
+
+
+def vision_data_url(scenario: "Scenario") -> str | None:
+    """Data URL prête pour le planner, ou None si le scénario ne déclare pas de vision."""
+    if not scenario.vision:
+        return None
+    path = vision_image_path(scenario)
+    encoded = base64.b64encode(path.read_bytes()).decode()
+    mime = IMAGE_FORMATS[path.suffix.lower()]
+    return f"data:{mime};base64,{encoded}"

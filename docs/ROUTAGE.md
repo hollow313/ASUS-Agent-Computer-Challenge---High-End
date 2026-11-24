@@ -89,3 +89,19 @@ n'est pas consulté. C'est le comportement voulu pour un test ciblé.
 Ce n'est pas un routeur appris : les règles sont écrites à la main, et une règle fausse se voit
 immédiatement dans l'historique. Le jour où je mesure le coût réel par type de tâche, ces règles
 deviendront des seuils calculés plutôt que des intentions.
+
+## Modèles qui voient
+
+Un scénario peut déclarer une image (`vision`). Elle est envoyée dans le message d'ouverture sous la
+forme standard, celle qu'acceptent LM Studio et Ollama :
+
+```json
+{"role": "user", "content": [
+  {"type": "text", "text": "Objectif : ..."},
+  {"type": "image_url", "image_url": {"url": "data:image/png;base64,..."}}
+]}
+```
+
+Certains serveurs compatibles refusent le champ `image_url` : l'erreur renvoyée nomme alors le champ, et
+il faut soit charger un modèle vision, soit retirer le bloc `vision` du scénario. Le repli ne s'applique
+pas à ce cas : une image refusée n'est pas une panne de transport.

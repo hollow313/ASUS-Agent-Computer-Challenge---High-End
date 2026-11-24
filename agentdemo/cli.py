@@ -36,8 +36,13 @@ def _make_planner(
 ):
     if live:
         stub_tools = build_registry(_NullSandbox(), [])
+        image = None
+        if getattr(scenario, "vision", None):
+            from .scenarios_loader import vision_data_url
+
+            image = vision_data_url(scenario)
         return OpenAICompatPlanner(
-            base_url=base_url, model=model, api_key=api_key, tools=stub_tools
+            base_url=base_url, model=model, api_key=api_key, tools=stub_tools, image_data_url=image
         )
     return ReplayPlanner(scenario.cassette(index))
 
@@ -147,6 +152,8 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     print(f"▸ scénario  : {scenario.slug} ({scenario.title})")
     print(f"▸ objectif  : {scenario.objective}")
+    if scenario.vision:
+        print(f"▸ vision    : {scenario.vision.get('image')} (envoyée une fois au modèle)")
     print(f"▸ espace    : {workspace}")
     print()
 

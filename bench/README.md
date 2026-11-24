@@ -82,3 +82,18 @@ Une ligne JSON dans `tasks.jsonl` :
 La notation est volontairement bête : la réponse doit contenir **toutes** les chaînes `expect`
 (après normalisation : minuscules, espaces et symboles retirés). Pas de juge automatique, pas de
 score inventé.
+
+## Suite vision
+
+Dix captures, une question vérifiable chacune, notation par correspondance exacte. Les images sont
+rendues à taille fixe, 1024 x 600, et versionnées dans `bench/captures/`.
+
+```bash
+python3 bench/bench.py --suite vision --target "vl=http://127.0.0.1:1234/v1|qwen3-vl-8b-4bit" --timeout 150
+```
+
+Mesure du 24/11/2026 sur 3 Go : **100 % sur les dix tâches**, p50 0,94 s, p95 6,96 s, 0 €. Rapport :
+[`../docs/mesures/mesures-20261124-vision.md`](../docs/mesures/mesures-20261124-vision.md).
+
+Le même modèle sur les tâches texte fait 90 % : la lecture d'image n'est pas plus dure que le texte
+court, elle est simplement plus lente au premier appel, le temps que le modèle vision se charge.

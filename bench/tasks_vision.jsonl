@@ -1,0 +1,10 @@
+{"id": "cap-cartes", "image": "cap-01.png", "prompt": "Combien de cartes voit-on dans cette capture ? Réponds par le nombre seul.", "expect": ["3"]}
+{"id": "cap-jour", "image": "cap-02.png", "prompt": "Quel jour de la semaine la maintenance est-elle planifiée ? Réponds par un seul mot.", "expect": ["dimanche"]}
+{"id": "cap-lignes", "image": "cap-03.png", "prompt": "Combien de lignes de serveurs le tableau contient-il, sans compter l'en-tête ? Réponds par le nombre seul.", "expect": ["4"]}
+{"id": "cap-bouton", "image": "cap-04.png", "prompt": "Quel est le libellé exact du bouton visible ? Réponds par ce libellé seul.", "expect": ["relancer"]}
+{"id": "cap-badge", "image": "cap-05.png", "prompt": "Quel nombre est affiché dans la pastille à côté du titre Alertes ? Réponds par le nombre seul.", "expect": ["12"]}
+{"id": "cap-titre", "image": "cap-06.png", "prompt": "Quel est le titre principal de cette page ? Réponds par ce titre seul.", "expect": ["sauvegardes"]}
+{"id": "cap-volume", "image": "cap-07.png", "prompt": "Quel volume total est protégé ? Réponds par la valeur avec son unité.", "expect": ["1,8 to"]}
+{"id": "cap-boutons", "image": "cap-08.png", "prompt": "Combien de boutons la page propose-t-elle ? Réponds par le nombre seul.", "expect": ["2"]}
+{"id": "cap-incident", "image": "cap-09.png", "prompt": "Quel incident est signalé dans l'encadré rouge ? Cite les trois mots de l'incident.", "expect": ["echec disque", "nas-02"]}
+{"id": "cap-serveurs", "image": "cap-10.png", "prompt": "Combien de serveurs sont listés ? Réponds par le nombre seul.", "expect": ["5"]}

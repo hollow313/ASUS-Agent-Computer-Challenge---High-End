@@ -10,7 +10,7 @@ files, re-reads what it produced, learns from its mistakes and resumes its work 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
-![tests](https://img.shields.io/badge/tests-64%20passing-2ea043)
+![tests](https://img.shields.io/badge/tests-72%20passing-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **ASUS Agent Computer Challenge, High-End category.** Vigie is the distributable version of the agent that has been running on my machine for months; this repository publishes its core, without my data and without my keys.
@@ -21,7 +21,7 @@ files, re-reads what it produced, learns from its mistakes and resumes its work 
 - [What the agent does](#what-the-agent-does)
 - [What the card unlocks](#what-the-card-unlocks)
 - [The measured numbers](#the-measured-numbers)
-- [Seven scenarios, seven deliverables](#seven-scenarios-seven-deliverables)
+- [Eight scenarios, eight deliverables](#eight-scenarios-eight-deliverables)
 - [A real case, on the internet](#a-real-case-on-the-internet)
 - [Architecture and loop](#architecture-and-loop)
 - [Robustness: fallback, resume, review](#robustness-fallback-resume-review-approvals)
@@ -34,10 +34,10 @@ files, re-reads what it produced, learns from its mistakes and resumes its work 
 ```bash
 git clone https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End
 cd ASUS-Agent-Computer-Challenge---High-End
-python3 -m agentdemo scenarios                  # the seven scenarios
+python3 -m agentdemo scenarios                  # the eight scenarios
 python3 -m agentdemo run --scenario cyber-brief # one full, deterministic run
 python3 -m agentdemo serve --port 8080          # the same thing with the interface
-python3 -m unittest discover -s tests           # 64 tests, three seconds
+python3 -m unittest discover -s tests           # 72 tests, three seconds
 ```
 
 ### ▶ The presentation on video
@@ -46,7 +46,7 @@ python3 -m unittest discover -s tests           # 64 tests, three seconds
 
 *Click the image to play the video on YouTube (2 min 25).*
 
-It shows the seven scenarios, procedural memory, delegation, routing with
+It shows the eight scenarios, procedural memory, delegation, routing with
 fallback, crash resume, the second-model review, manual approval and the card sizing. The short demo,
 1 min 03, is online too: [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs). The file also lives in the
 repository: [`docs/video/vigie-presentation.mp4`](docs/video/vigie-presentation.mp4).
@@ -145,7 +145,7 @@ Measured 2026-11-21 13:37 UTC, ten tasks, one pass. Raw report and JSON:
 [`docs/mesures/mesures-20261121.md`](docs/mesures/mesures-20261121.md). Method, prices and files:
 [`bench/README.md`](bench/README.md) and [`docs/comparatif-local-cloud.md`](docs/comparatif-local-cloud.md).
 
-## Seven scenarios, seven deliverables
+## Eight scenarios, eight deliverables
 
 Each scenario is a folder: the contract (`scenario.json`), a decision cassette, fixtures. The same code
 replays or runs live.
@@ -158,6 +158,7 @@ replays or runs live.
 | `local-audit` | inspects logs, ports, permissions | `RAPPORT-AUDIT.md` |
 | `delegation` | three sub-agents, three areas, aggregation | `comparatif.md` |
 | `self-repair` | repairs, then documents the watch | `veille.md` |
+| `capture-audit` | a screenshot read by the local model, measured by a tool, every finding cites a pixel region |
 | `revue-contradictoire` | first draft rejected by a reviewer, then fixed | `synthese.md` |
 
 Detail, cassettes and criteria: [`docs/SCENARIOS.md`](docs/SCENARIOS.md).
@@ -249,11 +250,15 @@ network is denied by default, with an allowlist checked on each call. Detail:
 - Without isolation available on the machine, the `run` tool is not exposed at all.
 - The local cost figure counts neither electricity nor hardware amortisation.
 - `inbox-triage` needs a configured IMAP account; without it, the run stops cleanly and says so.
+- Vision reads still images up to 1.5 MB, without resizing: no video, no scanned PDF, and no image
+  processing dependency is installed to do it.
+- The 8, 16 and 32 GB tiers in [`docs/MATERIEL.md`](docs/MATERIEL.md) are computed, not measured. Only
+  the 3 GB card produced the published latencies.
 
 ## Build, test, extend
 
 ```bash
-python3 -m unittest discover -s tests     # 64 tests
+python3 -m unittest discover -s tests     # 72 tests
 python3 -m agentdemo validate             # cassettes against real tools
 python3 -m agentdemo doctor               # installation checks
 python3 -m agentdemo fit --vram 32        # memory sizing
