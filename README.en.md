@@ -250,6 +250,8 @@ network is denied by default, with an allowlist checked on each call. Detail:
 - Without isolation available on the machine, the `run` tool is not exposed at all.
 - The local cost figure counts neither electricity nor hardware amortisation.
 - `inbox-triage` needs a configured IMAP account; without it, the run stops cleanly and says so.
+- On a 3 GB card, a step that re-reads a long file can exceed the 120-second per-call timeout:
+  `--timeout 300` exists for that, and without it the run stops on a delay, not on an agent error.
 - Vision reads still images up to 1.5 MB, without resizing: no video, no scanned PDF, and no image
   processing dependency is installed to do it.
 - The 8, 16 and 32 GB tiers in [`docs/MATERIEL.md`](docs/MATERIEL.md) are computed, not measured. Only

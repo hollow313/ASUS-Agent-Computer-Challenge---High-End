@@ -256,6 +256,8 @@ Détail : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - Sans isolation disponible sur la machine, l'outil `run` n'est pas exposé du tout.
 - Le coût affiché pour le local ne compte ni l'électricité ni l'amortissement du matériel.
 - `inbox-triage` exige un compte IMAP configuré ; sans lui, le run s'arrête proprement en le disant.
+- Sur une carte de 3 Go, une étape qui relit un long fichier peut dépasser les 120 secondes d'attente
+  par appel : `--timeout 300` existe pour ça, et sans lui le run s'arrête sur un délai, pas sur une erreur d'agent.
 - La vision lit des images fixes de 1,5 Mo au plus, sans redimensionnement : pas de vidéo, pas de PDF
   scanné, aucune dépendance de traitement d'image n'est installée pour le faire.
 - Les paliers 8, 16 et 32 Go de [`docs/MATERIEL.md`](docs/MATERIEL.md) sont calculés, pas mesurés. Seule
