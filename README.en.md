@@ -162,6 +162,28 @@ replays or runs live.
 | `revue-contradictoire` | first draft rejected by a reviewer, then fixed | `synthese.md` |
 
 Detail, cassettes and criteria: [`docs/SCENARIOS.md`](docs/SCENARIOS.md).
+### Vision, multimodal
+
+An image enters the run like any other file of the sandbox, and the scenario declares it:
+
+```json
+"vision": {"image": "capture.png", "max_bytes": 1500000}
+```
+
+Three things happen next. The image is sent **once**, in the first message, in the shape LM Studio and
+Ollama already accept (two parts, text then image): sending it at every step would multiply input tokens
+by the number of steps. The `image_probe` tool reads the file header and returns what the model cannot
+count reliably (1440 x 900, weight, 1.5 MB cap) with no image processing dependency at all. The
+deliverable must cite a pixel region for every finding.
+
+This is the one scenario where "does the model actually see?" can be checked: ten captures, ten questions
+whose answer is in the image, exact-match grading. **100 % on the 3 GB card**, p50 0.94 s, 0 €. On text
+tasks the same model scores 90 %, and the 7B 60 %.
+
+The honest part: on a real audit report the model cited four defects and two of its regions were
+approximate. It reads, it does not measure. That is exactly why the tool and the review exist, and the
+trace is in [`docs/runs/capture-audit-vl/`](docs/runs/capture-audit-vl/README.md).
+
 
 ### A real case, on the internet
 

@@ -166,6 +166,28 @@ fixtures. Le même code rejoue ou exécute.
 | `revue-contradictoire` | premier jet rejeté par un relecteur, puis corrigé | `synthese.md` |
 
 Détail, cassettes et critères : [`docs/SCENARIOS.md`](docs/SCENARIOS.md).
+### La vision, multimodal
+
+Une image entre dans le run comme n'importe quel fichier du bac à sable, et le scénario la déclare :
+
+```json
+"vision": {"image": "capture.png", "max_bytes": 1500000}
+```
+
+Trois choses se passent ensuite. L'image part **une seule fois**, au premier message, sous la forme que
+LM Studio et Ollama acceptent déjà (deux parts, texte puis image) : la renvoyer à chaque étape
+multiplierait les jetons d'entrée par le nombre d'étapes. L'outil `image_probe` lit l'en-tête du fichier
+et rend ce que le modèle ne sait pas compter de façon fiable (1440 x 900, poids, plafond à 1,5 Mo) sans
+aucune dépendance de traitement d'image. Le livrable, lui, doit citer une zone en pixels par constat.
+
+C'est le seul scénario où la réponse à la question « le modèle voit-il vraiment ? » se vérifie : dix
+captures, dix questions dont la réponse est dans l'image, notation exacte. **100 % sur la carte de 3 Go**,
+p50 0,94 s, 0 €. Sur les tâches texte, le même modèle fait 90 %, et le 7B 60 %.
+
+Le détail honnête : sur un rapport d'audit réel, le modèle a cité quatre défauts et deux zones
+approximatives. Il lit, il ne mesure pas. C'est précisément pour ça que l'outil et la revue existent, et
+la trace est dans [`docs/runs/capture-audit-vl/`](docs/runs/capture-audit-vl/README.md).
+
 
 ### Un cas réel, sur internet
 
@@ -246,7 +268,7 @@ au dossier du run, et l'outil `run` n'est exposé que si une isolation est dispo
 l'autorise explicitement. Le réseau est refusé par défaut, avec une allowlist vérifiée par appel.
 Détail : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-## Un cas réel, mesuré
+### Ce que les runs réels du 24/11 ont montré
 
 Sept scénarios ont été joués en réel sur la carte de 3 Go, avec un modèle vision de 8 milliards : cinq
 terminent du premier coup, deux ont demandé la correction du délai d'attente décrite dans les limites.
