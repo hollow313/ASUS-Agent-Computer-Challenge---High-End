@@ -46,9 +46,10 @@ python3 -m unittest discover -s tests           # 72 tests, trois secondes
 
 *Cliquez sur l'image pour lancer la vidéo sur YouTube (2 min 58).*
 
-Elle montre les huit scénarios, la vision, la mémoire procédurale, la délégation, le routage
-avec repli, la reprise après crash, la revue par un second modèle, l'accord manuel et le dimensionnement
-de la carte. La démo courte, 1 min 03, est aussi en ligne : [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs).
+La présentation, [youtu.be/jqpE5IXz8T8](https://youtu.be/jqpE5IXz8T8), montre les huit scénarios, la
+vision, la mémoire procédurale, la délégation, le routage avec repli, la reprise après crash, la revue par
+un second modèle, l'accord manuel et le dimensionnement de la carte. La démo courte, 1 min 03, est aussi en
+ligne : [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs).
 Le fichier reste dans le dépôt : [`docs/video/vigie-presentation.mp4`](docs/video/vigie-presentation.mp4).
 
 Aucune dépendance, aucune clé, aucun accès réseau : le mode replay rejoue des décisions enregistrées,

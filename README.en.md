@@ -46,9 +46,10 @@ python3 -m unittest discover -s tests           # 72 tests, three seconds
 
 *Click the image to play the video on YouTube (2 min 58).*
 
-It shows the eight scenarios, vision, procedural memory, delegation, routing with
-fallback, crash resume, the second-model review, manual approval and the card sizing. The short demo,
-1 min 03, is online too: [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs). The file also lives in the
+The presentation, [youtu.be/jqpE5IXz8T8](https://youtu.be/jqpE5IXz8T8), shows the eight scenarios, vision,
+procedural memory, delegation, routing with fallback, crash resume, the second-model review, manual
+approval and the card sizing. The short demo, 1 min 03, is online too:
+[youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs). The file also lives in the
 repository: [`docs/video/vigie-presentation.mp4`](docs/video/vigie-presentation.mp4).
 
 No dependency, no key, no network access: replay mode plays recorded decisions, but the tools really
