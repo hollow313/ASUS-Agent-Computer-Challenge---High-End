@@ -246,6 +246,13 @@ au dossier du run, et l'outil `run` n'est exposé que si une isolation est dispo
 l'autorise explicitement. Le réseau est refusé par défaut, avec une allowlist vérifiée par appel.
 Détail : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+## Un cas réel, mesuré
+
+Sept scénarios ont été joués en réel sur la carte de 3 Go, avec un modèle vision de 8 milliards : cinq
+terminent du premier coup, deux ont demandé la correction du délai d'attente décrite dans les limites.
+Le détail, étape par étape, avec ce qui a cassé et pourquoi :
+[`docs/runs/campagne-20261124.md`](docs/runs/campagne-20261124.md).
+
 ## Limites assumées
 
 - Le mode replay ne prouve pas la qualité d'un modèle : il prouve la mécanique de l'agent.
