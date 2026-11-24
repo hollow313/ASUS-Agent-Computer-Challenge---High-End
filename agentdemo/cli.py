@@ -33,6 +33,7 @@ def _make_planner(
     base_url: str | None,
     index: int = 0,
     api_key: str | None = None,
+    timeout: int = 120,
 ):
     if live:
         stub_tools = build_registry(_NullSandbox(), [])
@@ -42,7 +43,12 @@ def _make_planner(
 
             image = vision_data_url(scenario)
         return OpenAICompatPlanner(
-            base_url=base_url, model=model, api_key=api_key, tools=stub_tools, image_data_url=image
+            base_url=base_url,
+            model=model,
+            api_key=api_key,
+            tools=stub_tools,
+            image_data_url=image,
+            timeout=timeout,
         )
     return ReplayPlanner(scenario.cassette(index))
 
@@ -163,7 +169,13 @@ def cmd_run(args: argparse.Namespace) -> int:
         for change in scenario.apply_mutations(index, workspace):
             print(f"  (fixture modifiée avant la passe : {change})")
         planner = _make_planner(
-            scenario, args.live, args.model, args.base_url, index, args.api_key
+            scenario,
+            args.live,
+            args.model,
+            args.base_url,
+            index,
+            args.api_key,
+            getattr(args, "timeout", 120),
         )
         print(f"▸ {label or f'passe {index + 1}'} · planificateur {getattr(planner, 'label', '?')}")
 
@@ -709,6 +721,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     run.add_argument("--api-key", help="clé API si l'endpoint en exige une (ou AGENTDEMO_LLM_API_KEY)")
     run.add_argument("--max-steps", type=int)
+    run.add_argument(
+        "--timeout",
+        type=int,
+        default=120,
+        help="secondes d'attente par appel modèle (120 par défaut ; monter à 300 sur une petite carte "
+        "quand une étape relit un long fichier)",
+    )
     run.add_argument("--resume", metavar="RUN_ID", help="reprend un run interrompu depuis son état")
     run.add_argument("--approve", action="store_true", help="demande mon accord avant chaque écriture")
     run.add_argument("--review", action="store_true", help="rejoue la revue enregistrée du scénario")
