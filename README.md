@@ -293,6 +293,13 @@ utilisé. Le tableau complet, échecs et jours manquants compris, est dans
 [`docs/production/journal.md`](docs/production/journal.md) et se recalcule avec
 `python3 docs/production/serie.py`.
 
+Et la preuve de durée ne vient pas de ce dépôt, elle vient de l'instance qui tourne derrière : **50
+briefings du 17 septembre au 25 novembre 2026, un par jour ouvré, aucun jour manqué**, y compris le 11
+novembre férié. La série complète, run par run, est publiée dans
+[`docs/SERIE-PRODUCTION.md`](docs/SERIE-PRODUCTION.md), ses chiffres dans
+[`docs/production/serie-2026.json`](docs/production/serie-2026.json), et son tableau se recalcule avec
+`python3 docs/production/serie_production.py --archive <dossier>`.
+
 Le scénario impose au contrat de lire les trois sources avant le premier tour du modèle, et cette
 contrainte est visible dans le journal : un 8B sur 3 Go ne pense pas à appeler le réseau tout seul, et
 l'annoncer vaut mieux que de le laisser écrire un briefing vide en disant que tout va bien.

@@ -286,6 +286,13 @@ full table, failures and missing days included, is in
 [`docs/production/journal.md`](docs/production/journal.md) and can be recomputed with
 `python3 docs/production/serie.py`.
 
+And the duration proof does not come from this repository: it comes from the production instance behind
+it. **50 briefings from 17 September to 25 November 2026, one per weekday, no day missed**, including the
+11 November public holiday. The full series, run by run, is published in
+[`docs/SERIE-PRODUCTION.md`](docs/SERIE-PRODUCTION.md), its figures in
+[`docs/production/serie-2026.json`](docs/production/serie-2026.json), and its table is recomputed with
+`python3 docs/production/serie_production.py --archive <folder>`.
+
 The scenario contract requires the three sources to be read before the model's first turn, and that
 constraint shows up in the journal: an 8B on 3 GB does not think of calling the network on its own, and
 saying so is better than letting it write an empty briefing and call it a success.
