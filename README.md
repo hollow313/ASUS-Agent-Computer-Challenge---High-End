@@ -2,8 +2,9 @@
 
 # Vigie
 
-**Un agent qui prend le quart 24 heures sur 24.** Il reçoit un objectif, choisit ses outils, écrit
-des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son travail après un crash.
+**Un agent qui travaille quand vous n'êtes pas là.** Il reçoit un objectif, choisit ses outils, écrit des
+fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son travail après un crash, y compris
+si le processus a été tué au milieu.
 
 [La présentation en vidéo](https://youtu.be/jqpE5IXz8T8) · [Démo en 30 secondes](#en-trente-secondes) · [Les chiffres](#les-chiffres-mesurés) · [Les limites](#limites-assumées)
 
@@ -21,7 +22,7 @@ des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son tr
 - [Ce que fait l'agent](#ce-que-fait-lagent)
 - [Ce que la carte débloque](#ce-que-la-carte-débloque)
 - [Les chiffres mesurés](#les-chiffres-mesurés)
-- [Huit scénarios, huit livrables](#huit-scénarios-huit-livrables)
+- [Neuf scénarios, neuf livrables](#neuf-scénarios-neuf-livrables)
 - [Un cas réel, sur internet](#un-cas-réel-sur-internet)
 - [Architecture et boucle](#architecture-et-boucle)
 - [Robustesse : repli, reprise, revue](#robustesse-repli-reprise-revue-autorisations)
@@ -52,11 +53,11 @@ Un run qui n'écrit aucun fichier sort en `blocked`, jamais en `done`.*
 
 ### ▶ La présentation en vidéo
 
-[![Lancer la présentation sur YouTube, 2 min 58](https://i.ytimg.com/vi/jqpE5IXz8T8/sddefault.jpg)](https://youtu.be/jqpE5IXz8T8)
+[![Lancer la présentation sur YouTube, 3 min 36](https://i.ytimg.com/vi/jqpE5IXz8T8/sddefault.jpg)](https://youtu.be/jqpE5IXz8T8)
 
-*Cliquez sur l'image pour lancer la vidéo sur YouTube (2 min 58).*
+*Cliquez sur l'image pour lancer la vidéo sur YouTube (3 min 36).*
 
-La présentation, [youtu.be/jqpE5IXz8T8](https://youtu.be/jqpE5IXz8T8), montre les huit scénarios, la
+La présentation, [youtu.be/jqpE5IXz8T8](https://youtu.be/jqpE5IXz8T8), montre les neuf scénarios, la
 vision, la mémoire procédurale, la délégation, le routage avec repli, la reprise après crash, la revue par
 un second modèle, l'accord manuel et le dimensionnement de la carte. La démo courte, 1 min 03, est aussi en
 ligne : [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs).
@@ -160,7 +161,7 @@ Mesure du 21/11/2026 13:37 UTC, dix tâches, une passe. Rapport brut et JSON :
 [`bench/README.md`](bench/README.md) et
 [`docs/comparatif-local-cloud.md`](docs/comparatif-local-cloud.md).
 
-## Huit scénarios, huit livrables
+## Neuf scénarios, neuf livrables
 
 Chaque scénario est un dossier : le contrat (`scenario.json`), une cassette de décisions, des
 fixtures. Le même code rejoue ou exécute.
@@ -174,6 +175,7 @@ fixtures. Le même code rejoue ou exécute.
 | `delegation` | trois sous-agents, trois zones, agrégation | `comparatif.md` |
 | `self-repair` | répare puis documente la veille | `veille.md` |
 | `capture-audit` | une capture d'écran lue par le modèle local, mesurée par un outil, chaque constat cite une zone en pixels |
+| `cyber-brief-live` | lit trois sources publiques en réseau, sans fixture | `briefing.md` daté |
 | `revue-contradictoire` | premier jet rejeté par un relecteur, puis corrigé | `synthese.md` |
 
 Détail, cassettes et critères : [`docs/SCENARIOS.md`](docs/SCENARIOS.md).
@@ -310,7 +312,7 @@ Les trois lignes viennent de trois run réels du même jour : le premier à la m
 par le planificateur et par le script lui-même. L'écart entre huit et trois entrées, c'est la variance du
 modèle, et elle est publiée telle quelle.
 
-Le 24 novembre, sept scénarios ont en plus été joués en réel sur la carte de 3 Go : cinq terminent du
+Le 24 novembre, sept scénarios ont aussi été joués en réel sur la carte de 3 Go : cinq terminent du
 premier coup, deux ont demandé la correction du délai d'attente décrite dans les limites. Le détail,
 étape par étape, avec ce qui a cassé et pourquoi :
 [`docs/runs/campagne-20261124.md`](docs/runs/campagne-20261124.md).
@@ -344,7 +346,7 @@ milliards sur 3 Go.
 ## Construire, tester, étendre
 
 ```bash
-python3 -m unittest discover -s tests     # 72 tests
+python3 -m unittest discover -s tests     # 89 tests
 python3 -m agentdemo validate             # cassettes contre outils réels
 python3 -m agentdemo doctor               # contrôles d'installation
 python3 -m agentdemo fit --vram 32        # dimensionnement mémoire

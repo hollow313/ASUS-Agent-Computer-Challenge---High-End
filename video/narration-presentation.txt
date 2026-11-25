@@ -1,35 +1,41 @@
 Vigie, vidéo de présentation finale. Voix off générée par l'agent lui-même (outil tts_speak, fr-FR).
-Montage : video/slides5.py (onze cartons) puis video/build5.py (assemblage et synchronisation).
+Montage : video/slides6.py (treize cartons) puis video/build6.py (assemblage et synchronisation).
 
 1. Accroche
-Vigie. Un agent qui prend le quart vingt-quatre heures sur vingt-quatre. Il reçoit un objectif, choisit ses outils, agit sur de vrais fichiers, relit ce qu'il a produit, apprend de ses erreurs, et reprend après un crash.
+Vigie. Un agent qui travaille quand vous n'êtes pas là. Il reçoit un objectif, choisit ses outils, agit sur de vrais fichiers, relit ce qu'il a produit, apprend de ses erreurs, et reprend après un crash.
 
-2. Le point de départ
+2. Demande libre
+La porte d'entrée, c'est une phrase. Vous écrivez ce que vous voulez, il choisit ses outils, il écrit un fichier. Même boucle, même bac à sable, même journal qu'un scénario : ce qui change, c'est la source du contrat. Et s'il n'écrit aucun fichier, le run sort en bloqué, jamais en réussi.
+
+3. Le point de départ
 Aujourd'hui, il tourne sur une carte de trois gigas. Le plus gros modèle qui rentre fait sept milliards de paramètres : rapide, gratuit, et faux une fois sur deux. Celui qui comprend les tâches ambiguës ne rentre pas.
 
-3. Huit scénarios
-Huit scénarios, huit livrables réels : briefing daté, synthèse chiffrée avec son graphique, tri de boîte mail, audit de sécurité local, auto-réparation, sous-agents, une revue contradictoire où un relecteur refuse le premier jet, et désormais la lecture d'une capture d'écran.
+4. Neuf scénarios
+Neuf scénarios, neuf livrables réels : briefing daté, synthèse chiffrée avec son graphique, tri de boîte mail, audit de sécurité local, auto-réparation, sous-agents, une revue contradictoire où un relecteur refuse le premier jet, la lecture d'une capture d'écran, et désormais la veille sur de vraies sources.
 
-4. Multimodal
+5. Multimodal
 Il voit. Une capture entre dans le bac à sable, part une seule fois vers le modèle, en deux parties, texte et image, et un outil mesure ce que le modèle ne sait pas localiser : mille quatre cent quarante sur neuf cents pixels, le poids, le plafond. Chaque constat du rapport cite sa zone et sa correction. Cent pour cent sur dix captures, moins d'une seconde de médiane, sur la même carte de trois gigas.
 
-5. Mémoire procédurale
+6. Mémoire procédurale
 Quand une étape casse, il écrit la leçon dans une procédure, avec un contrat de vérification. Deuxième passe : quatre étapes au lieu de six. Et si le fichier change de nom, la procédure est retirée au lieu d'être appliquée.
 
-6. Orchestration
+7. Orchestration
 Il sait déléguer. Trois zones, trois sous-agents, chacun avec son budget et son journal. Le parent relit les trois livrables avant d'agréger. La confiance se vérifie, elle ne se déclare pas.
 
-7. Routage et repli
+8. Routage et repli
 Il choisit son modèle : les règles s'évaluent dans l'ordre, chaque décision est journalisée avec sa raison. Une cible peut en déclarer une autre en secours : si la première ne répond pas, il bascule une fois et continue.
 
-8. Robustesse
+9. Robustesse
 Après chaque étape, il écrit son état : un processus tué reprend sans rejouer ce qui est fait. Un second modèle relit le livrable et peut le refuser avec ses motifs. Et l'accord manuel, scénario par scénario, décoché par défaut pour les tâches planifiées.
 
-9. Exploitation
+10. Exploitation
 Côté production : un dossier de CSV, une boîte mail en IMAP, un planning, et un catalogue MCP qu'on ajoute depuis l'interface. Le mot de passe reste dans le volume, et les valeurs sensibles sont masquées dans les journaux.
 
-10. Les chiffres
+11. La veille datée
+Et ça tourne pour de vrai. Le vingt-cinq novembre, trois exécutions de la veille, trois sources lues, le briefing versionné dans le dépôt, une ligne de journal par run. Le premier à la main, les deux suivants par le planificateur. Un jour sans run s'affiche absent, jamais inventé.
+
+12. Les chiffres
 Les chiffres, mesurés, notés exactement. Le sept B réussit soixante pour cent des tâches texte, le huit B quatre-vingt-dix, et cent pour cent sur les images. Gemini Flash, tout, pour sept centimes les mille tâches. Opus, trente-huit centimes. GPT cinq point cinq Pro, trois euros. Le coût n'est pas l'argument : la souveraineté, si.
 
-11. La carte
-C'est le goulot, et le sujet de cette candidature. Trente-deux gigas font tenir un trente-deux milliards en quatre bits, avec de la marge. Sept scénarios ont tourné en réel sur cette carte, la campagne est publiée dans le dépôt. Le dépôt est public, soixante-douze tests passent, deux commandes suffisent, sans clé et sans réseau.
+13. La carte
+C'est le goulot, et le sujet de cette candidature. Trente-deux gigas font tenir un trente-deux milliards en quatre bits, avec de la marge. Sept scénarios ont tourné en réel sur cette carte, et la veille tourne chaque matin. Le dépôt est public, quatre-vingt-neuf tests passent, deux commandes suffisent, sans clé et sans réseau.

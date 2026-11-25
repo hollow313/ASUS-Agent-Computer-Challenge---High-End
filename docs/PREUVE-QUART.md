@@ -1,7 +1,7 @@
-# Preuve longue : une session de quart
+# Preuve longue : une session de travail sans opérateur
 
 Toutes les autres preuves de ce dépôt tiennent en minutes. Celle-ci tient une session de travail réelle :
-plusieurs heures, sans opérateur, avec des pannes provoquées.
+plusieurs heures, sans personne devant l'écran, avec des pannes provoquées.
 
 ## Protocole
 

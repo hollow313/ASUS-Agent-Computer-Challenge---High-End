@@ -2,8 +2,9 @@
 
 # Vigie
 
-**An agent that stands the watch 24 hours a day.** It receives an objective, picks its tools, writes
-files, re-reads what it produced, learns from its mistakes and resumes its work after a crash.
+**An agent that keeps working when you are not there.** It receives an objective, picks its tools, writes
+files, re-reads what it produced, learns from its mistakes and resumes its work after a crash, including
+when the process was killed mid-run.
 
 [Watch the presentation](https://youtu.be/jqpE5IXz8T8) · [30-second demo](#in-thirty-seconds) · [The numbers](#the-measured-numbers) · [The limits](#limits-we-accept)
 
@@ -21,7 +22,7 @@ files, re-reads what it produced, learns from its mistakes and resumes its work 
 - [What the agent does](#what-the-agent-does)
 - [What the card unlocks](#what-the-card-unlocks)
 - [The measured numbers](#the-measured-numbers)
-- [Eight scenarios, eight deliverables](#eight-scenarios-eight-deliverables)
+- [Nine scenarios, nine deliverables](#nine-scenarios-nine-deliverables)
 - [A real case, on the internet](#a-real-case-on-the-internet)
 - [Architecture and loop](#architecture-and-loop)
 - [Robustness: fallback, resume, review](#robustness-fallback-resume-review-approvals)
@@ -50,11 +51,11 @@ A run that writes no file ends as `blocked`, never `done`.*
 
 ### ▶ The presentation on video
 
-[![Watch the presentation on YouTube, 2 min 58](https://i.ytimg.com/vi/jqpE5IXz8T8/sddefault.jpg)](https://youtu.be/jqpE5IXz8T8)
+[![Watch the presentation on YouTube, 3 min 36](https://i.ytimg.com/vi/jqpE5IXz8T8/sddefault.jpg)](https://youtu.be/jqpE5IXz8T8)
 
-*Click the image to play the video on YouTube (2 min 58).*
+*Click the image to play the video on YouTube (3 min 36).*
 
-The presentation, [youtu.be/jqpE5IXz8T8](https://youtu.be/jqpE5IXz8T8), shows the eight scenarios, vision,
+The presentation, [youtu.be/jqpE5IXz8T8](https://youtu.be/jqpE5IXz8T8), shows the nine scenarios, vision,
 procedural memory, delegation, routing with fallback, crash resume, the second-model review, manual
 approval and the card sizing. The short demo, 1 min 03, is online too:
 [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs). The file also lives in the
@@ -154,7 +155,7 @@ Measured 2026-11-21 13:37 UTC, ten tasks, one pass. Raw report and JSON:
 [`docs/mesures/mesures-20261121.md`](docs/mesures/mesures-20261121.md). Method, prices and files:
 [`bench/README.md`](bench/README.md) and [`docs/comparatif-local-cloud.md`](docs/comparatif-local-cloud.md).
 
-## Eight scenarios, eight deliverables
+## Nine scenarios, nine deliverables
 
 Each scenario is a folder: the contract (`scenario.json`), a decision cassette, fixtures. The same code
 replays or runs live.
@@ -168,6 +169,7 @@ replays or runs live.
 | `delegation` | three sub-agents, three areas, aggregation | `comparatif.md` |
 | `self-repair` | repairs, then documents the watch | `veille.md` |
 | `capture-audit` | a screenshot read by the local model, measured by a tool, every finding cites a pixel region |
+| `cyber-brief-live` | reads three public sources over the network, no fixture | dated `briefing.md` |
 | `revue-contradictoire` | first draft rejected by a reviewer, then fixed | `synthese.md` |
 
 Detail, cassettes and criteria: [`docs/SCENARIOS.md`](docs/SCENARIOS.md).
