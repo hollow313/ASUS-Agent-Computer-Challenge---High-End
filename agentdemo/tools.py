@@ -620,7 +620,44 @@ def build_registry(
         note(dest)
         return f"audio écrit dans {output} ({dest.stat().st_size} octets)"
 
-    def http_get(url: str, max_chars: int = 2000) -> str:
+
+    def _html_to_text(html: str, limit: int = 4000) -> str:
+        """HTML lisible : les balises partent, les liens restent.
+
+        Un `http_get` qui rend deux mille caractères de balises ne sert à rien : le modèle écrit
+        n'importe quoi ensuite. On garde le texte, le titre, et jusqu'à quinze liens avec leur libellé.
+        """
+        import html as html_module
+        import re as _re
+
+        body = _re.sub(r"(?is)<(script|style|noscript)[^>]*>.*?</\1>", " ", html)
+        links = _re.findall(r'(?is)<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>', body)
+        title = _re.search(r"(?is)<title[^>]*>(.*?)</title>", body)
+        text = _re.sub(r"(?s)<[^>]+>", " ", body)
+        text = html_module.unescape(text)
+        text = _re.sub(r"[ \t\r\f\v]+", " ", text)
+        text = _re.sub(r"\n\s*\n+", "\n", text)
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        cleaned = "\n".join(lines)
+        seen: list[str] = []
+        for href, label in links:
+            label = html_module.unescape(_re.sub(r"(?s)<[^>]+>", "", label)).strip()
+            if not label or len(label) < 20 or href.startswith(("#", "javascript:", "mailto:")):
+                continue
+            entry = f"- {label[:110]} — {href}"
+            if entry not in seen:
+                seen.append(entry)
+            if len(seen) >= 25:
+                break
+        head = f"titre : {html_module.unescape(title.group(1)).strip()}\n" if title else ""
+        # les liens d'abord : sur une page d'actualités, ce sont eux les titres, la navigation
+        # du site ne dit rien d'utile et occupe tout le budget de caractères
+        block = ""
+        if seen:
+            block = "liens :\n" + "\n".join(seen) + "\n\ntexte :\n"
+        return _clip(head + block + cleaned, limit)
+
+    def http_get(url: str, max_chars: int = 4000) -> str:
         network.check(url, "http_get")
         request = urllib.request.Request(url, headers={"User-Agent": "agent-computer-demo/1.0"})
         try:
@@ -628,6 +665,10 @@ def build_registry(
                 body = response.read().decode("utf-8", errors="replace")
         except (urllib.error.URLError, TimeoutError) as exc:
             raise ToolError(f"échec réseau : {exc}") from exc
+        except ValueError as exc:  # URL refusée par urllib (schéma, hôte)
+            raise ToolError(f"URL invalide : {exc}") from exc
+        if "<html" in body[:600].lower() or "<!doctype" in body[:600].lower():
+            return _html_to_text(body, int(max_chars))
         return _clip(body, int(max_chars))
 
     registry = {

@@ -116,6 +116,7 @@ class Agent:
         save_state: bool = False,
         reviewer: Any = None,
         secrets: list[str] | None = None,
+        bootstrap: list[dict[str, Any]] | None = None,
     ) -> None:
         self.planner = planner
         self.workspace = Path(workspace)
@@ -135,6 +136,8 @@ class Agent:
         self.save_state = save_state
         self.reviewer = reviewer
         self.secrets = [str(item) for item in (secrets or []) if str(item)]
+        # étapes imposées par le contrat du scénario, exécutées avant le premier tour du modèle
+        self.bootstrap = [dict(item) for item in (bootstrap or []) if isinstance(item, dict)]
 
     def _state_path(self, run_id: str) -> Path:
         return Path(self.runs_dir) / run_id / "state.json"
@@ -230,6 +233,47 @@ class Agent:
             )
         nudges = 0  # relances « tu n'as pas écrit le livrable », avant de bloquer
         reviews = 0  # relectures contradictoires, deux au maximum  # anti-boucle : mêmes arguments, même erreur
+
+        # Étapes imposées par le contrat du scénario. Elles s'exécutent ici, avant le premier tour du
+        # modèle, et restent dans le journal comme n'importe quelle étape : un petit modèle ne pense pas
+        # toujours à appeler le réseau, même quand l'objectif le nomme. Ce n'est pas de la magie, c'est
+        # une contrainte écrite dans le scénario et vérifiable dans la trace.
+        bootstrap_rows = list(self.bootstrap or []) if resumed_from == 0 else []
+        for position, action in enumerate(bootstrap_rows, start=1):
+            tool_name = str(action.get("tool") or "")
+            args = dict(action.get("args") or {})
+            started = time.time()
+            if tool_name not in tools:
+                observation = f"outil imposé inconnu : {tool_name}"
+                failure = True
+            else:
+                try:
+                    observation = str(tools[tool_name].fn(**args))
+                    failure = False
+                except (ToolError, TypeError, ValueError) as exc:
+                    observation = f"{type(exc).__name__} : {exc}"
+                    failure = True
+            step = Step(
+                position,
+                str(action.get("thought") or f"Étape imposée par le contrat : {tool_name}."),
+                tool_name,
+                args,
+                observation,
+                _ms(started),
+                failure,
+            )
+            result.steps.append(step)
+            _notify(self.on_step, step)
+            history.append(
+                {
+                    "thought": step.thought,
+                    "tool": tool_name,
+                    "args": args,
+                    "observation": observation,
+                }
+            )
+        if bootstrap_rows:
+            resumed_from = len(bootstrap_rows)
 
         for index in range(resumed_from + 1, self.max_steps + 1):
             started = time.perf_counter()

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import os
 import shutil
 import sys
@@ -82,6 +83,8 @@ def run_once(base_url: str, model: str, api_key: str, timeout: int) -> dict:
     directory = target_dir(stamp)
     workspace = directory / "workspace"
     workspace.mkdir(parents=True, exist_ok=True)
+    # les fixtures du scénario (la liste des sources) doivent entrer dans le bac à sable
+    scenario.stage(workspace)
     settings = Settings.load(DATA / "settings.json")
     skills = SkillStore(DATA / "skills")
     runner = None
@@ -105,6 +108,7 @@ def run_once(base_url: str, model: str, api_key: str, timeout: int) -> dict:
         network_config=scenario.network,
         runner=runner,
         scenario=scenario.slug,
+        bootstrap=scenario.bootstrap,
         save_state=True,
     ).run(scenario.objective, run_id=f"{stamp}-veille")
     elapsed = time.time() - started
@@ -133,8 +137,24 @@ def run_once(base_url: str, model: str, api_key: str, timeout: int) -> dict:
 
     items = 0
     if briefing.exists():
-        items = sum(1 for line in briefing.read_text(encoding="utf-8").splitlines() if line.startswith(("## ", "### ")))
+        # une entrée = une ligne numérotée ou à puce qui porte un lien : c'est ce qu'on attend d'une veille
+        text = briefing.read_text(encoding="utf-8")
+        items = len(
+            [
+                line
+                for line in text.splitlines()
+                if re.match(r"^\s*(\d+[.)]|[-*])\s+", line) and "http" in line
+            ]
+        )
+        if not items:
+            items = sum(1 for line in text.splitlines() if line.startswith(("## ", "### ")) and line.strip(" #"))
+    fetched = [
+        step for step in result.steps
+        if step.tool == "http_get" and not step.error
+    ]
     status = result.status
+    if status == "done" and not fetched:
+        status = "vide"  # aucune source lue : ce n'est pas une veille, quoi qu'en dise le modèle
     if status == "done" and (not briefing.exists() or items == 0):
         # la règle du document : un briefing sans source n'est pas un livrable, il ne compte pas
         status = "vide"
@@ -147,6 +167,7 @@ def run_once(base_url: str, model: str, api_key: str, timeout: int) -> dict:
         "model": model,
         "base_url": base_url,
         "items": items,
+        "sources_fetched": len(fetched),
         "artifacts": list(result.artifacts),
         "summary": result.summary[:400],
     }

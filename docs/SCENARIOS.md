@@ -171,3 +171,21 @@ pour le faire), PNG ou JPEG.
 
     python3 -m agentdemo run --scenario capture-audit
     python3 -m agentdemo run --scenario capture-audit --live --model qwen3-vl-8b --base-url http://IP:1234/v1
+
+## Étapes imposées par le contrat
+
+Un scénario peut déclarer des actions exécutées **avant le premier tour du modèle** :
+
+```json
+"bootstrap": [
+  {"tool": "http_get", "args": {"url": "https://www.cert.ssi.gouv.fr/actualite/", "max_chars": 1200}}
+]
+```
+
+Pourquoi c'est honnête et pourquoi c'est nécessaire : un modèle de 8 milliards sur 3 Go ne pense pas à
+appeler le réseau, même quand l'objectif le nomme. Sans cette contrainte, `cyber-brief-live` produisait un
+briefing vide en annonçant un succès, ce qui est exactement le défaut reproché aux démonstrations.
+
+Ce n'est pas de la magie cachée : chaque étape imposée apparaît dans le journal avec son outil, ses
+arguments et son résultat, exactement comme une étape décidée par le modèle. Le contrat du scénario est
+public, versionné, et se lit dans `scenario.json`.

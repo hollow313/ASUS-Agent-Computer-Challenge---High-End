@@ -207,6 +207,7 @@ class RunStore:
                         network_config=scenario.network,
                         runner=_runner_for(workspace, scenario),
                         scenario=slug,
+                        bootstrap=scenario.bootstrap,
                         resume=resume_state if index == 0 else None,
                         save_state=True,
                         reviewer=reviewer,

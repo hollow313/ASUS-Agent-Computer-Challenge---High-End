@@ -282,6 +282,10 @@ utilisé. Le tableau complet, échecs et jours manquants compris, est dans
 [`docs/production/journal.md`](docs/production/journal.md) et se recalcule avec
 `python3 docs/production/serie.py`.
 
+Le scénario impose au contrat de lire les trois sources avant le premier tour du modèle, et cette
+contrainte est visible dans le journal : un 8B sur 3 Go ne pense pas à appeler le réseau tout seul, et
+l'annoncer vaut mieux que de le laisser écrire un briefing vide en disant que tout va bien.
+
 ```bash
 python3 docs/production/veille.py --once    # un run maintenant, versionné
 python3 docs/production/veille.py --loop    # la même chose toutes les 24 heures
@@ -307,6 +311,8 @@ milliards sur 3 Go.
   d'être de la carte, pas un détail caché.
 - Sans isolation disponible sur la machine, l'outil `run` n'est pas exposé du tout.
 - Le coût affiché pour le local ne compte ni l'électricité ni l'amortissement du matériel.
+- `cyber-brief-live` déclare trois étapes imposées (la lecture des sources) avant que le modèle ne parle :
+  c'est une contrainte du scénario, journalisée, pas une capacité du modèle.
 - `ask` n'est pas un chatbot : il écrit un livrable ou il s'arrête en `blocked`, et il refuse au-delà de
   600 caractères, parce qu'une consigne plus longue est une pièce jointe et demande un scénario.
 - `inbox-triage` exige un compte IMAP configuré ; sans lui, le run s'arrête proprement en le disant.

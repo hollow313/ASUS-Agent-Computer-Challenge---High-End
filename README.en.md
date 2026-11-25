@@ -275,6 +275,10 @@ full table, failures and missing days included, is in
 [`docs/production/journal.md`](docs/production/journal.md) and can be recomputed with
 `python3 docs/production/serie.py`.
 
+The scenario contract requires the three sources to be read before the model's first turn, and that
+constraint shows up in the journal: an 8B on 3 GB does not think of calling the network on its own, and
+saying so is better than letting it write an empty briefing and call it a success.
+
 ```bash
 python3 docs/production/veille.py --once    # one run now, versioned
 python3 docs/production/veille.py --loop    # the same every 24 hours
@@ -293,6 +297,8 @@ prove the quality of the analysis: that is an 8B model on 3 GB.
   exists, not a hidden detail.
 - Without isolation available on the machine, the `run` tool is not exposed at all.
 - The local cost figure counts neither electricity nor hardware amortisation.
+- `cyber-brief-live` declares three imposed steps (reading the sources) before the model speaks: that is
+  a scenario constraint, journaled, not a model capability.
 - `ask` is not a chatbot: it writes a deliverable or stops as `blocked`, and it refuses anything over
   600 characters, because a longer instruction is an attachment and calls for a scenario.
 - `inbox-triage` needs a configured IMAP account; without it, the run stops cleanly and says so.
