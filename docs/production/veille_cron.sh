@@ -77,10 +77,11 @@ if not metas:
     print("veille : aucun run versionné")
     raise SystemExit(0)
 last = json.loads(metas[-1].read_text(encoding="utf-8"))
+seconds = float(last.get("duration_s") or 0)
+duration = f"{int(seconds // 60)} min {int(seconds % 60):02d}" if seconds >= 60 else f"{int(seconds)} s"
 print(
     f"veille {last.get('date')} · {last.get('status')} · {last.get('steps')} étapes · "
-    f"{last.get('items')} entrées · {last.get('sources_fetched')} source(s) lue(s) · "
-    f"{int(float(last.get('duration_s') or 0) // 60)} min"
+    f"{last.get('items')} entrées · {last.get('sources_fetched')} source(s) lue(s) · {duration}"
 )
 PY
 exit 0
