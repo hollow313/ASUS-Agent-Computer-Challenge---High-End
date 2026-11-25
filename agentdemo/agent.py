@@ -242,7 +242,7 @@ class Agent:
         for position, action in enumerate(bootstrap_rows, start=1):
             tool_name = str(action.get("tool") or "")
             args = dict(action.get("args") or {})
-            started = time.time()
+            started = time.perf_counter()
             if tool_name not in tools:
                 observation = f"outil imposé inconnu : {tool_name}"
                 failure = True

@@ -81,3 +81,38 @@ class WatchTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BootstrapTimingTests(unittest.TestCase):
+    def test_imposed_steps_report_a_positive_duration(self) -> None:
+        """Une durée négative dans le journal, c'est un chrono mal pris : le signe se teste."""
+        import json
+        import tempfile
+        from pathlib import Path as _Path
+
+        from agentdemo.agent import Agent
+        from agentdemo.tools import Sandbox, build_registry
+
+        class Planner:
+            label = "scripted"
+
+            def next_action(self, objective, history):
+                return {"thought": "fini", "final": "ok"}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            workspace = _Path(tmp) / "ws"
+            workspace.mkdir()
+            (workspace / "note.txt").write_text("bonjour", encoding="utf-8")
+            agent = Agent(
+                planner=Planner(),
+                workspace=workspace,
+                runs_dir=_Path(tmp) / "runs",
+                max_steps=3,
+                scenario="chrono",
+                bootstrap=[{"tool": "fs_list", "args": {"path": "."}, "thought": "étape imposée"}],
+            )
+            result = agent.run("objectif", run_id="chrono")
+        imposed = result.steps[0]
+        self.assertEqual(imposed.tool, "fs_list")
+        self.assertGreaterEqual(imposed.duration_ms, 0, "une durée négative veut dire un chrono mélangé")
+        self.assertLess(imposed.duration_ms, 60_000)
