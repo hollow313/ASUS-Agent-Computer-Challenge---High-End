@@ -103,7 +103,7 @@ d'événements, vérifiables ligne par ligne.
 
 ## Ce que la carte débloque
 
-La machine actuelle a 3 Go de VRAM. Le plus gros modèle qui rentre fait 7 milliards de paramètres en
+La machine actuelle a une **NVIDIA GeForce GTX 1060 3 Go** (Pascal, 3072 Mio, pilote 550, CUDA 12.4). Le plus gros modèle qui rentre fait 7 milliards de paramètres en
 4 bits : rapide, gratuit, et faux une fois sur deux. Le modèle qui comprend les tâches ambiguës ne
 rentre pas, les sous-agents ne tournent pas en parallèle, et le contexte reste trop court pour lire un
 dossier entier.
@@ -128,13 +128,13 @@ compromis. Un 70B ne rentre pas, même en Q4, et le dépôt le dit au lieu de le
 ## Les chiffres mesurés
 
 Mêmes 10 tâches, même prompt, température 0, notation déterministe par correspondance exacte. Ce n'est
-pas une appréciation, c'est un test qui passe ou qui ne passe pas. Matériel : la carte 3 Go de VRAM qui
+pas une appréciation, c'est un test qui passe ou qui ne passe pas. Matériel : la GTX 1060 3 Go qui
 tourne aujourd'hui.
 
 | Cible | Où | Réussite | p50 | p95 | Coût / 1 000 tâches |
 | --- | --- | --- | --- | --- | --- |
-| Qwen 2.5 Coder 7B, Q4 | local, 3 Go de VRAM | 60 % | 0,75 s | 3,98 s | 0 € |
-| Qwen3 VL 8B, Q4 | local, 3 Go de VRAM | 90 % | 0,67 s | 4,63 s | 0 € |
+| Qwen 2.5 Coder 7B, Q4 | local, GTX 1060 3 Go | 60 % | 0,75 s | 3,98 s | 0 € |
+| Qwen3 VL 8B, Q4 | local, GTX 1060 3 Go | 90 % | 0,67 s | 4,63 s | 0 € |
 | Gemini 3.8 Flash | cloud | 100 % | 4,17 s | 5,23 s | 0,07 € |
 
 Les mêmes 1 000 tâches, aux prix publics du 21/11/2026 et avec la consommation de tokens réellement
@@ -198,7 +198,7 @@ et rend ce que le modèle ne sait pas compter de façon fiable (1440 x 900, poid
 aucune dépendance de traitement d'image. Le livrable, lui, doit citer une zone en pixels par constat.
 
 C'est le seul scénario où la réponse à la question « le modèle voit-il vraiment ? » se vérifie : dix
-captures, dix questions dont la réponse est dans l'image, notation exacte. **100 % sur la carte de 3 Go**,
+captures, dix questions dont la réponse est dans l'image, notation exacte. **100 % sur la GTX 1060 3 Go**,
 p50 0,94 s, 0 €. Sur les tâches texte, le même modèle fait 90 %, et le 7B 60 %.
 
 Le détail honnête : sur un rapport d'audit réel, le modèle a cité quatre défauts et deux zones
@@ -301,7 +301,7 @@ novembre férié. La série complète, run par run, est publiée dans
 `python3 docs/production/serie_production.py --archive <dossier>`.
 
 Le scénario impose au contrat de lire les trois sources avant le premier tour du modèle, et cette
-contrainte est visible dans le journal : un 8B sur 3 Go ne pense pas à appeler le réseau tout seul, et
+contrainte est visible dans le journal : un 8B sur la GTX 1060 3 Go ne pense pas à appeler le réseau tout seul, et
 l'annoncer vaut mieux que de le laisser écrire un briefing vide en disant que tout va bien.
 
 Un planificateur lance ce run chaque matin à 7 h 15 (`docs/production/veille_cron.sh`) : si le modèle local
@@ -323,7 +323,7 @@ Les trois lignes viennent de trois run réels du même jour : le premier à la m
 par le planificateur et par le script lui-même. L'écart entre huit et trois entrées, c'est la variance du
 modèle, et elle est publiée telle quelle.
 
-Le 24 novembre, sept scénarios ont aussi été joués en réel sur la carte de 3 Go : cinq terminent du
+Le 24 novembre, sept scénarios ont aussi été joués en réel sur la GTX 1060 3 Go : cinq terminent du
 premier coup, deux ont demandé la correction du délai d'attente décrite dans les limites. Le détail,
 étape par étape, avec ce qui a cassé et pourquoi :
 [`docs/runs/campagne-20261124.md`](docs/runs/campagne-20261124.md).
@@ -338,7 +338,7 @@ milliards sur 3 Go.
 - Le mode replay ne prouve pas la qualité d'un modèle : il prouve la mécanique de l'agent.
 - Les mesures portent sur dix tâches courtes et vérifiables. Elles disent la parité sur ce jeu, pas sur
   un dossier de 200 pages.
-- Un 7B local se trompe encore, et un 8B sur 3 Go est lent sur les cas difficiles : c'est la raison
+- Un 7B local se trompe encore, et un 8B sur la GTX 1060 3 Go est lent sur les cas difficiles : c'est la raison
   d'être de la carte, pas un détail caché.
 - Sans isolation disponible sur la machine, l'outil `run` n'est pas exposé du tout.
 - Le coût affiché pour le local ne compte ni l'électricité ni l'amortissement du matériel.
@@ -347,12 +347,12 @@ milliards sur 3 Go.
 - `ask` n'est pas un chatbot : il écrit un livrable ou il s'arrête en `blocked`, et il refuse au-delà de
   600 caractères, parce qu'une consigne plus longue est une pièce jointe et demande un scénario.
 - `inbox-triage` exige un compte IMAP configuré ; sans lui, le run s'arrête proprement en le disant.
-- Sur une carte de 3 Go, une étape qui relit un long fichier peut dépasser les 120 secondes d'attente
+- Sur la GTX 1060 3 Go, une étape qui relit un long fichier peut dépasser les 120 secondes d'attente
   par appel : `--timeout 300` existe pour ça, et sans lui le run s'arrête sur un délai, pas sur une erreur d'agent.
 - La vision lit des images fixes de 1,5 Mo au plus, sans redimensionnement : pas de vidéo, pas de PDF
   scanné, aucune dépendance de traitement d'image n'est installée pour le faire.
 - Les paliers 8, 16 et 32 Go de [`docs/MATERIEL.md`](docs/MATERIEL.md) sont calculés, pas mesurés. Seule
-  la carte de 3 Go a produit les latences publiées.
+  la GTX 1060 3 Go a produit les latences publiées.
 
 ## Construire, tester, étendre
 

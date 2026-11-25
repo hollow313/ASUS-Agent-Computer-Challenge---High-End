@@ -1,11 +1,11 @@
 # Matériel : quatre paliers, mesuré ou projeté
 
-Ce document distingue ce qui a été **essayé** sur la machine de 3 Go et ce qui est **calculé** par
+Ce document distingue ce qui a été **essayé** sur la GTX 1060 3 Go du NAS et ce qui est **calculé** par
 `python3 -m agentdemo fit`. Un palier projeté n'est pas un palier essayé, et le tableau le dit.
 
 | Palier | Ce qui tient | Source |
 | --- | --- | --- |
-| 3 Go (machine actuelle) | 7B Q4, 8B VL Q4, contexte court | mesuré, voir les mesures datées |
+| 3 Go (GTX 1060, machine actuelle) | 7B Q4, 8B VL Q4, contexte court | mesuré, voir les mesures datées |
 | 8 Go | 7B Q8, 14B Q4 | projeté par `fit` |
 | 16 Go | 14B Q8, 32B Q4 | projeté par `fit` |
 | 32 Go | 32B Q6, contexte 32 k | projeté par `fit` |
@@ -23,7 +23,7 @@ Dix tâches texte, dix tâches image, notation par correspondance exacte, tempé
 Sources : [`mesures/mesures-20261121.md`](mesures/mesures-20261121.md) et
 [`mesures/mesures-20261124-vision.md`](mesures/mesures-20261124-vision.md).
 
-## 3 Go, la sortie de `fit`
+## GTX 1060 3 Go, la sortie de `fit`
 
 ```
 carte simulée : 3.0 Go · contexte 8 k · marge runtime 1.5 Go

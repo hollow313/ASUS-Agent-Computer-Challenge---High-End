@@ -100,7 +100,7 @@ line.
 
 ## What the card unlocks
 
-The current machine has 3 GB of VRAM. The largest model that fits is 7 billion parameters at 4 bits:
+The current machine has an **NVIDIA GeForce GTX 1060 3 GB** (Pascal, 3072 MiB, driver 550, CUDA 12.4). The largest model that fits is 7 billion parameters at 4 bits:
 fast, free, and wrong one time in two. The model that handles ambiguous work does not fit, sub-agents
 cannot run in parallel, and context stays too short to read a whole folder.
 
@@ -124,12 +124,12 @@ fit, even at Q4, and the repository says so instead of hinting otherwise.
 ## The measured numbers
 
 Same 10 tasks, same prompt, temperature 0, deterministic exact-match grading. Not an opinion: a test
-that passes or fails. Hardware: the 3 GB VRAM card in my machine today.
+that passes or fails. Hardware: the GTX 1060 3 GB in my machine today.
 
 | Target | Where | Success | p50 | p95 | Cost / 1 000 tasks |
 | --- | --- | --- | --- | --- | --- |
-| Qwen 2.5 Coder 7B, Q4 | local, 3 GB VRAM | 60 % | 0.75 s | 3.98 s | 0 € |
-| Qwen3 VL 8B, Q4 | local, 3 GB VRAM | 90 % | 0.67 s | 4.63 s | 0 € |
+| Qwen 2.5 Coder 7B, Q4 | local, GTX 1060 3 GB | 60 % | 0.75 s | 3.98 s | 0 € |
+| Qwen3 VL 8B, Q4 | local, GTX 1060 3 GB | 90 % | 0.67 s | 4.63 s | 0 € |
 | Gemini 3.8 Flash | cloud | 100 % | 4.17 s | 5.23 s | 0.07 € |
 
 The same 1 000 tasks, at public prices as of 2026-11-21 and with the token usage actually measured (791
@@ -192,7 +192,7 @@ count reliably (1440 x 900, weight, 1.5 MB cap) with no image processing depende
 deliverable must cite a pixel region for every finding.
 
 This is the one scenario where "does the model actually see?" can be checked: ten captures, ten questions
-whose answer is in the image, exact-match grading. **100 % on the 3 GB card**, p50 0.94 s, 0 €. On text
+whose answer is in the image, exact-match grading. **100 % on the GTX 1060 3 GB**, p50 0.94 s, 0 €. On text
 tasks the same model scores 90 %, and the 7B 60 %.
 
 The honest part: on a real audit report the model cited four defects and two of its regions were
@@ -294,7 +294,7 @@ it. **50 briefings from 17 September to 25 November 2026, one per weekday, no da
 `python3 docs/production/serie_production.py --archive <folder>`.
 
 The scenario contract requires the three sources to be read before the model's first turn, and that
-constraint shows up in the journal: an 8B on 3 GB does not think of calling the network on its own, and
+constraint shows up in the journal: an 8B on the GTX 1060 3 GB does not think of calling the network on its own, and
 saying so is better than letting it write an empty briefing and call it a success.
 
 A scheduler starts that run every morning at 7:15 (`docs/production/veille_cron.sh`): if the local model
@@ -318,13 +318,13 @@ as is.
 
 What the series proves and what it does not: it proves a local agent keeps a daily appointment, that it
 says "source unreachable" instead of inventing, and that every row is a run anyone can open. It does not
-prove the quality of the analysis: that is an 8B model on 3 GB.
+prove the quality of the analysis: that is an 8B model on the GTX 1060 3 GB.
 
 ## Limits we accept
 
 - Replay mode does not prove a model's quality: it proves the agent's mechanics.
 - Measurements cover ten short, verifiable tasks. They show parity on this set, not on a 200-page file.
-- A local 7B still gets things wrong, and an 8B on 3 GB is slow on hard cases: that is why the card
+- A local 7B still gets things wrong, and an 8B on the GTX 1060 3 GB is slow on hard cases: that is why the card
   exists, not a hidden detail.
 - Without isolation available on the machine, the `run` tool is not exposed at all.
 - The local cost figure counts neither electricity nor hardware amortisation.
@@ -333,12 +333,12 @@ prove the quality of the analysis: that is an 8B model on 3 GB.
 - `ask` is not a chatbot: it writes a deliverable or stops as `blocked`, and it refuses anything over
   600 characters, because a longer instruction is an attachment and calls for a scenario.
 - `inbox-triage` needs a configured IMAP account; without it, the run stops cleanly and says so.
-- On a 3 GB card, a step that re-reads a long file can exceed the 120-second per-call timeout:
+- On the GTX 1060 3 GB, a step that re-reads a long file can exceed the 120-second per-call timeout:
   `--timeout 300` exists for that, and without it the run stops on a delay, not on an agent error.
 - Vision reads still images up to 1.5 MB, without resizing: no video, no scanned PDF, and no image
   processing dependency is installed to do it.
 - The 8, 16 and 32 GB tiers in [`docs/MATERIEL.md`](docs/MATERIEL.md) are computed, not measured. Only
-  the 3 GB card produced the published latencies.
+  the GTX 1060 3 GB produced the published latencies.
 
 ## Build, test, extend
 
