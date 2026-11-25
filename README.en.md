@@ -10,7 +10,7 @@ files, re-reads what it produced, learns from its mistakes and resumes its work 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
-![tests](https://img.shields.io/badge/tests-81%20passing-2ea043)
+![tests](https://img.shields.io/badge/tests-89%20passing-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **ASUS Agent Computer Challenge, High-End category.** Vigie is the distributable version of the agent that has been running on my machine for months; this repository publishes its core, without my data and without my keys.
@@ -37,11 +37,16 @@ git clone https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End
 cd ASUS-Agent-Computer-Challenge---High-End
 python3 -m agentdemo ask "sort the files in this folder and write a comparison" \
   --live --model qwen2.5-coder:7b --base-url http://127.0.0.1:11434/v1   # free instruction
-python3 -m agentdemo scenarios                  # the eight scenarios
+python3 -m agentdemo scenarios                  # the nine scenarios
 python3 -m agentdemo run --scenario cyber-brief # one full, deterministic run
 python3 -m agentdemo serve --port 8080          # the same thing with the interface
-python3 -m unittest discover -s tests           # 81 tests, three seconds
+python3 -m unittest discover -s tests           # 89 tests, three seconds
 ```
+
+![Free instruction in the interface](docs/screenshot-ask.png)
+
+*The first thing you see when the interface opens: you write what you want, the agent picks its tools.
+A run that writes no file ends as `blocked`, never `done`.*
 
 ### ▶ The presentation on video
 
@@ -288,6 +293,16 @@ python3 docs/production/veille.py --loop    # the same every 24 hours
 python3 docs/production/serie.py            # runs, delivery rate, p50/p95, gaps
 ```
 
+| Date | Status | Duration | Steps | Deliverable |
+| --- | --- | --- | --- | --- |
+| 2026-11-25 | done | 3 min 29 | 5 | briefing.md, 8 entries |
+| 2026-11-25 | done | 0 min 56 | 5 | briefing.md, 3 entries |
+| 2026-11-25 | done | 0 min 44 | 5 | briefing.md, 3 entries |
+
+The three rows come from three real runs on the same day: the first by hand, the next two started by the
+scheduler and by the script itself. The gap between eight and three entries is model variance, published
+as is.
+
 What the series proves and what it does not: it proves a local agent keeps a daily appointment, that it
 says "source unreachable" instead of inventing, and that every row is a run anyone can open. It does not
 prove the quality of the analysis: that is an 8B model on 3 GB.
@@ -315,7 +330,7 @@ prove the quality of the analysis: that is an 8B model on 3 GB.
 ## Build, test, extend
 
 ```bash
-python3 -m unittest discover -s tests     # 81 tests
+python3 -m unittest discover -s tests     # 89 tests
 python3 -m agentdemo validate             # cassettes against real tools
 python3 -m agentdemo doctor               # installation checks
 python3 -m agentdemo fit --vram 32        # memory sizing
@@ -325,6 +340,11 @@ The interface covers everything the command line can do: create, edit, duplicate
 set its network, input folder and feeds, add and test an MCP server, install a catalogue tool, choose
 the model and force a target. Detail: [`docs/EXPLOITATION.md`](docs/EXPLOITATION.md) and
 [`docs/ROUTAGE.md`](docs/ROUTAGE.md).
+
+Two ways to wake it up without typing a command: a watched folder
+(`python3 -m agentdemo watch ./inbox --scenario inbox-triage`) that starts a run as soon as a file lands,
+with a lock so a second event waits instead of overwriting state, and an HTTP call
+(`POST /api/hooks/<name>`) that triggers a scenario declared in the settings.
 
 To add a scenario: a folder with `scenario.json`, a cassette, fixtures. The loader refuses an invalid
 slug, a duplicate or a missing cassette, and live mode is how you produce the trace.

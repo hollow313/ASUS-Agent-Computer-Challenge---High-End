@@ -10,7 +10,7 @@ des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son tr
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
-![tests](https://img.shields.io/badge/tests-81%20passing-2ea043)
+![tests](https://img.shields.io/badge/tests-89%20passing-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **Candidature ASUS Agent Computer Challenge, catégorie High-End.** Vigie est la version distribuable de l'agent qui tourne sur ma machine depuis des mois ; ce dépôt en publie le cœur, sans mes données ni mes clés.
@@ -39,11 +39,16 @@ python3 -m agentdemo ask "classe les fichiers du dossier et écris un comparatif
   --live --model qwen2.5-coder:7b --base-url http://127.0.0.1:11434/v1   # consigne libre
 python3 -m agentdemo run --scenario cyber-brief  # un run complet, déterministe
 python3 -m agentdemo serve --port 8080           # la même chose avec l'interface
-python3 -m unittest discover -s tests            # 81 tests, trois secondes
+python3 -m unittest discover -s tests            # 89 tests, trois secondes
 ```
 
 La consigne libre est la porte d'entrée : une phrase, un livrable, ou un échec assumé. Les scénarios
 restent la démonstration reproductible.
+
+![La demande libre dans l'interface](docs/screenshot-ask.png)
+
+*La première chose qu'on voit en ouvrant l'interface : on écrit ce qu'on veut, l'agent choisit ses outils.
+Un run qui n'écrit aucun fichier sort en `blocked`, jamais en `done`.*
 
 ### ▶ La présentation en vidéo
 
@@ -295,6 +300,16 @@ python3 docs/production/veille.py --loop    # la même chose toutes les 24 heure
 python3 docs/production/serie.py            # runs, taux de livrable, p50/p95, trous
 ```
 
+| Date | Statut | Durée | Étapes | Livrable |
+| --- | --- | --- | --- | --- |
+| 2026-11-25 | done | 3 min 29 | 5 | briefing.md, 8 entrées |
+| 2026-11-25 | done | 0 min 56 | 5 | briefing.md, 3 entrées |
+| 2026-11-25 | done | 0 min 44 | 5 | briefing.md, 3 entrées |
+
+Les trois lignes viennent de trois run réels du même jour : le premier à la main, les deux suivants lancés
+par le planificateur et par le script lui-même. L'écart entre huit et trois entrées, c'est la variance du
+modèle, et elle est publiée telle quelle.
+
 Le 24 novembre, sept scénarios ont en plus été joués en réel sur la carte de 3 Go : cinq terminent du
 premier coup, deux ont demandé la correction du délai d'attente décrite dans les limites. Le détail,
 étape par étape, avec ce qui a cassé et pourquoi :
@@ -339,6 +354,11 @@ L'interface couvre tout ce que la ligne de commande sait faire : créer, modifie
 un scénario, régler son réseau, son dossier d'entrée et ses flux, ajouter un serveur MCP et le tester,
 installer un outil du catalogue, choisir le modèle et forcer une cible. Détail :
 [`docs/EXPLOITATION.md`](docs/EXPLOITATION.md) et [`docs/ROUTAGE.md`](docs/ROUTAGE.md).
+
+Deux façons de le réveiller sans taper une commande : un dossier surveillé
+(`python3 -m agentdemo watch ./inbox --scenario inbox-triage`) qui lance un run dès qu'un fichier arrive,
+avec verrou pour qu'un second événement attende au lieu d'écraser un état, et un appel HTTP
+(`POST /api/hooks/<nom>`) qui déclenche un scénario déclaré dans les réglages.
 
 Pour ajouter un scénario : un dossier avec `scenario.json`, une cassette, des fixtures. Le chargeur
 refuse un slug invalide, un doublon ou une cassette absente, et le mode réel sert à produire la trace.
