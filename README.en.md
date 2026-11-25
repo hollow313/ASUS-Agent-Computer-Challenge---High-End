@@ -279,6 +279,9 @@ The scenario contract requires the three sources to be read before the model's f
 constraint shows up in the journal: an 8B on 3 GB does not think of calling the network on its own, and
 saying so is better than letting it write an empty briefing and call it a success.
 
+A scheduler starts that run every morning at 7:15 (`docs/production/veille_cron.sh`): if the local model
+does not answer, an `absent` row is added instead of a fake success, and nothing is pushed.
+
 ```bash
 python3 docs/production/veille.py --once    # one run now, versioned
 python3 docs/production/veille.py --loop    # the same every 24 hours

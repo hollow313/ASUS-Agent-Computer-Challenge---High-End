@@ -286,6 +286,9 @@ Le scénario impose au contrat de lire les trois sources avant le premier tour d
 contrainte est visible dans le journal : un 8B sur 3 Go ne pense pas à appeler le réseau tout seul, et
 l'annoncer vaut mieux que de le laisser écrire un briefing vide en disant que tout va bien.
 
+Un planificateur lance ce run chaque matin à 7 h 15 (`docs/production/veille_cron.sh`) : si le modèle local
+ne répond pas, une ligne `absent` est ajoutée au lieu d'un faux succès, et rien n'est poussé.
+
 ```bash
 python3 docs/production/veille.py --once    # un run maintenant, versionné
 python3 docs/production/veille.py --loop    # la même chose toutes les 24 heures

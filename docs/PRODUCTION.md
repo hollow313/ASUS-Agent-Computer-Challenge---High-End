@@ -50,3 +50,13 @@ local les documents sensibles.
 Avec 32 Go de VRAM, la même architecture change de nature : 32 B en Q5, 70 B en Q4 utilisables,
 veille et tri de courrier traités hors ligne, index documentaire personnel réaliste, coût
 marginal ramené à l'électricité. Le plan de mesure sur 30 jours est dans la candidature.
+
+## La veille quotidienne
+
+`docs/production/veille_cron.sh` fait trois choses, dans cet ordre : il vérifie que l'endpoint répond, il
+lance `cyber-brief-live` et versionne le résultat dans `docs/runs/<date>-veille/`, puis il pousse. Si
+l'endpoint ne répond pas, il écrit une ligne `absent` dans le journal et ne pousse rien : un jour sans run
+doit se voir, pas se cacher derrière un briefing vide.
+
+Le planificateur l'appelle à 7 h 15. Le script est sans état : on peut le lancer à la main pour rattraper
+un jour manqué, la même date ne crée pas deux dossiers (suffixe `-2`).
