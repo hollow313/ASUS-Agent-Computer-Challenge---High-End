@@ -196,7 +196,11 @@ class OpenAICompatPlanner:
             )
         else:
             messages.append({"role": "user", "content": f"Objectif : {objective}"})
-        for step in history:
+        # Sur une carte de 3 Go, le contexte est le premier mur : un run qui relit trois pages
+        # dépasse les 8 k jetons et le serveur coupe. On garde les derniers échanges, et chaque
+        # observation est bornée : le dernier passage garde plus de détail que les précédents.
+        keep = history[-MAX_EXCHANGES:]
+        for position, step in enumerate(keep):
             messages.append(
                 {
                     "role": "assistant",
@@ -206,7 +210,16 @@ class OpenAICompatPlanner:
                     ),
                 }
             )
-            messages.append({"role": "user", "content": f"Observation : {step.get('observation', '')}"})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": "Observation : "
+                    + _budget_observation(
+                        step.get("observation", ""),
+                        LAST_OBSERVATION_CHARS if position == len(keep) - 1 else OBSERVATION_CHARS,
+                    ),
+                }
+            )
         messages.append(
             {
                 "role": "user",
@@ -289,6 +302,21 @@ class OpenAICompatPlanner:
                 "  manque et pose la question, plutôt que de répondre en texte seulement.",
             ]
         return "\n".join(lines)
+
+
+MAX_EXCHANGES = 10        # échanges conservés dans le contexte
+OBSERVATION_CHARS = 900   # taille d'une observation ancienne
+LAST_OBSERVATION_CHARS = 2600  # la dernière reste lisible : c'est elle qui sert à décider
+
+
+def _budget_observation(text: str, limit: int = OBSERVATION_CHARS) -> str:
+    """Une observation bornée, avec la fin conservée : c'est là que se trouvent les liens et les totaux."""
+    value = str(text or "")
+    if len(value) <= limit:
+        return value
+    head = value[: limit // 3]
+    tail = value[-(limit - len(head)) :]
+    return f"{head}\n[… {len(value) - limit} caractères coupés …]\n{tail}"
 
 
 def _extract_json(text: str) -> dict[str, Any] | None:

@@ -148,3 +148,45 @@ class VisionTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ContextBudgetTests(unittest.TestCase):
+    def test_old_observations_are_bounded_and_the_last_one_keeps_detail(self) -> None:
+        """Sur 3 Go, trois pages lues dépassent le contexte : le planner doit borner ce qu'il renvoie."""
+        from agentdemo.planners import LAST_OBSERVATION_CHARS, OBSERVATION_CHARS, OpenAICompatPlanner
+        import json
+        from unittest import mock
+
+        planner = OpenAICompatPlanner(base_url="http://127.0.0.1:9/v1", model="test")
+        long_text = "ligne " * 3000  # 18 000 caractères
+        history = [
+            {"thought": "lecture", "tool": "http_get", "args": {}, "observation": long_text}
+            for _ in range(3)
+        ]
+        sent = {}
+
+        class Reply:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+            def read(self):
+                return json.dumps({"choices": [{"message": {"content": '{"final": "ok"}'}}]}).encode()
+
+        def fake_urlopen(request, timeout=None):
+            sent["payload"] = json.loads(request.data.decode())
+            return Reply()
+
+        with mock.patch("urllib.request.urlopen", side_effect=fake_urlopen):
+            planner.next_action("objectif", history)
+
+        observations = [
+            part["content"] for part in sent["payload"]["messages"] if part["role"] == "user" and "Observation" in part["content"]
+        ]
+        self.assertEqual(len(observations), 3)
+        self.assertLessEqual(len(observations[0]), OBSERVATION_CHARS + 120)
+        self.assertGreater(len(observations[-1]), len(observations[0]), "la dernière observation garde plus de détail")
+        self.assertLessEqual(len(observations[-1]), LAST_OBSERVATION_CHARS + 120)
+        self.assertIn("caractères coupés", observations[0])
