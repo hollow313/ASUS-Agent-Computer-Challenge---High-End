@@ -20,3 +20,4 @@ Les tentatives intermédiaires du 25 novembre qui ont échoué (contexte dépass
 l'historique git avec leurs dossiers ; elles ne sont pas recopiées ici parce que leur trace n'existe plus
 sur disque, et une ligne de journal sans dossier correspondant ne prouverait rien.
 | 2026-11-25 | done | 0 min 55 | 5 | briefing.md, 3 items | qwen/qwen3-vl-8b |
+| 2026-11-25 | done | 0 min 44 | 5 | briefing.md, 3 items | qwen/qwen3-vl-8b |

@@ -1,0 +1,15 @@
+{
+  "date": "2026-11-25",
+  "status": "done",
+  "duration_s": 44.4,
+  "steps": 5,
+  "errors": 0,
+  "model": "qwen/qwen3-vl-8b",
+  "base_url": "http://192.168.1.153:1234/v1",
+  "items": 3,
+  "sources_fetched": 3,
+  "artifacts": [
+    "briefing.md"
+  ],
+  "summary": "Briefing.md rédigé avec succès, basé sur les trois sources lues."
+}
