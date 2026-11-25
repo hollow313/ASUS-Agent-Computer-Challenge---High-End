@@ -133,6 +133,7 @@ class OpenAICompatPlanner:
         tools: dict[str, Any] | None = None,
         timeout: int = 120,
         image_data_url: str | None = None,
+        objective_style: str = "scenario",
     ) -> None:
         raw_base = base_url or os.environ.get("AGENTDEMO_LLM_BASE_URL", "http://localhost:11434/v1")
         self.base_url = normalize_base_url(raw_base)
@@ -141,6 +142,7 @@ class OpenAICompatPlanner:
         self.timeout = timeout
         self.tools = tools or {}
         self.image_data_url = image_data_url  # None, ou "data:image/png;base64,..."
+        self.objective_style = objective_style  # "scenario" (contrat écrit) ou "free" (consigne libre)
         self.label = f"live:{self.model}"
 
     def child(self) -> "OpenAICompatPlanner":
@@ -274,6 +276,18 @@ class OpenAICompatPlanner:
             "  avec skill_write : elle sera relue au prochain run ;",
             "- quand le livrable est écrit et relu, réponds avec la clé 'final'.",
         ]
+        if self.objective_style == "free":
+            lines += [
+                "",
+                "Cette demande n'a pas de contrat de scénario : la consigne est écrite librement ci-dessous.",
+                "- tu dois écrire au moins un fichier dans l'espace de travail, puis terminer par une réponse",
+                "  qui nomme ce fichier : sans fichier écrit, le run est compté comme un échec ;",
+                "- le nom exact des outils et de leurs arguments est celui du catalogue ci-dessus :",
+                "  n'invente pas write_file quand l'outil s'appelle fs_write, tu perdrais des étapes ;",
+                "- les outils absents du catalogue ne sont pas disponibles (réseau, commandes) ;",
+                "- si la consigne est trop vague pour produire un fichier, écris un fichier qui dit ce qui",
+                "  manque et pose la question, plutôt que de répondre en texte seulement.",
+            ]
         return "\n".join(lines)
 
 

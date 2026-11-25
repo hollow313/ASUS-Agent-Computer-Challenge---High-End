@@ -34,6 +34,7 @@ def _make_planner(
     index: int = 0,
     api_key: str | None = None,
     timeout: int = 120,
+    objective_style: str = "scenario",
 ):
     if live:
         stub_tools = build_registry(_NullSandbox(), [])
@@ -49,6 +50,7 @@ def _make_planner(
             tools=stub_tools,
             image_data_url=image,
             timeout=timeout,
+            objective_style=objective_style,
         )
     return ReplayPlanner(scenario.cassette(index))
 
@@ -65,6 +67,9 @@ class _NullSandbox:
 
 def cmd_scenarios(_args: argparse.Namespace) -> int:
     for scenario in list_scenarios():
+        if not scenario.has_cassette():
+            print(f"[--] {scenario.slug} (aucune cassette : scénario live uniquement)")
+            continue
         print(f"{scenario.slug:<14} {scenario.title}")
         print(f"{'':14} {scenario.blurb}")
         print(f"{'':14} objectif : {scenario.objective[:120]}…")
@@ -230,6 +235,154 @@ def _tool_params(tool) -> tuple[list[str], list[str]]:
     return required, optional
 
 
+
+
+def cmd_watch(args: argparse.Namespace) -> int:
+    """Surveille un dossier : un fichier déposé déclenche un run, un seul à la fois."""
+    import subprocess
+    import time as _time
+
+    from .watch import acquire, deliver, release, should_handle, stable
+
+    folder = Path(args.folder).expanduser()
+    if not folder.is_dir():
+        print(f"dossier introuvable : {folder}", file=sys.stderr)
+        return 2
+    data_dir = Path(args.out or DEFAULT_DATA_DIR)
+    data_dir.mkdir(parents=True, exist_ok=True)
+    seen: set[str] = set()
+    print(f"▸ surveillance : {folder}")
+    print(f"▸ scénario     : {args.scenario}")
+    print(f"▸ verrou       : {data_dir / '.vigie.lock'}")
+    rounds = 1 if args.once else None
+    handled = 0
+    while rounds is None or rounds > 0:
+        for path in sorted(folder.rglob("*")):
+            if not should_handle(path, data_dir, seen, folder):
+                continue
+            if not stable(path, args.settle):
+                continue
+            if not acquire(data_dir):
+                print(f"  … {path.name} attend : un run est en cours")
+                continue
+            try:
+                staged = deliver(path, data_dir / "watch-inputs")
+                print(f"  · {path.name} → run {args.scenario}")
+                command = [
+                    sys.executable, "-m", "agentdemo", "run",
+                    "--scenario", args.scenario,
+                    "--out", str(data_dir),
+                ]
+                if args.live:
+                    command += ["--live", "--model", args.model, "--base-url", args.base_url, "--timeout", str(args.timeout)]
+                done = subprocess.run(command, capture_output=True, text=True)
+                tail = (done.stdout or "").strip().splitlines()[-6:]
+                for line in tail:
+                    print("    " + line)
+                if done.returncode != 0:
+                    print(f"    run terminé en échec (code {done.returncode}) sur {staged.name}")
+                seen.add(f"{path.resolve()}:{path.stat().st_mtime_ns}")
+                handled += 1
+            finally:
+                release(data_dir)
+        if rounds is not None:
+            rounds -= 1
+        else:
+            _time.sleep(max(1.0, args.interval))
+    print(f"▸ runs déclenchés : {handled}")
+    return 0 if handled or args.once else 1
+
+
+def cmd_ask(args: argparse.Namespace) -> int:
+    """Une consigne libre : même boucle qu'un scénario, contrat construit en mémoire."""
+    from .agent import Agent
+    from .ask import AskError, build, enforce_deliverable, network_for
+    from .settings_store import Settings
+    from .skills import SkillStore
+    from .tools import Sandbox
+
+    try:
+        confirmed = bool(getattr(args, "yes", False)) or sys.stdin.isatty()
+        network = network_for(
+            getattr(args, "allow", None), bool(getattr(args, "allow_open", False)), confirmed
+        )
+    except AskError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    try:
+        scenario = build(
+            args.objective,
+            data_dir=Path(args.out or DEFAULT_DATA_DIR),
+            network=network,
+            max_steps=args.max_steps or 14,
+        )
+    except AskError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+
+    if not args.live:
+        print(
+            "ask exige un modèle : ajoute --live --model NOM --base-url http://IP:PORT/v1 "
+            "(les scénarios, eux, se rejouent sans modèle)",
+            file=sys.stderr,
+        )
+        return 2
+    if network["mode"] == "open":
+        print("⚠ réseau ouvert : l'agent peut joindre n'importe quel hôte pendant ce run", file=sys.stderr)
+
+    root = Path(args.out or DEFAULT_DATA_DIR)
+    run_id = f"ask-{scenario.slug[4:]}"
+    workspace = root / "runs" / run_id / "workspace"
+    workspace.mkdir(parents=True, exist_ok=True)
+    sandbox = Sandbox(workspace)
+    runner = _runner_for(workspace, scenario)
+    skills = SkillStore(root / "skills")
+    planner = _make_planner(
+        scenario,
+        True,
+        args.model,
+        args.base_url,
+        0,
+        args.api_key,
+        getattr(args, "timeout", 120),
+        "free",
+    )
+    settings = Settings.load(root / "settings.json")
+
+    print(f"▸ consigne  : {scenario.objective}")
+    print(f"▸ espace    : {workspace}")
+    print(f"▸ réseau    : {network['mode']}" + (f" ({', '.join(network.get('hosts') or [])})" if network.get("hosts") else ""))
+    print(f"▸ plafond   : {scenario.max_steps} étapes")
+    print()
+
+    def on_step(step) -> None:
+        mark = "✗" if step.error else "·"
+        print(f"  {mark} [{step.index:02d}] {step.tool or 'final':<16} {step.duration_ms:>4} ms  {step.thought[:90]}")
+
+    agent = Agent(
+        planner=planner,
+        workspace=workspace,
+        runs_dir=root / "runs",
+        max_steps=scenario.max_steps,
+        on_step=on_step,
+        skills=skills,
+        network_config=network,
+        runner=runner,
+        approver=confirm if getattr(args, "approve", False) else None,
+        scenario=scenario.slug,
+        save_state=True,
+        settings=settings,
+    )
+    result = agent.run(scenario.objective, run_id=run_id)
+    enforce_deliverable(result)
+    print()
+    print("▸ statut    :", result.status)
+    print(f"▸ bilan     : {result.summary}")
+    print(f"▸ livrables : {', '.join(result.artifacts) or '(aucun)'}")
+    print(f"▸ journal   : {root / 'runs' / (run_id + '.json')}")
+    return 0 if result.status == "done" else 1
+
+
 def cmd_validate(args: argparse.Namespace) -> int:
     """Vérifie chaque cassette contre les outils réels : nom d'outil et arguments."""
     from .tools import Sandbox
@@ -238,6 +391,9 @@ def cmd_validate(args: argparse.Namespace) -> int:
     sandbox = Sandbox(root)
     problems = 0
     for scenario in list_scenarios():
+        if not scenario.has_cassette():
+            print(f"[--] {scenario.slug} (aucune cassette : scénario live uniquement)")
+            continue
         if args.slug and scenario.slug != args.slug:
             continue
         errors: list[str] = []
@@ -709,6 +865,34 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("scenarios", help="liste les scénarios").set_defaults(func=cmd_scenarios)
+
+    watch = sub.add_parser("watch", help="surveille un dossier et lance un run quand un fichier arrive")
+    watch.add_argument("folder", help="dossier surveillé")
+    watch.add_argument("--scenario", default="inbox-triage")
+    watch.add_argument("--once", action="store_true", help="un seul passage, puis sortie")
+    watch.add_argument("--interval", type=float, default=5.0, help="secondes entre deux relevés")
+    watch.add_argument("--settle", type=float, default=1.0, help="secondes entre les deux mesures de taille")
+    watch.add_argument("--live", action="store_true")
+    watch.add_argument("--model", default="")
+    watch.add_argument("--base-url", default="")
+    watch.add_argument("--timeout", type=int, default=300)
+    watch.add_argument("--out", help="dossier de données (défaut ./data)")
+    watch.set_defaults(func=cmd_watch)
+
+    ask = sub.add_parser("ask", help="donne une consigne libre à l'agent, sans scénario")
+    ask.add_argument("objective", metavar="OBJECTIF", help="la consigne, 600 caractères maximum")
+    ask.add_argument("--live", action="store_true", help="obligatoire : ask exige un modèle")
+    ask.add_argument("--model", help="nom du modèle")
+    ask.add_argument("--base-url", help="endpoint compatible OpenAI")
+    ask.add_argument("--api-key", help="clé API si l'endpoint en exige une")
+    ask.add_argument("--timeout", type=int, default=120, help="secondes d'attente par appel modèle")
+    ask.add_argument("--max-steps", type=int, default=14)
+    ask.add_argument("--allow", action="append", metavar="HOTE", help="hôte autorisé (répétable)")
+    ask.add_argument("--allow-open", action="store_true", help="réseau ouvert, avec avertissement")
+    ask.add_argument("--yes", action="store_true", help="confirme le réseau ouvert sans demander")
+    ask.add_argument("--out", help="dossier de données (défaut ./data)")
+    ask.add_argument("--approve", action="store_true", help="demande mon accord avant chaque écriture")
+    ask.set_defaults(func=cmd_ask)
 
     run = sub.add_parser("run", help="exécute un scénario en ligne de commande")
     run.add_argument("--scenario", default="cyber-brief")

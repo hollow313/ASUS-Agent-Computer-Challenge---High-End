@@ -10,7 +10,7 @@ des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son tr
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
-![tests](https://img.shields.io/badge/tests-72%20passing-2ea043)
+![tests](https://img.shields.io/badge/tests-81%20passing-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **Candidature ASUS Agent Computer Challenge, catégorie High-End.** Vigie est la version distribuable de l'agent qui tourne sur ma machine depuis des mois ; ce dépôt en publie le cœur, sans mes données ni mes clés.
@@ -26,6 +26,7 @@ des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son tr
 - [Architecture et boucle](#architecture-et-boucle)
 - [Robustesse : repli, reprise, revue](#robustesse-repli-reprise-revue-autorisations)
 - [Sécurité et données](#sécurité-et-données)
+- [Ce qu'il a fait, daté](#ce-quil-a-fait-daté)
 - [Limites assumées](#limites-assumées)
 - [Construire, tester, étendre](#construire-tester-étendre)
 
@@ -34,11 +35,15 @@ des fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son tr
 ```bash
 git clone https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End
 cd ASUS-Agent-Computer-Challenge---High-End
-python3 -m agentdemo scenarios                  # les huit scénarios
-python3 -m agentdemo run --scenario cyber-brief # un run complet, déterministe
-python3 -m agentdemo serve --port 8080          # la même chose avec l'interface
-python3 -m unittest discover -s tests           # 72 tests, trois secondes
+python3 -m agentdemo ask "classe les fichiers du dossier et écris un comparatif" \
+  --live --model qwen2.5-coder:7b --base-url http://127.0.0.1:11434/v1   # consigne libre
+python3 -m agentdemo run --scenario cyber-brief  # un run complet, déterministe
+python3 -m agentdemo serve --port 8080           # la même chose avec l'interface
+python3 -m unittest discover -s tests            # 81 tests, trois secondes
 ```
+
+La consigne libre est la porte d'entrée : une phrase, un livrable, ou un échec assumé. Les scénarios
+restent la démonstration reproductible.
 
 ### ▶ La présentation en vidéo
 
@@ -269,12 +274,29 @@ au dossier du run, et l'outil `run` n'est exposé que si une isolation est dispo
 l'autorise explicitement. Le réseau est refusé par défaut, avec une allowlist vérifiée par appel.
 Détail : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-### Ce que les runs réels du 24/11 ont montré
+## Ce qu'il a fait, daté
 
-Sept scénarios ont été joués en réel sur la carte de 3 Go, avec un modèle vision de 8 milliards : cinq
-terminent du premier coup, deux ont demandé la correction du délai d'attente décrite dans les limites.
-Le détail, étape par étape, avec ce qui a cassé et pourquoi :
+La veille du matin tourne pour de vrai, sur trois sources publiques, et chaque exécution est versionnée
+dans `docs/runs/<date>-veille/` : le briefing écrit, le journal des étapes, l'état de reprise, le modèle
+utilisé. Le tableau complet, échecs et jours manquants compris, est dans
+[`docs/production/journal.md`](docs/production/journal.md) et se recalcule avec
+`python3 docs/production/serie.py`.
+
+```bash
+python3 docs/production/veille.py --once    # un run maintenant, versionné
+python3 docs/production/veille.py --loop    # la même chose toutes les 24 heures
+python3 docs/production/serie.py            # runs, taux de livrable, p50/p95, trous
+```
+
+Le 24 novembre, sept scénarios ont en plus été joués en réel sur la carte de 3 Go : cinq terminent du
+premier coup, deux ont demandé la correction du délai d'attente décrite dans les limites. Le détail,
+étape par étape, avec ce qui a cassé et pourquoi :
 [`docs/runs/campagne-20261124.md`](docs/runs/campagne-20261124.md).
+
+Ce que cette série prouve et ce qu'elle ne prouve pas : elle prouve qu'un agent local tient un rendez-vous
+quotidien, qu'il dit « source inaccessible » plutôt que d'inventer, et que chaque ligne du tableau est un
+run qu'on peut ouvrir. Elle ne prouve pas la qualité de l'analyse : elle est celle d'un modèle de 8
+milliards sur 3 Go.
 
 ## Limites assumées
 
@@ -285,6 +307,8 @@ Le détail, étape par étape, avec ce qui a cassé et pourquoi :
   d'être de la carte, pas un détail caché.
 - Sans isolation disponible sur la machine, l'outil `run` n'est pas exposé du tout.
 - Le coût affiché pour le local ne compte ni l'électricité ni l'amortissement du matériel.
+- `ask` n'est pas un chatbot : il écrit un livrable ou il s'arrête en `blocked`, et il refuse au-delà de
+  600 caractères, parce qu'une consigne plus longue est une pièce jointe et demande un scénario.
 - `inbox-triage` exige un compte IMAP configuré ; sans lui, le run s'arrête proprement en le disant.
 - Sur une carte de 3 Go, une étape qui relit un long fichier peut dépasser les 120 secondes d'attente
   par appel : `--timeout 300` existe pour ça, et sans lui le run s'arrête sur un délai, pas sur une erreur d'agent.

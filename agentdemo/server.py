@@ -65,9 +65,16 @@ class RunStore:
         resume_from: Path | None = None,
         workspace: Path | None = None,
         auto_approve: bool = False,
+        free: str | None = None,
     ) -> str:
-        scenario = get_scenario(slug)
-        if mode == "replay" and not scenario.has_cassette():
+        if free:
+            from .ask import build as build_free
+
+            scenario = build_free(free, data_dir=self.data_dir, network={"mode": "deny"})
+            slug = scenario.slug
+        else:
+            scenario = get_scenario(slug)
+        if not free and mode == "replay" and not scenario.has_cassette():
             raise ValueError(
                 "ce scénario n'a pas encore de cassette : lance-le une fois en mode réel, "
                 "puis enregistre la trace depuis l'interface (ou la CLI)"
@@ -76,9 +83,12 @@ class RunStore:
         if workspace is None:
             workspace = self.data_dir / "runs" / run_id / "workspace"
             workspace.mkdir(parents=True, exist_ok=True)
-            scenario.stage(workspace)
-            staged = self._stage_inputs(workspace)
-            staged += scenario.stage_inputs(workspace)
+            if free:
+                staged = []
+            else:
+                scenario.stage(workspace)
+                staged = self._stage_inputs(workspace)
+                staged += scenario.stage_inputs(workspace)
         else:
             workspace = Path(workspace)
             workspace.mkdir(parents=True, exist_ok=True)
@@ -159,7 +169,12 @@ class RunStore:
                             state.setdefault("mutations", []).append(applied)
                     if mode == "live":
                         planner = _live_planner(
-                            llm, routing_chain, self.data_dir, fallback_events, _vision_of(scenario)
+                            llm,
+                            routing_chain,
+                            self.data_dir,
+                            fallback_events,
+                            _vision_of(scenario),
+                            "free" if free else "scenario",
                         )
                     else:
                         planner = ReplayPlanner(scenario.cassette(index))
@@ -203,6 +218,10 @@ class RunStore:
                         ),
                     )
                     result = agent.run(state["objective"], run_id=f"{run_id}-p{index + 1}")
+                    if free:
+                        from .ask import enforce_deliverable
+
+                        enforce_deliverable(result)
                     if fallback_events or boot_events:
                         result.events = list(boot_events) + list(fallback_events) + list(result.events)
                     with self.lock:
@@ -347,6 +366,7 @@ def _live_planner(
     data_dir: Path,
     sink: list[dict[str, Any]],
     image_data_url: str | None = None,
+    objective_style: str = "scenario",
 ) -> Any:
     """Planner live, avec la chaîne de repli déclarée dans la politique de routage."""
     from .planners import FallbackPlanner
@@ -358,6 +378,7 @@ def _live_planner(
             api_key=str(llm.get("api_key") or ""),
             tools=build_registry(_NullSandbox(), []),
             image_data_url=image_data_url,
+            objective_style=objective_style,
         )
     table = RoutingTable.load(Path(data_dir) / "routing.json")
     by_id = {target.id: target for target in table.targets}
@@ -375,6 +396,7 @@ def _live_planner(
                     api_key=target.api_key,
                     tools=build_registry(_NullSandbox(), []),
                     image_data_url=image_data_url,
+                    objective_style=objective_style,
                 ),
             )
         )
@@ -804,6 +826,38 @@ def make_handler(store: RunStore):
                     )
                 target = record_cassette(scenario, journal.get("steps", []), journal.get("summary", ""))
                 return self._send_json({"ok": True, "cassette": str(target.name), "steps": len(scenario.cassette())})
+            if path.startswith("/api/hooks/"):
+                name = path.rsplit("/", 1)[-1].strip()
+                settings = Settings.load(store.data_dir / "settings.json")
+                jobs = {str(job.get("name") or ""): job for job in (settings.jobs or [])}
+                job = jobs.get(name)
+                if job is None:
+                    return self._send_json({"error": f"hook inconnu : {name}"}, status=404)
+                try:
+                    run_id = store.start(
+                        slug=str(job.get("scenario") or "cyber-brief"),
+                        mode=str(job.get("mode") or "live"),
+                        objective=None,
+                        llm=job.get("llm") or None,
+                    )
+                except (KeyError, ValueError) as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"run_id": run_id, "hook": name}, status=202)
+            if path == "/api/ask":
+                from .ask import AskError
+
+                objective = str(payload.get("objective") or "")
+                llm = payload.get("llm") or None
+                mode = str(payload.get("mode") or "live")
+                if mode != "live":
+                    return self._send_json({"error": "une consigne libre exige un modèle : mode live"}, status=400)
+                try:
+                    run_id = store.start(slug="ask", mode="live", objective=objective, llm=llm, free=objective)
+                except AskError as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                except (KeyError, ValueError) as exc:
+                    return self._send_json({"error": str(exc)}, status=400)
+                return self._send_json({"run_id": run_id}, status=202)
             if path != "/api/run":
                 return self._send_json({"error": "route inconnue"}, status=404)
             try:

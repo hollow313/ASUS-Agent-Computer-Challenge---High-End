@@ -83,7 +83,9 @@ class Scenario:
         """Recorded trace of pass ``index`` (a scenario can be replayed twice to
         show what the agent learned between two runs)."""
         passes = self.passes or [{"label": "", "cassette": "cassette.json"}]
-        name = passes[min(index, len(passes) - 1)].get("cassette", "cassette.json")
+        name = passes[min(index, len(passes) - 1)].get("cassette") or ""
+        if not name:
+            return []  # consigne libre : aucune cassette, le replay n'a rien à rejouer
         path = self.root / name
         return json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
 
@@ -139,9 +141,16 @@ class Scenario:
             else:
                 shutil.copy2(item, destination)
 
+    def has_cassette_declared(self) -> bool:
+        """Le scénario déclare-t-il une cassette ? Un scénario live dit explicitement non."""
+        passes = self.passes or [{"label": "", "cassette": "cassette.json"}]
+        return bool(passes[0].get("cassette"))
+
     def has_cassette(self) -> bool:
         passes = self.passes or [{"label": "", "cassette": "cassette.json"}]
-        name = passes[0].get("cassette", "cassette.json")
+        name = passes[0].get("cassette")
+        if not name:
+            return False  # consigne libre : rien à rejouer
         return (self.root / name).exists() and bool(self.cassette())
 
     def as_summary(self) -> dict[str, Any]:

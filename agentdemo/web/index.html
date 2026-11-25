@@ -159,6 +159,10 @@
     main { grid-template-columns: 1fr; }
     aside { border-right: 0; border-bottom: 1px solid var(--line); }
   }
+  .askbox { background: #10141c; border: 1px solid #232a38; border-radius: 10px; padding: 10px; margin-bottom: 18px; }
+  .askbox textarea { width: 100%; background: #0b0e14; color: #e6ebf5; border: 1px solid #232a38; border-radius: 8px; padding: 9px 10px; font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; resize: vertical; }
+  .askrow { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .askrow #askHint { font-size: 11px; }
 </style>
 </head>
 <body>
@@ -172,6 +176,15 @@
 
 <main>
   <aside>
+    <h2>Demande libre</h2>
+    <div class="askbox">
+      <textarea id="askObjective" rows="3" placeholder="classe les trois CSV du dossier et écris un comparatif"></textarea>
+      <div class="askrow">
+        <button id="askRun">demander à l'agent</button>
+        <span class="opt" id="askHint">écrit un fichier ou s'arrête, 600 caractères max</span>
+      </div>
+    </div>
+
     <h2>Scénarios</h2>
     <div id="scenarios"></div>
     <button id="newScenarioToggle" class="ghost">＋ nouveau scénario</button>
@@ -591,6 +604,38 @@ async function launch() {
   state.polling = setInterval(poll, 400);
   poll();
 }
+
+async function askAgent() {
+  const objective = $("askObjective").value.trim();
+  if (!objective) {
+    $("statusText").textContent = "écris d'abord une consigne";
+    return;
+  }
+  $("askRun").disabled = true;
+  $("steps").innerHTML = '<p class="empty">L\'agent démarre…</p>';
+  $("result").innerHTML = "";
+  $("artifacts").innerHTML = "";
+  $("objectiveView").textContent = objective;
+  const res = await fetch("/api/ask", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      objective,
+      mode: "live",
+      llm: { base_url: $("llmBase").value.trim(), model: $("llmModel").value.trim(), api_key: $("llmKey").value },
+    }),
+  });
+  const data = await res.json();
+  $("askRun").disabled = false;
+  if (!res.ok) {
+    $("statusText").textContent = "refusé : " + (data.error || res.status);
+    return;
+  }
+  state.runId = data.run_id;
+  state.polling = setInterval(poll, 400);
+  poll();
+}
+$("askRun").addEventListener("click", askAgent);
 
 let editing = null;  // slug en cours d'édition, null en création
 

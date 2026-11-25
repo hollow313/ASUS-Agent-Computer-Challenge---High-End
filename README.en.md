@@ -10,7 +10,7 @@ files, re-reads what it produced, learns from its mistakes and resumes its work 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
-![tests](https://img.shields.io/badge/tests-72%20passing-2ea043)
+![tests](https://img.shields.io/badge/tests-81%20passing-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 **ASUS Agent Computer Challenge, High-End category.** Vigie is the distributable version of the agent that has been running on my machine for months; this repository publishes its core, without my data and without my keys.
@@ -26,6 +26,7 @@ files, re-reads what it produced, learns from its mistakes and resumes its work 
 - [Architecture and loop](#architecture-and-loop)
 - [Robustness: fallback, resume, review](#robustness-fallback-resume-review-approvals)
 - [Security and data](#security-and-data)
+- [What it has actually done](#what-it-has-actually-done-dated)
 - [Limits we accept](#limits-we-accept)
 - [Build, test, extend](#build-test-extend)
 
@@ -34,10 +35,12 @@ files, re-reads what it produced, learns from its mistakes and resumes its work 
 ```bash
 git clone https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End
 cd ASUS-Agent-Computer-Challenge---High-End
+python3 -m agentdemo ask "sort the files in this folder and write a comparison" \
+  --live --model qwen2.5-coder:7b --base-url http://127.0.0.1:11434/v1   # free instruction
 python3 -m agentdemo scenarios                  # the eight scenarios
 python3 -m agentdemo run --scenario cyber-brief # one full, deterministic run
 python3 -m agentdemo serve --port 8080          # the same thing with the interface
-python3 -m unittest discover -s tests           # 72 tests, three seconds
+python3 -m unittest discover -s tests           # 81 tests, three seconds
 ```
 
 ### ▶ The presentation on video
@@ -264,6 +267,24 @@ the `run` tool is exposed only when isolation is available or the scenario expli
 network is denied by default, with an allowlist checked on each call. Detail:
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+## What it has actually done, dated
+
+The morning watch runs for real, against three public sources, and every execution is versioned under
+`docs/runs/<date>-veille/`: the written briefing, the step journal, the resume state, the model used. The
+full table, failures and missing days included, is in
+[`docs/production/journal.md`](docs/production/journal.md) and can be recomputed with
+`python3 docs/production/serie.py`.
+
+```bash
+python3 docs/production/veille.py --once    # one run now, versioned
+python3 docs/production/veille.py --loop    # the same every 24 hours
+python3 docs/production/serie.py            # runs, delivery rate, p50/p95, gaps
+```
+
+What the series proves and what it does not: it proves a local agent keeps a daily appointment, that it
+says "source unreachable" instead of inventing, and that every row is a run anyone can open. It does not
+prove the quality of the analysis: that is an 8B model on 3 GB.
+
 ## Limits we accept
 
 - Replay mode does not prove a model's quality: it proves the agent's mechanics.
@@ -272,6 +293,8 @@ network is denied by default, with an allowlist checked on each call. Detail:
   exists, not a hidden detail.
 - Without isolation available on the machine, the `run` tool is not exposed at all.
 - The local cost figure counts neither electricity nor hardware amortisation.
+- `ask` is not a chatbot: it writes a deliverable or stops as `blocked`, and it refuses anything over
+  600 characters, because a longer instruction is an attachment and calls for a scenario.
 - `inbox-triage` needs a configured IMAP account; without it, the run stops cleanly and says so.
 - On a 3 GB card, a step that re-reads a long file can exceed the 120-second per-call timeout:
   `--timeout 300` exists for that, and without it the run stops on a delay, not on an agent error.
@@ -283,7 +306,7 @@ network is denied by default, with an allowlist checked on each call. Detail:
 ## Build, test, extend
 
 ```bash
-python3 -m unittest discover -s tests     # 72 tests
+python3 -m unittest discover -s tests     # 81 tests
 python3 -m agentdemo validate             # cassettes against real tools
 python3 -m agentdemo doctor               # installation checks
 python3 -m agentdemo fit --vram 32        # memory sizing

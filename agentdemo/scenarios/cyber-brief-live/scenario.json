@@ -1,0 +1,28 @@
+{
+  "slug": "cyber-brief-live",
+  "title": "Veille cyber, sources réelles",
+  "blurb": "La veille du matin, sur trois sites publics, sans fixture : ce qui sort dépend de ce que les sources publient ce jour-là.",
+  "objective": "Fais la veille cyber du jour. Récupère chaque source autorisée avec l'outil http_get (une URL par source, par exemple le flux ou la page des actualités), lis ce qui est publié, hiérarchise pour un analyste défense, puis écris briefing.md : cinq à huit entrées, chacune avec son lien, son enjeu et sa raison d'être urgente ou non. Si une source ne répond pas, écris dans le briefing la ligne « source inaccessible » avec le code d'erreur et continue avec les autres. Un briefing sans aucune source lue est un échec : ne le présente pas comme un succès.",
+  "tags": [
+    "veille",
+    "réseau",
+    "quotidien"
+  ],
+  "max_steps": 18,
+  "network": {
+    "mode": "allowlist",
+    "hosts": [
+      "www.cert.ssi.gouv.fr",
+      "www.zataz.com",
+      "www.01net.com"
+    ]
+  },
+  "exec": {},
+  "inputs": {},
+  "passes": [
+    {
+      "label": "veille du jour",
+      "cassette": null
+    }
+  ]
+}

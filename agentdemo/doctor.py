@@ -82,10 +82,14 @@ def run_checks(data_dir: Path, base_url: str | None = None, model: str | None = 
                 ", ".join(s.slug for s in scenarios) or "aucun",
             )
         )
-        empty = [s.slug for s in scenarios if not s.cassette()]
-        checks.append(
-            Check("Cassettes présentes", "ok" if not empty else "fail", ", ".join(empty) or "toutes")
-        )
+        # Un scénario sans cassette est un scénario live assumé : ce n'est pas une anomalie.
+        with_cassette = [s for s in scenarios if s.has_cassette_declared()]
+        empty = [s.slug for s in with_cassette if not s.cassette()]
+        live_only = [s.slug for s in scenarios if not s.has_cassette_declared()]
+        detail = ", ".join(empty) or "toutes"
+        if live_only:
+            detail += f" · live uniquement : {', '.join(live_only)}"
+        checks.append(Check("Cassettes présentes", "ok" if not empty else "fail", detail))
     except Exception as exc:  # noqa: BLE001 - un diagnostic ne doit jamais planter
         checks.append(Check("Scénarios chargeables", "fail", str(exc)))
 
