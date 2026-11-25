@@ -324,11 +324,12 @@ par le planificateur et par le script lui-même. L'écart entre huit et trois en
 modèle, et elle est publiée telle quelle.
 
 Le 24 novembre, sept scénarios ont aussi été joués en réel sur la GTX 1060 3 Go : cinq terminent du
-premier coup, deux ont demandé la correction du délai d'attente décrite dans les limites. Le 25 novembre, trois runs ont été relancés sur la même carte avec
-des modèles de 1,5 et 3 milliards de paramètres : les trois se sont arrêtés en `blocked`, faute de savoir
-enchaîner, et les journaux sont publiés tels quels dans
-[`docs/RUNS-LIVE-GTX1060.md`](docs/RUNS-LIVE-GTX1060.md). Un petit modèle qui rentre dans la carte n'est
-pas un petit modèle qui sait boucler, et c'est écrit. Le détail,
+premier coup, deux ont demandé la correction du délai d'attente décrite dans les limites. Le 25 novembre, quatre runs ont comparé les backends sur le même scénario. Les
+deux modèles qui tiennent entièrement dans 3 Go (1,5B et 3B) se sont arrêtés en `blocked`, faute de savoir
+enchaîner. Les deux modèles cloud, lancés avec le même code et les mêmes fichiers, terminent et écrivent le
+briefing en 8 et 13 étapes. Le contrôle est publié avec ses journaux et l'explication complète dans
+[`docs/RUNS-LIVE-GTX1060.md`](docs/RUNS-LIVE-GTX1060.md) : la boucle fonctionne, c'est le modèle qui tient
+dans la carte qui est trop petit. Le cloud sert de témoin, pas de mode d'emploi. Le détail,
 étape par étape, avec ce qui a cassé et pourquoi :
 [`docs/runs/campagne-20261124.md`](docs/runs/campagne-20261124.md).
 
