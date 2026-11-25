@@ -15,9 +15,8 @@ si le processus a été tué au milieu.
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 *Depuis le dépôt de la candidature sur le site du concours, le projet a reçu des fonctions qui n'y
-étaient pas : la demande libre en une phrase, la lecture d'images, la veille sur sources réelles et les
-déclencheurs par dossier ou par appel HTTP. Chaque ajout est daté dans le dépôt, avec sa mesure quand il y
-en a une.*
+étaient pas : la demande libre en une phrase, la lecture d'images, et les déclencheurs par dossier ou par
+appel HTTP. Chaque ajout est daté dans le dépôt, avec sa mesure quand il y en a une.*
 
 **Candidature ASUS Agent Computer Challenge, catégorie High-End.** Vigie est la version distribuable de l'agent qui tourne sur ma machine depuis des mois ; ce dépôt en publie le cœur, sans mes données ni mes clés.
 

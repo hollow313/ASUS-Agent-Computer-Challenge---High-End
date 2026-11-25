@@ -15,8 +15,8 @@ when the process was killed mid-run.
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
 
 *Since the entry was submitted on the contest site, the project has gained features it did not have then:
-free-form instructions in one sentence, image reading, the watch on real sources, and triggers from a folder
-or an HTTP call. Every addition is dated in the repository, with its measurement where there is one.*
+free-form instructions in one sentence, image reading, and triggers from a folder or an HTTP call. Every
+addition is dated in the repository, with its measurement where there is one.*
 
 **ASUS Agent Computer Challenge, High-End category.** Vigie is the distributable version of the agent that has been running on my machine for months; this repository publishes its core, without my data and without my keys.
 
