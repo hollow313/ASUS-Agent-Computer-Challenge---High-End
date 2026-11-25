@@ -6,13 +6,18 @@
 fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son travail après un crash, y compris
 si le processus a été tué au milieu.
 
-[La présentation en vidéo](https://youtu.be/jqpE5IXz8T8) · [Démo en 30 secondes](#en-trente-secondes) · [Les chiffres](#les-chiffres-mesurés) · [Les limites](#limites-assumées)
+[La présentation en vidéo](https://youtu.be/YlB1xpPlTnA) · [Démo en 30 secondes](#en-trente-secondes) · [Les chiffres](#les-chiffres-mesurés) · [Les limites](#limites-assumées)
 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
 ![tests](https://img.shields.io/badge/tests-89%20passing-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
+
+*Depuis le dépôt de la candidature sur le site du concours, le projet a reçu des fonctions qui n'y
+étaient pas : la demande libre en une phrase, la lecture d'images, la veille sur sources réelles et les
+déclencheurs par dossier ou par appel HTTP. Chaque ajout est daté dans le dépôt, avec sa mesure quand il y
+en a une.*
 
 **Candidature ASUS Agent Computer Challenge, catégorie High-End.** Vigie est la version distribuable de l'agent qui tourne sur ma machine depuis des mois ; ce dépôt en publie le cœur, sans mes données ni mes clés.
 
@@ -53,11 +58,11 @@ Un run qui n'écrit aucun fichier sort en `blocked`, jamais en `done`.*
 
 ### ▶ La présentation en vidéo
 
-[![Lancer la présentation sur YouTube, 3 min 36](https://i.ytimg.com/vi/jqpE5IXz8T8/sddefault.jpg)](https://youtu.be/jqpE5IXz8T8)
+[![Lancer la présentation sur YouTube, 3 min 36](https://i.ytimg.com/vi/YlB1xpPlTnA/maxresdefault.jpg)](https://youtu.be/YlB1xpPlTnA)
 
 *Cliquez sur l'image pour lancer la vidéo sur YouTube (3 min 36).*
 
-La présentation, [youtu.be/jqpE5IXz8T8](https://youtu.be/jqpE5IXz8T8), montre les neuf scénarios, la
+La présentation, [youtu.be/YlB1xpPlTnA](https://youtu.be/YlB1xpPlTnA), montre les neuf scénarios, la
 vision, la mémoire procédurale, la délégation, le routage avec repli, la reprise après crash, la revue par
 un second modèle, l'accord manuel et le dimensionnement de la carte. La démo courte, 1 min 03, est aussi en
 ligne : [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs).

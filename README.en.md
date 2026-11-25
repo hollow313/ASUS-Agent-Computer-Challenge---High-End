@@ -6,13 +6,17 @@
 files, re-reads what it produced, learns from its mistakes and resumes its work after a crash, including
 when the process was killed mid-run.
 
-[Watch the presentation](https://youtu.be/jqpE5IXz8T8) · [30-second demo](#in-thirty-seconds) · [The numbers](#the-measured-numbers) · [The limits](#limits-we-accept)
+[Watch the presentation](https://youtu.be/YlB1xpPlTnA) · [30-second demo](#in-thirty-seconds) · [The numbers](#the-measured-numbers) · [The limits](#limits-we-accept)
 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
 ![tests](https://img.shields.io/badge/tests-89%20passing-2ea043)
 ![licence](https://img.shields.io/badge/licence-MIT-6e7681)
+
+*Since the entry was submitted on the contest site, the project has gained features it did not have then:
+free-form instructions in one sentence, image reading, the watch on real sources, and triggers from a folder
+or an HTTP call. Every addition is dated in the repository, with its measurement where there is one.*
 
 **ASUS Agent Computer Challenge, High-End category.** Vigie is the distributable version of the agent that has been running on my machine for months; this repository publishes its core, without my data and without my keys.
 
@@ -51,11 +55,11 @@ A run that writes no file ends as `blocked`, never `done`.*
 
 ### ▶ The presentation on video
 
-[![Watch the presentation on YouTube, 3 min 36](https://i.ytimg.com/vi/jqpE5IXz8T8/sddefault.jpg)](https://youtu.be/jqpE5IXz8T8)
+[![Watch the presentation on YouTube, 3 min 36](https://i.ytimg.com/vi/YlB1xpPlTnA/maxresdefault.jpg)](https://youtu.be/YlB1xpPlTnA)
 
 *Click the image to play the video on YouTube (3 min 36).*
 
-The presentation, [youtu.be/jqpE5IXz8T8](https://youtu.be/jqpE5IXz8T8), shows the nine scenarios, vision,
+The presentation, [youtu.be/YlB1xpPlTnA](https://youtu.be/YlB1xpPlTnA), shows the nine scenarios, vision,
 procedural memory, delegation, routing with fallback, crash resume, the second-model review, manual
 approval and the card sizing. The short demo, 1 min 03, is online too:
 [youtu.be/rUKwZeVePNs](https://youtu.be/rUKwZeVePNs). The file also lives in the
