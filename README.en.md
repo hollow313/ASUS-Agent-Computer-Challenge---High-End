@@ -293,6 +293,11 @@ it. **50 briefings from 17 September to 25 November 2026, one per weekday, no da
 [`docs/production/serie-2026.json`](docs/production/serie-2026.json), and its table is recomputed with
 `python3 docs/production/serie_production.py --archive <folder>`.
 
+On 25 November, three runs were replayed live on the same GTX 1060 3 GB card with 1.5B and 3B models: all
+three stopped `blocked`, unable to chain steps, and their journals are published as they are in
+[`docs/RUNS-LIVE-GTX1060.md`](docs/RUNS-LIVE-GTX1060.md). A small model that fits the card is not a small
+model that can loop, and the repository says so.
+
 The scenario contract requires the three sources to be read before the model's first turn, and that
 constraint shows up in the journal: an 8B on the GTX 1060 3 GB does not think of calling the network on its own, and
 saying so is better than letting it write an empty briefing and call it a success.

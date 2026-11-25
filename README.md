@@ -324,7 +324,11 @@ par le planificateur et par le script lui-même. L'écart entre huit et trois en
 modèle, et elle est publiée telle quelle.
 
 Le 24 novembre, sept scénarios ont aussi été joués en réel sur la GTX 1060 3 Go : cinq terminent du
-premier coup, deux ont demandé la correction du délai d'attente décrite dans les limites. Le détail,
+premier coup, deux ont demandé la correction du délai d'attente décrite dans les limites. Le 25 novembre, trois runs ont été relancés sur la même carte avec
+des modèles de 1,5 et 3 milliards de paramètres : les trois se sont arrêtés en `blocked`, faute de savoir
+enchaîner, et les journaux sont publiés tels quels dans
+[`docs/RUNS-LIVE-GTX1060.md`](docs/RUNS-LIVE-GTX1060.md). Un petit modèle qui rentre dans la carte n'est
+pas un petit modèle qui sait boucler, et c'est écrit. Le détail,
 étape par étape, avec ce qui a cassé et pourquoi :
 [`docs/runs/campagne-20261124.md`](docs/runs/campagne-20261124.md).
 
