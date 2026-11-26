@@ -422,13 +422,32 @@ class Agent:
                     result.events.append(
                         {"event": "approval", "tool": tool_name, "args": args, "decision": "approved"}
                     )
+                # Un petit modèle recopie parfois un argument d'un autre outil (max_chars sur fs_write).
+                # Refuser l'appel coûte une étape et, sur un 3B, tout le run : on écarte l'argument en
+                # trop, on le dit dans l'observation, et on exécute l'appel avec ce qui reste.
+                accepted = getattr(tools[tool_name], "params", None)
+                extra = []
+                if accepted is not None:
+                    extra = [name for name in args if name not in accepted]
+                    if extra:
+                        for name in extra:
+                            args.pop(name, None)
                 try:
                     observation = tools[tool_name].fn(**args)
                     error = False
+                    if extra:
+                        observation = f"(argument ignoré : {', '.join(extra)}) {observation}"
                 except ToolError as exc:
                     observation, error = str(exc), True
-                except TypeError as exc:
-                    observation, error = f"arguments invalides pour {tool_name} : {exc}", True
+                except TypeError:
+                    # le message brut de Python (« got an unexpected keyword argument ») ne dit pas au
+                    # modèle ce qu'il fallait écrire : on rend la signature attendue, à la lettre
+                    signature = tools[tool_name].signature
+                    observation = (
+                        f"arguments invalides pour {tool_name}. Signature attendue : {signature}. "
+                        f"Relance l'appel avec exactement ces arguments."
+                    )
+                    error = True
                 except Exception as exc:  # un outil qui plante ne doit pas emporter le run
                     observation, error = f"échec interne de {tool_name} : {type(exc).__name__}: {exc}"[:400], True
             observation = observation if isinstance(observation, str) else json.dumps(observation, ensure_ascii=False)

@@ -85,7 +85,7 @@ n'ai pas.
 | tâches texte, 8B Q4 | 90 %, p50 0,67 s | même commande |
 | tâches image, 8B Q4 | 100 %, p50 0,94 s | `python3 scripts/vision_check.py` |
 | run pico, chemin court | 3 étapes, livrable, 8B Q4 | `docs/runs/live-pico/` |
-| run pico sans GPU, `llama3.2:3b` | `done`, `pico.md` écrit, 4 min 21 sur CPU | `docs/runs/live-pico-cpu/` |
+| run pico sans GPU, `llama3.2:3b` | `done`, `pico.md` écrit en 3 min 14, deux essais sur deux | `docs/runs/live-pico-cpu/` |
 | run pico sans GPU, `qwen2.5` 1,5B et 3B | arrêt `blocked` : pas d'appel d'outil fiable | `docs/runs/live-pico-cpu/` |
 | run complet local-audit | 5 étapes, 4 à 6 minutes | `docs/runs/campagne-20261124.md` |
 

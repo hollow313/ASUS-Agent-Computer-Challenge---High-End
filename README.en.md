@@ -77,8 +77,9 @@ python3 -m agentdemo run --scenario pico --live --model your-model \
 
 What this scenario gives depending on the model is published unfiltered, logs included
 ([`docs/runs/live-pico-cpu/`](docs/runs/live-pico-cpu/README.md)): `llama3.2:3b` finishes **without a
-graphics card** in five steps with the deliverable, an 8B on a card finishes in three, and two `qwen2.5`
-models of 1.5 and 3 billion stop cleanly as `blocked` because they do not emit reliable tool calls. The
+graphics card** in four steps and three minutes, two attempts out of two, an 8B on a card finishes in
+three, and two `qwen2.5` models of 1.5 and 3 billion stop cleanly as `blocked` because they do not emit
+reliable tool calls. The
 path is short; the model still has to know how to call a tool.
 
 ![Free instruction in the interface](docs/screenshot-ask.png)

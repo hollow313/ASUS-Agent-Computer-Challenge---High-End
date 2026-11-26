@@ -70,6 +70,20 @@ class Tool:
     description: str
     fn: Callable[..., str]
 
+    @property
+    def params(self) -> set[str]:
+        """Les noms d'arguments réellement acceptés par l'outil, pour écarter un argument en trop."""
+        import inspect
+
+        try:
+            return {
+                name
+                for name, param in inspect.signature(self.fn).parameters.items()
+                if param.kind in (param.POSITIONAL_OR_KEYWORD, param.KEYWORD_ONLY)
+            }
+        except (TypeError, ValueError):
+            return set()
+
 
 def _clip(text: str, limit: int = MAX_OBSERVATION_CHARS) -> str:
     if len(text) <= limit:
