@@ -6,10 +6,15 @@
 files, re-reads what it produced, learns from its mistakes and resumes its work after a crash, including
 when the process was killed mid-run.
 
-[Watch the presentation](https://youtu.be/YlB1xpPlTnA) · [30-second demo](#in-thirty-seconds) · [The numbers](#the-measured-numbers) · [The limits](#limits-we-accept)
+[Watch the presentation](https://youtu.be/YlB1xpPlTnA) · **▶ [Crash and resume, 20 s](docs/video/vigie-crash-resume.mp4)** · [30-second demo](#in-thirty-seconds) · [The numbers](#the-measured-numbers) · [The limits](#limits-we-accept)
 
 **Twenty minutes to spare?** [`JURY.en.md`](JURY.en.md), 400 words, every claim points to a file or a
 command. This README is the long version.
+
+**The move nobody else in this field shows**: the process is killed mid-run, restarted, and it picks up at
+the next step without replaying anything. [`docs/runs/crash-resume/`](docs/runs/crash-resume/README.md)
+holds both logs and the command; the 20-second video is
+[`docs/video/vigie-crash-resume.mp4`](docs/video/vigie-crash-resume.mp4).
 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
@@ -38,6 +43,7 @@ assumed.
 - [Architecture and loop](#architecture-and-loop)
 - [Robustness: fallback, resume, review](#robustness-fallback-resume-review-approvals)
 - [Security and data](#security-and-data)
+- [Who the card is for](#who-the-card-is-for)
 - [What it has actually done](#what-it-has-actually-done-dated)
 - [Limits we accept](#limits-we-accept)
 - [Build, test, extend](#build-test-extend)
@@ -305,6 +311,12 @@ Every run works in its own sandbox: `..` paths are refused, output is confined t
 the `run` tool is exposed only when isolation is available or the scenario explicitly allows it. The
 network is denied by default, with an allowlist checked on each call. Detail:
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## Who the card is for
+
+Three plausible buyers, what they buy, a plausible price, and the arithmetic that compares local with an
+API: [`docs/OFFRE.md`](docs/OFFRE.md). No real customer is promised there; it is a sizing argument, and the
+repository supplies the technical proof that makes it credible.
 
 ## What it has actually done, dated
 

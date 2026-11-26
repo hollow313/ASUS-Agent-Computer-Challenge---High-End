@@ -6,10 +6,15 @@
 fichiers, relit ce qu'il a produit, apprend de ses erreurs et reprend son travail après un crash, y compris
 si le processus a été tué au milieu.
 
-[La présentation en vidéo](https://youtu.be/YlB1xpPlTnA) · [Démo en 30 secondes](#en-trente-secondes) · [Les chiffres](#les-chiffres-mesurés) · [Les limites](#limites-assumées)
+[La présentation en vidéo](https://youtu.be/YlB1xpPlTnA) · **▶ [Le crash et la reprise, 20 s](docs/video/vigie-crash-resume.mp4)** · [Démo en 30 secondes](#en-trente-secondes) · [Les chiffres](#les-chiffres-mesurés) · [Les limites](#limites-assumées)
 
 **Vingt minutes devant vous ?** [`JURY.md`](JURY.md), 400 mots, chaque affirmation renvoie à un fichier ou à
 une commande. Ce README est la version longue.
+
+**Le geste qui n'est pas dans les autres dossiers** : on tue le processus en pleine exécution, on le
+relance, il reprend à l'étape suivante sans rien rejouer. [`docs/runs/crash-resume/`](docs/runs/crash-resume/README.md)
+contient les deux journaux et la commande ; la vidéo de 20 secondes est
+[`docs/video/vigie-crash-resume.mp4`](docs/video/vigie-crash-resume.mp4).
 
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
@@ -38,6 +43,7 @@ supposé.
 - [Architecture et boucle](#architecture-et-boucle)
 - [Robustesse : repli, reprise, revue](#robustesse-repli-reprise-revue-autorisations)
 - [Sécurité et données](#sécurité-et-données)
+- [À qui sert cette carte](#à-qui-sert-cette-carte)
 - [Ce qu'il a fait, daté](#ce-quil-a-fait-daté)
 - [Limites assumées](#limites-assumées)
 - [Construire, tester, étendre](#construire-tester-étendre)
@@ -313,6 +319,12 @@ Chaque run travaille dans son propre bac à sable : les chemins `..` sont refus�
 au dossier du run, et l'outil `run` n'est exposé que si une isolation est disponible ou si le scénario
 l'autorise explicitement. Le réseau est refusé par défaut, avec une allowlist vérifiée par appel.
 Détail : [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## À qui sert cette carte
+
+Trois acheteurs possibles, ce qu'ils achètent, un prix plausible et le calcul qui compare le local à une
+API : [`docs/OFFRE.md`](docs/OFFRE.md). Aucun client réel n'y est promis, c'est un raisonnement de
+dimensionnement, et le dépôt fournit la preuve technique qui le rend crédible.
 
 ## Ce qu'il a fait, daté
 

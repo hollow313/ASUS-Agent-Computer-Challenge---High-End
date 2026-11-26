@@ -64,3 +64,35 @@ et sur le même modèle.
 
 Aucun chiffre de débit n'est avancé pour les paliers 8, 16 et 32 Go : ils ne sont pas mesurés. Les
 latences publiées viennent toutes de la carte de 3 Go, aux dates indiquées dans les rapports de mesure.
+
+## Trois tailles de modèle, ce que chacune change
+
+Les colonnes « mesuré » viennent de cette carte de 3 Go, aux dates indiquées. Les colonnes « projeté »
+sont des calculs de `fit`, jamais des débits : aucun chiffre de vitesse n'est avancé pour une carte que je
+n'ai pas.
+
+| Modèle | Mémoire à 32 k de contexte | Où il tourne aujourd'hui | Ce que ça change pour l'utilisateur |
+| --- | --- | --- | --- |
+| 7,6 B Q4 | 6,7 Go (Q4) | mesuré sur 3 Go, hors budget mémoire, une partie en CPU | une veille tient, un audit long casse ; 60 % sur les tâches texte |
+| 14,7 B Q8 | 20,9 Go | projeté par `fit` | lit un dossier entier, écrit un rapport qu'on peut envoyer |
+| 32,8 B Q4 | 30,4 Go (marge 1,6) | projeté par `fit` | relecture par un second modèle et sous-agents en parallèle, sans arbitrage |
+
+## Ce qui est mesuré, et sur quoi
+
+| Mesure | Valeur | Où la refaire |
+| --- | --- | --- |
+| tâches texte, 7B Q4 | 60 %, p50 0,75 s | `python3 bench/bench.py --target ...` |
+| tâches texte, 8B Q4 | 90 %, p50 0,67 s | même commande |
+| tâches image, 8B Q4 | 100 %, p50 0,94 s | `python3 scripts/vision_check.py` |
+| run pico, chemin court | 3 étapes, livrable en une minute | `docs/runs/live-pico/` |
+| run complet local-audit | 5 étapes, 4 à 6 minutes | `docs/runs/campagne-20261124.md` |
+
+## AMD et ROCm : la réponse honnête
+
+Vigie ne dépend d'aucun runtime GPU. Il parle à une API compatible OpenAI : Ollama, LM Studio, llama.cpp
+et vLLM exposent la même interface, et le changement de carte ne change pas une ligne de l'agent. Sur une
+Radeon R9700, Ollama en Vulkan ou ROCm expose le même endpoint, et `fit` calcule la taille du modèle avec
+la même règle.
+
+Ce qui n'est pas mesuré : le débit sur AMD, faute de carte. Aucun chiffre de tokens par seconde n'est donc
+publié pour cette plateforme, et il ne faut pas en attendre un ici avant que la carte soit branchée.

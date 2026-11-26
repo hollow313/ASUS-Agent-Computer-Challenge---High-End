@@ -1,5 +1,13 @@
 # Série de production : dix semaines de veille, zéro jour ouvré manqué
 
+> **Ce que ce document est, et ce qu'il n'est pas.** Les chiffres viennent d'une instance privée de
+> production, pas d'un run que vous pouvez refaire : le JSON est publié
+> ([`production/serie-2026.json`](production/serie-2026.json)), l'archive des briefings reste privée, et
+> **un seul briefing est reproduit intégralement** plus bas, le 25 novembre. Tout le reste est déclaratif.
+> Les runs reproductibles, eux, sont dans [`docs/runs/`](runs/) : trois exécutions du 25 novembre 2026,
+> avec leur journal et leur livrable. Un jury doit lire cette page comme une déclaration vérifiable sur un
+> point (le JSON) et non sur cinquante.
+
 Ce document ne décrit pas une démonstration : il publie les chiffres d'une **instance en production**,
 celle qui tourne tous les jours sur une machine personnelle depuis septembre 2026, et dont ce dépôt est
 la version distribuable. Le même planificateur, la même boucle, les mêmes sources.
@@ -128,6 +136,9 @@ tableau sur toute archive au même format.
 ```
 
 ---
+
+*Cette page décrit 50 runs, dont 1 briefing publié en entier et 3 runs publiés dans `docs/runs/`. Le reste
+n'est pas vérifiable par un tiers, et c'est écrit ici plutôt que découvert ailleurs.*
 
 *Cette série est proposée comme preuve de durée, en complément des runs reproductibles du dépôt. Elle
 répond à la seule fragilité que les examinateurs du concours ont relevée dans tous les paliers : un agent
