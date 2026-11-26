@@ -1,7 +1,7 @@
 PYTHON ?= python3
 PORT ?= 8080
 
-.PHONY: help scenarios run all test serve docker-build docker-run clean
+.PHONY: help scenarios run all test serve docker-build docker-run jury-check pico vision clean
 
 help:
 	@echo "make scenarios    liste les scénarios"
@@ -9,6 +9,7 @@ help:
 	@echo "make test         lance la suite de tests"
 	@echo "make serve        interface web sur http://localhost:$(PORT)"
 	@echo "make docker-build construit l'image"
+	@echo "make jury-check   tout ce qui est vérifiable hors ligne, en une page"
 	@echo "make docker-run   lance l'image sur le port $(PORT)"
 
 scenarios:
@@ -33,3 +34,12 @@ docker-run:
 
 clean:
 	rm -rf data __pycache__ agentdemo/__pycache__ tests/__pycache__
+
+jury-check:
+	$(PYTHON) scripts/jury_check.py
+
+pico:
+	$(PYTHON) -m agentdemo run --scenario pico
+
+vision:
+	$(PYTHON) scripts/vision_check.py

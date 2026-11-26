@@ -1,0 +1,23 @@
+{
+  "slug": "pico",
+  "title": "Le plus court chemin",
+  "blurb": "Un fichier, un outil de lecture, un livrable de cinq lignes. Fait pour tourner sur un modèle de 1,5 milliard, sans carte graphique, en moins de deux minutes.",
+  "objective": "Lis le fichier note.txt présent dans le bac à sable, puis écris pico.md : trois lignes de résumé et le nombre de mots du fichier.",
+  "tags": [
+    "court",
+    "sans GPU",
+    "premier contact"
+  ],
+  "max_steps": 4,
+  "network": {
+    "mode": "deny"
+  },
+  "exec": {},
+  "inputs": {},
+  "passes": [
+    {
+      "label": "run",
+      "cassette": "cassette.json"
+    }
+  ]
+}

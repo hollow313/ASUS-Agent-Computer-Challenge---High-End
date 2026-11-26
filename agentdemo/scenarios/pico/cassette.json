@@ -1,0 +1,28 @@
+[
+  {
+    "thought": "Je regarde ce que contient le bac à sable.",
+    "tool": "fs_list",
+    "args": {
+      "path": "."
+    }
+  },
+  {
+    "thought": "Je lis la note.",
+    "tool": "fs_read",
+    "args": {
+      "path": "note.txt"
+    }
+  },
+  {
+    "thought": "Trois incidents disque, remplacement jeudi : j'écris le résumé en trois lignes.",
+    "tool": "fs_write",
+    "args": {
+      "path": "pico.md",
+      "content": "# Note de passation, sauvegardes\n\n- Le serveur nas-02 a échoué trois fois cette semaine.\n- Cause probable : disque en fin de vie, secteur défaillant.\n- Décision : remplacement jeudi, sauvegarde complète avant.\n\nFichier source : 45 mots environ.\n"
+    }
+  },
+  {
+    "thought": "Livrable écrit, il nomme le fichier.",
+    "final": "pico.md écrit : trois lignes et le compte de mots."
+  }
+]

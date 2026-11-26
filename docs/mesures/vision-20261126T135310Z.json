@@ -1,0 +1,104 @@
+{
+  "date": "2026-11-26T13:53:10Z",
+  "model": "qwen/qwen3-vl-8b",
+  "base_url": "http://192.168.1.153:1234/v1",
+  "tasks": 10,
+  "passed": 10,
+  "score": "10/10",
+  "duration_s": 44.2,
+  "temperature": 0,
+  "grading": "correspondance exacte, accents et casse ignorés",
+  "results": [
+    {
+      "id": "cap-cartes",
+      "image": "cap-01.png",
+      "ok": true,
+      "answer": "3",
+      "expected": [
+        "3"
+      ]
+    },
+    {
+      "id": "cap-jour",
+      "image": "cap-02.png",
+      "ok": true,
+      "answer": "dimanche",
+      "expected": [
+        "dimanche"
+      ]
+    },
+    {
+      "id": "cap-lignes",
+      "image": "cap-03.png",
+      "ok": true,
+      "answer": "4",
+      "expected": [
+        "4"
+      ]
+    },
+    {
+      "id": "cap-bouton",
+      "image": "cap-04.png",
+      "ok": true,
+      "answer": "Relancer",
+      "expected": [
+        "relancer"
+      ]
+    },
+    {
+      "id": "cap-badge",
+      "image": "cap-05.png",
+      "ok": true,
+      "answer": "12",
+      "expected": [
+        "12"
+      ]
+    },
+    {
+      "id": "cap-titre",
+      "image": "cap-06.png",
+      "ok": true,
+      "answer": "Sauvegardes",
+      "expected": [
+        "sauvegardes"
+      ]
+    },
+    {
+      "id": "cap-volume",
+      "image": "cap-07.png",
+      "ok": true,
+      "answer": "1,8 To",
+      "expected": [
+        "1,8 to"
+      ]
+    },
+    {
+      "id": "cap-boutons",
+      "image": "cap-08.png",
+      "ok": true,
+      "answer": "2",
+      "expected": [
+        "2"
+      ]
+    },
+    {
+      "id": "cap-incident",
+      "image": "cap-09.png",
+      "ok": true,
+      "answer": "L'incident signalé dans l'encadré rouge est : **échec disque sur nas-02**.\n\nLes trois mots de l'incident sont :  \n**échec**, **disque**, **sur**.",
+      "expected": [
+        "echec disque",
+        "nas-02"
+      ]
+    },
+    {
+      "id": "cap-serveurs",
+      "image": "cap-10.png",
+      "ok": true,
+      "answer": "5",
+      "expected": [
+        "5"
+      ]
+    }
+  ]
+}

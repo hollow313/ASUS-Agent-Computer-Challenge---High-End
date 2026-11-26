@@ -50,6 +50,7 @@ class ScenarioTests(unittest.TestCase):
             "revue-contradictoire",
             "capture-audit",
             "cyber-brief-live",
+            "pico",
         },
         slugs
         )

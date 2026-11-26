@@ -1,4 +1,4 @@
-[**Français**](README.md) · [English](README.en.md)
+[**Français**](README.md) · [English](README.en.md) · [La version jury, une page](JURY.md)
 
 # Vigie
 
@@ -45,6 +45,16 @@ python3 -m agentdemo ask "classe les fichiers du dossier et écris un comparatif
 python3 -m agentdemo run --scenario cyber-brief  # un run complet, déterministe
 python3 -m agentdemo serve --port 8080           # la même chose avec l'interface
 python3 -m unittest discover -s tests            # 89 tests, trois secondes
+make jury-check                                   # tout ce qui est vérifiable, une page
+```
+
+Le plus court chemin, pour voir la boucle en deux minutes sur un petit modèle, sans carte graphique :
+
+```bash
+docker compose --profile ollama up -d
+docker compose exec ollama ollama pull qwen2.5:1.5b
+python3 -m agentdemo run --scenario pico --live --model qwen2.5:1.5b \
+  --base-url http://localhost:11434/v1
 ```
 
 La consigne libre est la porte d'entrée : une phrase, un livrable, ou un échec assumé. Les scénarios
@@ -196,6 +206,12 @@ LM Studio et Ollama acceptent déjà (deux parts, texte puis image) : la renvoye
 multiplierait les jetons d'entrée par le nombre d'étapes. L'outil `image_probe` lit l'en-tête du fichier
 et rend ce que le modèle ne sait pas compter de façon fiable (1440 x 900, poids, plafond à 1,5 Mo) sans
 aucune dépendance de traitement d'image. Le livrable, lui, doit citer une zone en pixels par constat.
+
+Le même calcul se refait chez vous, sans croire ce dépôt sur parole :
+
+```bash
+python3 scripts/vision_check.py --base-url http://127.0.0.1:1234/v1 --model qwen/qwen3-vl-8b
+```
 
 C'est le seul scénario où la réponse à la question « le modèle voit-il vraiment ? » se vérifie : dix
 captures, dix questions dont la réponse est dans l'image, notation exacte. **100 % sur la GTX 1060 3 Go**,

@@ -21,3 +21,4 @@ l'historique git avec leurs dossiers ; elles ne sont pas recopiées ici parce qu
 sur disque, et une ligne de journal sans dossier correspondant ne prouverait rien.
 | 2026-11-25 | done | 0 min 55 | 5 | briefing.md, 3 items | qwen/qwen3-vl-8b |
 | 2026-11-25 | done | 0 min 44 | 5 | briefing.md, 3 items | qwen/qwen3-vl-8b |
+| 2026-11-26 | absent | — | — | aucun (machine éteinte) | — |

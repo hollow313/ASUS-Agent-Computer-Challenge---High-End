@@ -1,4 +1,4 @@
-[Français](README.md) · [**English**](README.en.md)
+[Français](README.md) · [**English**](README.en.md) · [The jury page, one screen](JURY.en.md)
 
 # Vigie
 
@@ -46,6 +46,16 @@ python3 -m agentdemo scenarios                  # the nine scenarios
 python3 -m agentdemo run --scenario cyber-brief # one full, deterministic run
 python3 -m agentdemo serve --port 8080          # the same thing with the interface
 python3 -m unittest discover -s tests           # 89 tests, three seconds
+make jury-check                                  # everything verifiable, one page
+```
+
+The shortest path, to see the loop in two minutes on a small model, without a graphics card:
+
+```bash
+docker compose --profile ollama up -d
+docker compose exec ollama ollama pull qwen2.5:1.5b
+python3 -m agentdemo run --scenario pico --live --model qwen2.5:1.5b \
+  --base-url http://localhost:11434/v1
 ```
 
 ![Free instruction in the interface](docs/screenshot-ask.png)
@@ -190,6 +200,12 @@ Ollama already accept (two parts, text then image): sending it at every step wou
 by the number of steps. The `image_probe` tool reads the file header and returns what the model cannot
 count reliably (1440 x 900, weight, 1.5 MB cap) with no image processing dependency at all. The
 deliverable must cite a pixel region for every finding.
+
+The same computation can be redone at home, instead of taking this repository's word for it:
+
+```bash
+python3 scripts/vision_check.py --base-url http://127.0.0.1:1234/v1 --model qwen/qwen3-vl-8b
+```
 
 This is the one scenario where "does the model actually see?" can be checked: ten captures, ten questions
 whose answer is in the image, exact-match grading. **100 % on the GTX 1060 3 GB**, p50 0.94 s, 0 €. On text
