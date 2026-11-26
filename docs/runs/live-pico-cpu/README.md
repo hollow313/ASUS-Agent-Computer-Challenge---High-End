@@ -10,7 +10,7 @@ carte. C'est cette page qui remplace la phrase « conçu pour un 1,5B », qui n'
 | --- | --- | --- | --- |
 | `qwen2.5:1.5b-instruct` | NAS, CPU, sans GPU | boucle sur `fs_read`, arrêt `blocked` | 5 |
 | `qwen2.5:3b-instruct` | NAS, CPU, sans GPU | même boucle, arrêt `blocked` | 5 |
-| `llama3.2:3b`, avant correctif | NAS, CPU, sans GPU | arguments invalides deux fois, puis boucle, `blocked` | 6 |
+| `llama3.2:3b`, message clair sans tolérance | NAS, CPU, sans GPU | arguments invalides deux fois, puis boucle, `blocked` | 7 dont 3 erreurs |
 | **`llama3.2:3b`, après correctif** | **NAS, CPU, sans GPU** | **`done`, `pico.md` écrit, 3 min 14, deux essais sur deux** | 4 |
 | `qwen/qwen3-vl-8b` | carte 3 Go | `done`, `pico.md` écrit | 3 |
 
@@ -23,15 +23,16 @@ Journaux : [`journal-llama32-3b.json`](journal-llama32-3b.json) pour le run rete
 Le modèle envoyait `fs_write(path, content, max_chars)` : il recopiait un argument de `fs_read`. L'outil
 refusait l'appel, le modèle recommençait, puis se rabattait sur la lecture et bouclait.
 
-Deux corrections dans le moteur, toutes les deux visibles dans le journal :
+Deux corrections dans le moteur, et la deuxième a été trouvée parce que la première n'a pas suffi :
 
-- un argument inconnu n'est plus un refus : il est écarté et nommé dans l'observation,
-  `(argument ignoré : max_chars)`, et l'appel s'exécute avec ce qui reste ;
-- quand un appel est vraiment invalide, le message ne recopie plus l'erreur Python mais la signature
-  attendue, `Signature attendue : fs_write(path, content)`, ce qui donne au modèle de quoi se corriger.
+- **la première** remplace l'erreur Python par la signature attendue, `Signature attendue :
+  fs_write(path, content)`. Le journal de cet essai montre que c'est nécessaire mais pas suffisant : le
+  modèle refait le même appel fautif, puis retourne lire, et le run s'arrête en `blocked` avec trois
+  erreurs en sept étapes ;
+- **la seconde** écarte l'argument inconnu au lieu de refuser l'appel, et le nomme dans l'observation :
+  `(argument ignoré : max_chars)`. C'est celle qui débloque le run.
 
-Après ces deux changements, deux essais consécutifs terminent en quatre étapes, 194 secondes, même
-livrable.
+Après les deux, deux essais consécutifs terminent en quatre étapes, 194 secondes, même livrable.
 
 ## La commande
 
