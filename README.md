@@ -8,7 +8,7 @@ si le processus a été tué au milieu.
 
 [La présentation en vidéo](https://youtu.be/YlB1xpPlTnA) · **▶ [Le crash et la reprise, 20 s](docs/video/vigie-crash-resume.mp4)** · [Démo en 30 secondes](#en-trente-secondes) · [Les chiffres](#les-chiffres-mesurés) · [Les limites](#limites-assumées)
 
-**Vingt minutes devant vous ?** [`JURY.md`](JURY.md), 400 mots, chaque affirmation renvoie à un fichier ou à
+**Vingt minutes devant vous ?** [`JURY.md`](JURY.md), chaque affirmation renvoie à un fichier ou à
 une commande. Ce README est la version longue.
 
 **Le geste qui n'est pas dans les autres dossiers** : on tue le processus en pleine exécution, on le
