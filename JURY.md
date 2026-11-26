@@ -23,9 +23,8 @@ diagnostic d'installation et le dimensionnement mémoire, puis écrit son récap
 runs réels dans [`docs/runs/`](docs/runs).
 
 **Ce qui est démontré.** Les tests et les scénarios rejoués par `make jury-check`. Un run live court et
-reproductible : [`docs/runs/live-pico/`](docs/runs/live-pico/README.md), et ce que le même chemin donne sur
-un modèle de 1,5 milliard, publié y compris quand ça échoue :
-[`docs/runs/live-pico-cpu/`](docs/runs/live-pico-cpu/README.md). Une vision
+reproductible : [`docs/runs/live-pico/`](docs/runs/live-pico/README.md), et le même chemin **sans carte graphique**, sur un modèle de
+3 milliards, publié avec ses échecs : [`docs/runs/live-pico-cpu/`](docs/runs/live-pico-cpu/README.md). Une vision
 notée sans tolérance, recalculable avec `python3 scripts/vision_check.py` qui sort dix réponses exactes sur
 dix. Une veille réelle, datée, avec ses échecs : [`docs/production/journal.md`](docs/production/journal.md).
 

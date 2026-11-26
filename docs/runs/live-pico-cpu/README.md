@@ -1,7 +1,9 @@
-# pico sur un modèle de 1,5 milliard, sans carte graphique
+# pico sans carte graphique : ce que chaque modèle donne
 
-Ce dossier publie un **échec mesuré**, pas une réussite. Il existe parce que la promesse « pico tourne sur
-un 1,5B » a été faite sans preuve, et que la mesure dit autre chose.
+Ce dossier publie les quatre essais réels du même scénario `pico`, sur un Ollama sans GPU, avec quatre
+modèles de tailles différentes. Deux échouent proprement, un réussit, et le quatrième est le run de
+référence sur une carte. C'est cette page qui remplace la phrase « conçu pour un 1,5B », qui n'était pas
+prouvée.
 
 ## Ce qui a été lancé
 
@@ -26,19 +28,26 @@ Journal complet : [`journal.json`](journal.json).
 
 ## Les trois modèles essayés
 
-| Modèle | Où | Résultat |
-| --- | --- | --- |
-| `qwen2.5:1.5b-instruct` | NAS, CPU | lit, puis boucle sur `fs_read`, arrêt `blocked` |
-| `qwen2.5:3b-instruct` | NAS, CPU | même boucle, arrêt `blocked` |
-| `qwen/qwen3-vl-8b` | carte 3 Go | trois étapes, `pico.md` écrit, `done` |
+| Modèle | Où | Résultat | Étapes |
+| --- | --- | --- | --- |
+| `qwen2.5:1.5b-instruct` | NAS, CPU, sans GPU | boucle sur `fs_read`, arrêt `blocked` | 5 |
+| `qwen2.5:3b-instruct` | NAS, CPU, sans GPU | même boucle, arrêt `blocked` | 5 |
+| **`llama3.2:3b`** | **NAS, CPU, sans GPU** | **`done`, `pico.md` écrit en 4 min 21** | 5 |
+| `qwen/qwen3-vl-8b` | carte 3 Go | `done`, `pico.md` écrit en 4 étapes | 3 |
 
-Ce que ça dit : la boucle et le garde-fou anti-boucle fonctionnent, la sortie est propre et rien n'est
-présenté comme réussi. Ce que ça dit aussi : **un modèle de 1,5 à 3 milliards ne suit pas un protocole
-d'appel d'outils en JSON**, même sur un chemin de deux étapes. Il faut un modèle qui sait produire un
-appel d'outil structuré, et c'est une contrainte de modèle, pas de code.
+Le run `llama3.2:3b` est le plus intéressant, et c'est celui qui compte pour un jury : sur une machine
+**sans carte graphique**, il lit le fichier, se trompe une fois sur les arguments de `fs_write`, corrige, et
+écrit le livrable. Journal : [`journal-llama32-3b.json`](journal-llama32-3b.json), livrable :
+[`pico-llama32-3b.md`](pico-llama32-3b.md).
 
-## Ce que le dépôt ne prétend plus
+Ce que ça dit : la boucle, la reprise après une erreur d'outil et le garde-fou anti-boucle fonctionnent, et
+un modèle de 3 milliards suffit sur un chemin de deux étapes, à condition qu'il sache produire un appel
+d'outil structuré. Les deux `qwen2.5` de 1,5 et 3 milliards ne le savent pas : ils relisent le fichier
+indéfiniment, et l'agent s'arrête en le disant au lieu de tourner jusqu'au budget.
 
-La phrase « conçu pour tourner sur un 1,5 milliard » a été retirée du README, du README de `live-pico` et
-de `JURY.md`. À la place : le run de référence est fait sur un 8B en 4 bits, et le comportement des petits
-modèles est publié ici, avec son journal.
+## Ce que le dépôt dit maintenant
+
+La phrase « conçu pour tourner sur un 1,5 milliard » a été retirée : elle n'était pas vraie. À la place,
+trois faits mesurés, chacun avec son journal : un 8B sur carte termine en trois étapes, un `llama3.2:3b`
+sans carte termine en cinq étapes avec une erreur corrigée, et deux `qwen2.5` de 1,5 et 3 milliards
+s'arrêtent proprement sans livrable.

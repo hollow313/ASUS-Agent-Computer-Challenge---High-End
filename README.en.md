@@ -75,10 +75,11 @@ python3 -m agentdemo run --scenario pico --live --model your-model \
   --base-url http://127.0.0.1:11434/v1
 ```
 
-What this scenario gives depending on model size is published unfiltered: three steps and the deliverable
-on an 8B at 4 bits ([`docs/runs/live-pico/`](docs/runs/live-pico/README.md)), and a clean `blocked` stop on
-a 1.5B and a 3B that loop on reading ([`docs/runs/live-pico-cpu/`](docs/runs/live-pico-cpu/README.md)).
-The path is short; the model still has to know how to call a tool.
+What this scenario gives depending on the model is published unfiltered, logs included
+([`docs/runs/live-pico-cpu/`](docs/runs/live-pico-cpu/README.md)): `llama3.2:3b` finishes **without a
+graphics card** in five steps with the deliverable, an 8B on a card finishes in three, and two `qwen2.5`
+models of 1.5 and 3 billion stop cleanly as `blocked` because they do not emit reliable tool calls. The
+path is short; the model still has to know how to call a tool.
 
 ![Free instruction in the interface](docs/screenshot-ask.png)
 

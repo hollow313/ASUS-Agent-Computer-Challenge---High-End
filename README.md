@@ -75,11 +75,11 @@ python3 -m agentdemo run --scenario pico --live --model mon-modele \
   --base-url http://127.0.0.1:11434/v1
 ```
 
-Ce que ce scénario donne selon la taille du modèle est publié sans filtre : trois étapes et le livrable sur
-un 8B en 4 bits ([`docs/runs/live-pico/`](docs/runs/live-pico/README.md)), et un arrêt propre en `blocked`
-sur un 1,5B et un 3B qui boucle sur la lecture
-([`docs/runs/live-pico-cpu/`](docs/runs/live-pico-cpu/README.md)). Le chemin est court ; c'est le modèle
-qui doit savoir appeler un outil.
+Ce que ce scénario donne selon le modèle est publié sans filtre, journaux à l'appui
+([`docs/runs/live-pico-cpu/`](docs/runs/live-pico-cpu/README.md)) : `llama3.2:3b` termine **sans carte
+graphique** en cinq étapes avec le livrable, un 8B sur carte termine en trois, et deux `qwen2.5` de 1,5 et
+3 milliards s'arrêtent proprement en `blocked` parce qu'ils ne produisent pas d'appel d'outil fiable. Le
+chemin est court ; c'est le modèle qui doit savoir appeler un outil.
 
 La consigne libre est la porte d'entrée : une phrase, un livrable, ou un échec assumé. Les scénarios
 restent la démonstration reproductible.
