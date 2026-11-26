@@ -117,6 +117,15 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 1
     root = Path(args.out or DEFAULT_DATA_DIR)
     resume_state: Path | None = None
+    # un identifiant vide n'est pas une absence de reprise : c'est une erreur qui doit se voir,
+    # sinon un shell qui passe une variable vide relance un run complet en croyant reprendre
+    if getattr(args, "resume", None) is not None and not str(args.resume).strip():
+        print(
+            "reprise impossible : identifiant vide. Passe l'identifiant du run, ou retire --resume "
+            "pour démarrer un nouveau run.",
+            file=sys.stderr,
+        )
+        return 2
     if getattr(args, "resume", None):
         candidate = root / "runs" / str(args.resume) / "state.json"
         if not candidate.exists():

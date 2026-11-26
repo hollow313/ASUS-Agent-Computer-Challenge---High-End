@@ -1587,3 +1587,23 @@ class SandboxTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class ResumeArgumentTests(unittest.TestCase):
+    """Un identifiant de reprise vide doit être une erreur, pas un nouveau run silencieux."""
+
+    def test_empty_resume_id_is_refused(self) -> None:
+        import os
+        import subprocess
+        import sys
+        import tempfile
+        from pathlib import Path as _Path
+
+        with tempfile.TemporaryDirectory() as tmp:
+            env = dict(os.environ, AGENTDEMO_DATA_DIR=tmp, PYTHONPATH=str(_Path(__file__).resolve().parent.parent))
+            proc = subprocess.run(
+                [sys.executable, "-m", "agentdemo", "run", "--scenario", "cyber-brief", "--resume", ""],
+                capture_output=True, text=True, env=env, timeout=120,
+            )
+        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+        self.assertIn("identifiant vide", proc.stderr)
+
