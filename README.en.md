@@ -8,7 +8,7 @@ when the process was killed mid-run.
 
 [Watch the presentation](https://youtu.be/YlB1xpPlTnA) · **▶ [Crash and resume, 20 s](docs/video/vigie-crash-resume.mp4)** · [30-second demo](#in-thirty-seconds) · [The numbers](#the-measured-numbers) · [The limits](#limits-we-accept)
 
-**Twenty minutes to spare?** [`JURY.en.md`](JURY.en.md), 400 words, every claim points to a file or a
+**Twenty minutes to spare?** [`JURY.en.md`](JURY.en.md), every claim points to a file or a
 command. This README is the long version.
 
 **The move nobody else in this field shows**: the process is killed mid-run, restarted, and it picks up at
