@@ -8,6 +8,9 @@ si le processus a été tué au milieu.
 
 [La présentation en vidéo](https://youtu.be/YlB1xpPlTnA) · [Démo en 30 secondes](#en-trente-secondes) · [Les chiffres](#les-chiffres-mesurés) · [Les limites](#limites-assumées)
 
+**Vingt minutes devant vous ?** [`JURY.md`](JURY.md), 400 mots, chaque affirmation renvoie à un fichier ou à
+une commande. Ce README est la version longue.
+
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
@@ -18,7 +21,11 @@ si le processus a été tué au milieu.
 étaient pas : la demande libre en une phrase, la lecture d'images, et les déclencheurs par dossier ou par
 appel HTTP. Chaque ajout est daté dans le dépôt, avec sa mesure quand il y en a une.*
 
-**Candidature ASUS Agent Computer Challenge, catégorie High-End.** Vigie est la version distribuable de l'agent qui tourne sur ma machine depuis des mois ; ce dépôt en publie le cœur, sans mes données ni mes clés.
+**Candidature ASUS Agent Computer Challenge, catégorie High-End, carte 32 Go.** Vigie est la version
+distribuable de l'agent qui tourne sur ma machine depuis des mois ; ce dépôt en publie le cœur, sans mes
+données ni mes clés. Tout ce qui est mesuré ici l'a été sur une carte de 3 Go, faute de la carte visée : le
+code ne change pas de nature en passant à 32 Go, il change de modèle, et le dimensionnement est calculé, pas
+supposé.
 
 ## Sommaire
 
@@ -37,15 +44,21 @@ appel HTTP. Chaque ajout est daté dans le dépôt, avec sa mesure quand il y en
 
 ## En trente secondes
 
+Une commande, une sortie, une page : c'est tout ce qu'il y a à retenir.
+
 ```bash
 git clone https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End
 cd ASUS-Agent-Computer-Challenge---High-End
+make jury-check     # 89 tests, neuf scénarios, cassettes, diagnostic, fit 32 Go
+```
+
+Puis, si vous voulez voir l'agent travailler, sans clé et sans réseau :
+
+```bash
+python3 -m agentdemo run --scenario cyber-brief   # un run complet, déterministe
+python3 -m agentdemo serve --port 8080            # la même chose avec l'interface
 python3 -m agentdemo ask "classe les fichiers du dossier et écris un comparatif" \
-  --live --model qwen2.5-coder:7b --base-url http://127.0.0.1:11434/v1   # consigne libre
-python3 -m agentdemo run --scenario cyber-brief  # un run complet, déterministe
-python3 -m agentdemo serve --port 8080           # la même chose avec l'interface
-python3 -m unittest discover -s tests            # 89 tests, trois secondes
-make jury-check                                   # tout ce qui est vérifiable, une page
+  --live --model qwen2.5-coder:7b --base-url http://127.0.0.1:11434/v1
 ```
 
 Le plus court chemin, pour voir la boucle en deux minutes sur un petit modèle, sans carte graphique :

@@ -8,6 +8,9 @@ when the process was killed mid-run.
 
 [Watch the presentation](https://youtu.be/YlB1xpPlTnA) · [30-second demo](#in-thirty-seconds) · [The numbers](#the-measured-numbers) · [The limits](#limits-we-accept)
 
+**Twenty minutes to spare?** [`JURY.en.md`](JURY.en.md), 400 words, every claim points to a file or a
+command. This README is the long version.
+
 ![build](https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End/actions/workflows/docker-build.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-3b7ddd)
 ![dependencies](https://img.shields.io/badge/dependencies-none-2ea043)
@@ -18,7 +21,11 @@ when the process was killed mid-run.
 free-form instructions in one sentence, image reading, and triggers from a folder or an HTTP call. Every
 addition is dated in the repository, with its measurement where there is one.*
 
-**ASUS Agent Computer Challenge, High-End category.** Vigie is the distributable version of the agent that has been running on my machine for months; this repository publishes its core, without my data and without my keys.
+**ASUS Agent Computer Challenge, High-End category, 32 GB card.** Vigie is the distributable version of the
+agent that has been running on my machine for months; this repository publishes its core, without my data
+and without my keys. Everything measured here was measured on a 3 GB card, for lack of the target one: the
+code does not change nature when it moves to 32 GB, it changes model, and the sizing is computed, not
+assumed.
 
 ## Contents
 
@@ -37,16 +44,21 @@ addition is dated in the repository, with its measurement where there is one.*
 
 ## In thirty seconds
 
+One command, one output, one page: that is all there is to remember.
+
 ```bash
 git clone https://github.com/hollow313/ASUS-Agent-Computer-Challenge---High-End
 cd ASUS-Agent-Computer-Challenge---High-End
+make jury-check     # 89 tests, nine scenarios, cassettes, doctor, 32 GB sizing
+```
+
+Then, if you want to watch the agent work, with no key and no network:
+
+```bash
+python3 -m agentdemo run --scenario cyber-brief   # one full, deterministic run
+python3 -m agentdemo serve --port 8080            # the same thing with the interface
 python3 -m agentdemo ask "sort the files in this folder and write a comparison" \
   --live --model qwen2.5-coder:7b --base-url http://127.0.0.1:11434/v1   # free instruction
-python3 -m agentdemo scenarios                  # the nine scenarios
-python3 -m agentdemo run --scenario cyber-brief # one full, deterministic run
-python3 -m agentdemo serve --port 8080          # the same thing with the interface
-python3 -m unittest discover -s tests           # 89 tests, three seconds
-make jury-check                                  # everything verifiable, one page
 ```
 
 The shortest path, to see the loop in two minutes on a small model, without a graphics card:
