@@ -16,6 +16,6 @@ Le livrable est dans [`pico.md`](pico.md). Ce que ce run démontre : la boucle c
 sans réseau, sur un petit modèle. Ce qu'il ne démontre pas : la qualité de l'analyse, qui reste celle du
 modèle installé à côté.
 
-Ce même scénario est conçu pour tourner avec un modèle de 1,5 milliard sur 8 Go de RAM sans carte
-graphique. Le run publié ici a été produit sur un modèle plus gros : le chemin est le même, seules les
-latences changent.
+Ce run a été produit sur un modèle de 8 milliards en 4 bits. Ce que donne le même scénario sur un modèle
+plus petit est publié sans filtre dans [`../live-pico-cpu/`](../live-pico-cpu/README.md) : un 1,5B et un 3B
+lisent le fichier puis bouclent, et l'agent s'arrête proprement en `blocked`.

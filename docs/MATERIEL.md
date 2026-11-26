@@ -84,7 +84,8 @@ n'ai pas.
 | tâches texte, 7B Q4 | 60 %, p50 0,75 s | `python3 bench/bench.py --target ...` |
 | tâches texte, 8B Q4 | 90 %, p50 0,67 s | même commande |
 | tâches image, 8B Q4 | 100 %, p50 0,94 s | `python3 scripts/vision_check.py` |
-| run pico, chemin court | 3 étapes, livrable en une minute | `docs/runs/live-pico/` |
+| run pico, chemin court | 3 étapes, livrable, 8B Q4 | `docs/runs/live-pico/` |
+| run pico sur 1,5B et 3B | arrêt `blocked` après lecture : le petit modèle ne suit pas le protocole d'outil | `docs/runs/live-pico-cpu/` |
 | run complet local-audit | 5 étapes, 4 à 6 minutes | `docs/runs/campagne-20261124.md` |
 
 ## AMD et ROCm : la réponse honnête

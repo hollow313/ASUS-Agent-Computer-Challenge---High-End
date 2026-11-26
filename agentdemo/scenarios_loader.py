@@ -71,6 +71,7 @@ class Scenario:
     require_approval: bool = False
     vision: dict[str, Any] = field(default_factory=dict)
     bootstrap: list[dict[str, Any]] = field(default_factory=list)
+    tools: list[str] = field(default_factory=list)
     overridden: bool = False
 
     @property
@@ -171,6 +172,7 @@ class Scenario:
             "require_approval": self.require_approval,
             "vision": self.vision,
             "bootstrap": self.bootstrap,
+            "tools": self.tools,
             "builtin": self.builtin,
             "overridden": self.overridden,
             "user": str(self.root).startswith(str(user_scenarios_dir())),
@@ -218,6 +220,7 @@ def list_scenarios(dirs: list[Path] | None = None) -> list[Scenario]:
                     require_approval=bool(meta.get("require_approval")),
                     vision=dict(meta.get("vision") or {}),
                     bootstrap=[dict(item) for item in (meta.get("bootstrap") or []) if isinstance(item, dict)],
+                    tools=[str(item) for item in (meta.get("tools") or [])],
                     overridden=overridden,
                 )
             )
@@ -406,6 +409,7 @@ def scenario_detail(slug: str) -> dict[str, Any]:
         "require_approval": scenario.require_approval,
         "vision": scenario.vision,
         "bootstrap": scenario.bootstrap,
+        "tools": scenario.tools,
         "max_steps": scenario.max_steps,
         "objective": scenario.objective,
         "title": scenario.title,

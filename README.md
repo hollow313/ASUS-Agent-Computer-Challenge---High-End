@@ -67,14 +67,19 @@ python3 -m agentdemo ask "classe les fichiers du dossier et écris un comparatif
   --live --model qwen2.5-coder:7b --base-url http://127.0.0.1:11434/v1
 ```
 
-Le plus court chemin, pour voir la boucle en deux minutes sur un petit modèle, sans carte graphique :
+Le plus court chemin, pour voir la boucle en quelques étapes :
 
 ```bash
-docker compose --profile ollama up -d
-docker compose exec ollama ollama pull qwen2.5:1.5b
-python3 -m agentdemo run --scenario pico --live --model qwen2.5:1.5b \
-  --base-url http://localhost:11434/v1
+python3 -m agentdemo run --scenario pico            # replay, sans réseau
+python3 -m agentdemo run --scenario pico --live --model mon-modele \
+  --base-url http://127.0.0.1:11434/v1
 ```
+
+Ce que ce scénario donne selon la taille du modèle est publié sans filtre : trois étapes et le livrable sur
+un 8B en 4 bits ([`docs/runs/live-pico/`](docs/runs/live-pico/README.md)), et un arrêt propre en `blocked`
+sur un 1,5B et un 3B qui boucle sur la lecture
+([`docs/runs/live-pico-cpu/`](docs/runs/live-pico-cpu/README.md)). Le chemin est court ; c'est le modèle
+qui doit savoir appeler un outil.
 
 La consigne libre est la porte d'entrée : une phrase, un livrable, ou un échec assumé. Les scénarios
 restent la démonstration reproductible.

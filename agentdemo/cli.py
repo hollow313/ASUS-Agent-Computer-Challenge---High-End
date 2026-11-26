@@ -211,6 +211,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             approver=confirm,
             scenario=scenario.slug,
             bootstrap=scenario.bootstrap,
+            allowed_tools=scenario.tools,
             resume=resume_state if index == 0 else None,
             save_state=True,
             reviewer=reviewer,

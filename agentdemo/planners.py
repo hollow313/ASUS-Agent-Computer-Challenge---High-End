@@ -224,7 +224,12 @@ class OpenAICompatPlanner:
             {
                 "role": "user",
                 "content": (
-                    "Produis UN SEUL objet JSON, sans texte autour : "
+                    "Réponds par UN SEUL objet JSON, sans texte autour, sans balise de code. "
+                    'Exemple d\'appel : {"thought": "je lis le fichier", "tool": "fs_read", '
+                    '"args": {"path": "note.txt"}} — exemple de conclusion : '
+                    '{"thought": "c\'est écrit", "final": "pico.md écrit"}. '
+                    "Le nom des outils et leurs arguments sont ceux du catalogue, à la lettre. "
+                    "Format attendu : "
                     '{"thought": "...", "tool": "<nom>", "args": {...}} '
                     'ou {"thought": "...", "final": "<bilan>"} quand l\'objectif est atteint.'
                 ),

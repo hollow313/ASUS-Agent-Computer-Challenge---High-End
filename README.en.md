@@ -67,14 +67,18 @@ python3 -m agentdemo ask "sort the files in this folder and write a comparison" 
   --live --model qwen2.5-coder:7b --base-url http://127.0.0.1:11434/v1   # free instruction
 ```
 
-The shortest path, to see the loop in two minutes on a small model, without a graphics card:
+The shortest path, to see the loop in a few steps:
 
 ```bash
-docker compose --profile ollama up -d
-docker compose exec ollama ollama pull qwen2.5:1.5b
-python3 -m agentdemo run --scenario pico --live --model qwen2.5:1.5b \
-  --base-url http://localhost:11434/v1
+python3 -m agentdemo run --scenario pico            # replay, no network
+python3 -m agentdemo run --scenario pico --live --model your-model \
+  --base-url http://127.0.0.1:11434/v1
 ```
+
+What this scenario gives depending on model size is published unfiltered: three steps and the deliverable
+on an 8B at 4 bits ([`docs/runs/live-pico/`](docs/runs/live-pico/README.md)), and a clean `blocked` stop on
+a 1.5B and a 3B that loop on reading ([`docs/runs/live-pico-cpu/`](docs/runs/live-pico-cpu/README.md)).
+The path is short; the model still has to know how to call a tool.
 
 ![Free instruction in the interface](docs/screenshot-ask.png)
 

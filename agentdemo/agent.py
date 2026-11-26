@@ -117,6 +117,7 @@ class Agent:
         reviewer: Any = None,
         secrets: list[str] | None = None,
         bootstrap: list[dict[str, Any]] | None = None,
+        allowed_tools: list[str] | None = None,
     ) -> None:
         self.planner = planner
         self.workspace = Path(workspace)
@@ -138,6 +139,7 @@ class Agent:
         self.secrets = [str(item) for item in (secrets or []) if str(item)]
         # étapes imposées par le contrat du scénario, exécutées avant le premier tour du modèle
         self.bootstrap = [dict(item) for item in (bootstrap or []) if isinstance(item, dict)]
+        self.allowed_tools = [str(name) for name in (allowed_tools or [])]
 
     def _state_path(self, run_id: str) -> Path:
         return Path(self.runs_dir) / run_id / "state.json"
@@ -204,6 +206,10 @@ class Agent:
             runner=self.runner,
             events=result.events,
         )
+        if self.allowed_tools:
+            # un scénario peut restreindre son catalogue : sur un 1,5B, trente outils dans le prompt
+            # produisent des appels au hasard, trois outils produisent un run
+            tools = {name: tool for name, tool in tools.items() if name in self.allowed_tools}
         # le planner réel reçoit le catalogue de ce run (et non celui du parent)
         if hasattr(self.planner, "tools") and not getattr(self.planner, "tools", None):
             self.planner.tools = tools
@@ -436,8 +442,10 @@ class Agent:
             if repeats[signature] == 2 and not error:
                 # petit coup de coude avant de bloquer : le modèle tourne en rond sur un résultat connu
                 observation = (
-                    f"[relance] même appel que l'étape précédente, résultat identique. "
-                    f"Avance : écris le livrable ou conclus.\n{observation}"
+                    f"[relance] tu as déjà appelé {tool_name} avec ces arguments, le résultat est "
+                    f"identique et le relire ne sert à rien. N'appelle plus {tool_name} maintenant. "
+                    f"Appelle fs_write pour créer le livrable, ou réponds final si tu l'as déjà écrit.\n"
+                    f"{observation}"
                 )
                 step.observation = observation
             limite = 3 if error else 4

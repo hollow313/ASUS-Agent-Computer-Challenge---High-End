@@ -11,7 +11,7 @@ elle sort identique : c'est le point de départ d'une preuve, pas une capture d'
 | diagnostic d'installation | ok | prêt |
 | dimensionnement 32 Go | ok | qwen2.5-coder-32b 32.8 B Q4 30.4 Go 1.6 Go |
 
-Commit : `f2fdbba`
+Commit : `cdcddd8`
 
 ## Ce que cette page ne dit pas
 

@@ -1,14 +1,14 @@
 {
   "slug": "pico",
   "title": "Le plus court chemin",
-  "blurb": "Un fichier, un outil de lecture, un livrable de cinq lignes. Fait pour tourner sur un modèle de 1,5 milliard, sans carte graphique, en moins de deux minutes.",
-  "objective": "Lis le fichier note.txt présent dans le bac à sable, puis écris pico.md : trois lignes de résumé et le nombre de mots du fichier.",
+  "blurb": "Un fichier, un outil de lecture, un livrable de cinq lignes. Le plus court chemin pour voir la boucle ; mesuré sur un 8B, et publié tel quel sur un 1,5B.",
+  "objective": "Deux étapes, dans cet ordre. Première étape : appelle fs_read sur note.txt. Deuxième étape : appelle fs_write pour créer pico.md, avec un résumé de trois lignes et le nombre de mots du fichier. Ne relis pas le fichier deux fois, et ne réponds pas final avant d'avoir écrit pico.md.",
   "tags": [
     "court",
     "sans GPU",
     "premier contact"
   ],
-  "max_steps": 4,
+  "max_steps": 6,
   "network": {
     "mode": "deny"
   },
@@ -19,5 +19,10 @@
       "label": "run",
       "cassette": "cassette.json"
     }
+  ],
+  "tools": [
+    "fs_list",
+    "fs_read",
+    "fs_write"
   ]
 }
